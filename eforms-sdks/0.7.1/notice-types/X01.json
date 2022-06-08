@@ -1,0 +1,112 @@
+{
+  "ublVersion" : "2.3",
+  "sdkVersion" : "0.7.0",
+  "metadataDatabase" : {
+    "version" : "0.4.58",
+    "createdOn" : "2022-06-03T16:06:32"
+  },
+  "noticeId" : "X01",
+  "metadata" : {
+    "id" : "GR-Metadata",
+    "name" : "Metadata",
+    "content" : [ {
+      "id" : "BT-01-notice",
+      "name" : "Procedure Legal Basis",
+      "readOnly" : true
+    }, {
+      "id" : "BT-02-notice",
+      "name" : "Notice Type",
+      "readOnly" : true
+    }, {
+      "id" : "BT-03-notice",
+      "name" : "Form Type",
+      "readOnly" : true
+    }, {
+      "id" : "BT-701-notice",
+      "name" : "Notice Identifier",
+      "readOnly" : true
+    }, {
+      "id" : "BT-702(a)-notice",
+      "name" : "Notice Official Language",
+      "hidden" : true
+    }, {
+      "id" : "BT-702(b)-notice",
+      "name" : "Notice Official Language",
+      "hidden" : true
+    }, {
+      "id" : "BT-05(a)-notice",
+      "name" : "Notice Dispatch Date",
+      "hidden" : true
+    }, {
+      "id" : "BT-05(b)-notice",
+      "name" : "Notice Dispatch Date",
+      "hidden" : true
+    }, {
+      "id" : "OPT-001-notice",
+      "name" : "UBL Version",
+      "hidden" : true
+    }, {
+      "id" : "OPT-002-notice",
+      "name" : "Customization ID",
+      "readOnly" : true
+    }, {
+      "id" : "OPP-070-notice",
+      "name" : "Notice Subtype",
+      "readOnly" : true
+    } ]
+  },
+  "content" : {
+    "id" : "GR-Content",
+    "name" : "Content",
+    "content" : [ {
+      "id" : "GR-Business-Section",
+      "name" : "Notice",
+      "section" : true,
+      "content" : [ {
+        "id" : "OPP-100-Business",
+        "name" : "Notice Purpose"
+      }, {
+        "id" : "GR-Business-Party",
+        "name" : "Business Party",
+        "content" : [ {
+          "id" : "BT-500-Business",
+          "name" : "Official name"
+        }, {
+          "id" : "BT-501-Business-European",
+          "name" : "EU Registration Number"
+        }, {
+          "id" : "OPP-110-Business",
+          "name" : "Place of registration - Town"
+        }, {
+          "id" : "OPP-111-Business",
+          "name" : "Place of registration - Postcode"
+        }, {
+          "id" : "OPP-112-Business",
+          "name" : "Place of registration - Country"
+        }, {
+          "id" : "OPP-113-Business-European",
+          "name" : "Date of registration"
+        } ]
+      }, {
+        "id" : "GR-Business-Publication",
+        "name" : "Publication",
+        "content" : [ {
+          "id" : "OPP-120-Business",
+          "name" : "Name of Publication"
+        }, {
+          "id" : "OPP-121-Business",
+          "name" : "Title of the announcement"
+        }, {
+          "id" : "OPP-122-Business",
+          "name" : "URL of the announcement"
+        }, {
+          "id" : "OPP-123-Business",
+          "name" : "Date of publication"
+        } ]
+      }, {
+        "id" : "OPP-130-Business",
+        "name" : "Additional information"
+      } ]
+    } ]
+  }
+}

@@ -1,0 +1,143 @@
+html {
+  background-color: rgb(187, 187, 187);
+}
+
+body {
+	font-family: Arial, Helvetica Neue, Helvetica, sans-serif;
+  font-size: 14px;
+	line-height: 1.667;
+	color: #404040;
+  max-width: 1240px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 0;
+  background-color: #fff;
+  min-width: 360px;
+}
+
+#main {
+  background-color: #fff;
+}
+
+.main-part {
+  padding: 0.5em;
+}
+
+.top-bar {
+  align-items: center;
+  background-color: #004494;
+  padding: 0.5em;
+  text-align: center;
+  margin-top: 0;
+}
+
+.top-bar h1 {
+  font: normal normal 400 2rem/2.5rem Arial,sans-serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.notice-type {
+  font-size: 14px;
+  background-color: #004494;
+}
+
+.notice-type-submit-button {
+  padding: 1em;
+}
+
+.notice-type input:invalid {
+  border-color: red;
+}
+
+.notice-content {
+  background-color: #fff;
+  padding: 0.25em;
+  margin: 0.5em 0.25em 0.5em 0.25em;
+  display: block;
+}
+
+.notice-content-container:hover {
+  background-color: #ddd;
+  cursor: pointer;
+}
+
+.notice-content-title {
+  cursor: pointer;
+  user-select: none;
+}
+
+.notice-content-section {
+  border: solid 2px #000;
+}
+
+.notice-content-section-opened {
+  border: solid 1px #bbb !important;
+}
+
+.notice-content-non-section {
+}
+
+.notice-content-repeatable {
+  border: solid 1px #f0f;
+}
+
+.notice-content-field {
+  min-width: 21em;
+  border: solid 2px #000;
+}
+
+.notice-content-collapsed {
+  border: dashed 1px #049;
+}
+
+.notice-content-required::after {
+  content: " *";
+  color: red;
+}
+
+.notice-content-field-repeatable::after {
+  content: " [+]";
+}
+
+.notice-content-level1 .notice-content-header {
+  font-size: 1.4em;
+}
+.notice-content-level2 .notice-content-title {
+  font-size: 1.1em;
+}
+.notice-content-level3 .notice-content-title {
+  font-size: 1em;
+}
+.notice-content-level4 .notice-content-title {
+  font-size: 1em;
+}
+.notice-content-level5 .notice-content-title {
+  font-size: 1em;
+}
+.notice-content-level6 .notice-content-title {
+  font-size: 1em;
+}
+
+
+.editor-link {
+  color: #fff;
+  background-color: #339933;
+  padding: 0.5em;
+  text-decoration: none;
+  border-radius: 4px;
+}
+
+.editor-list {
+  list-style: none;
+}
+
+.editor-list li:not(:last-child) {
+  padding-bottom: 1em;
+}
+
+#editor-version-title {
+  font-size: 1.2rem;
+}
+

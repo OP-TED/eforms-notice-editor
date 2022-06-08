@@ -1,0 +1,1782 @@
+{
+  "ublVersion" : "2.3",
+  "sdkVersion" : "0.7.0",
+  "metadataDatabase" : {
+    "version" : "0.4.58",
+    "createdOn" : "2022-06-03T16:06:32"
+  },
+  "noticeId" : "31",
+  "metadata" : {
+    "id" : "GR-Metadata",
+    "name" : "Metadata",
+    "content" : [ {
+      "id" : "BT-02-notice",
+      "name" : "Notice Type",
+      "readOnly" : true
+    }, {
+      "id" : "BT-03-notice",
+      "name" : "Form Type",
+      "readOnly" : true
+    }, {
+      "id" : "BT-04-notice",
+      "name" : "Procedure Identifier",
+      "readOnly" : true
+    }, {
+      "id" : "BT-701-notice",
+      "name" : "Notice Identifier",
+      "readOnly" : true
+    }, {
+      "id" : "BT-757-notice",
+      "name" : "Notice Version",
+      "readOnly" : true
+    }, {
+      "id" : "BT-702(a)-notice",
+      "name" : "Notice Official Language",
+      "hidden" : true
+    }, {
+      "id" : "BT-702(b)-notice",
+      "name" : "Notice Official Language",
+      "hidden" : true
+    }, {
+      "id" : "BT-05(a)-notice",
+      "name" : "Notice Dispatch Date",
+      "hidden" : true
+    }, {
+      "id" : "BT-05(b)-notice",
+      "name" : "Notice Dispatch Date",
+      "hidden" : true
+    }, {
+      "id" : "BT-738-notice",
+      "name" : "Notice Publication Date Preferred",
+      "hidden" : true
+    }, {
+      "id" : "OPT-001-notice",
+      "name" : "UBL Version",
+      "hidden" : true
+    }, {
+      "id" : "OPT-002-notice",
+      "name" : "Customization ID",
+      "readOnly" : true
+    }, {
+      "id" : "OPP-070-notice",
+      "name" : "Notice Subtype",
+      "readOnly" : true
+    }, {
+      "id" : "OPP-010-notice",
+      "name" : "Notice Publication Number",
+      "hidden" : true
+    }, {
+      "id" : "OPP-011-notice",
+      "name" : "OJEU Identifier",
+      "hidden" : true
+    }, {
+      "id" : "OPP-012-notice",
+      "name" : "OJEU Publication Date",
+      "hidden" : true
+    }, {
+      "id" : "OPT-999",
+      "name" : "Dummy Tender Award Date",
+      "hidden" : true
+    } ]
+  },
+  "content" : {
+    "id" : "GR-Content",
+    "name" : "Content",
+    "content" : [ {
+      "id" : "GR-ContractingAuthority",
+      "name" : "Contracting Authority",
+      "section" : true,
+      "content" : [ {
+        "id" : "GR-ContractingAuthority-Buyer",
+        "name" : "Buyer",
+        "repeatable" : true,
+        "content" : [ {
+          "id" : "OPT-300-Procedure-Buyer",
+          "name" : "Buyer Technical Identifier Reference",
+          "references" : [ {
+            "groupId" : "GR-Organisations",
+            "fieldId" : "OPT-200-Organization-Company"
+          }, {
+            "groupId" : "GR-Touch-Point",
+            "fieldId" : "OPT-201-Organization-TouchPoint"
+          } ]
+        }, {
+          "id" : "BT-11-Procedure-Buyer",
+          "name" : "Buyer Legal Type"
+        }, {
+          "id" : "BT-740-Procedure-Buyer",
+          "name" : "Buyer Contracting Entity"
+        }, {
+          "id" : "BT-10-Procedure-Buyer",
+          "name" : "Activity Authority"
+        }, {
+          "id" : "BT-610-Procedure-Buyer",
+          "name" : "Activity Entity"
+        }, {
+          "id" : "BT-508-Procedure-Buyer",
+          "name" : "Buyer Profile URL"
+        } ]
+      }, {
+        "id" : "GR-Procedure-SProvider",
+        "name" : "Service Provider",
+        "repeatable" : true,
+        "content" : [ {
+          "id" : "OPT-300-Procedure-SProvider",
+          "name" : "Service Provider Technical Identifier Reference",
+          "references" : [ {
+            "groupId" : "GR-Organisations",
+            "fieldId" : "OPT-200-Organization-Company"
+          }, {
+            "groupId" : "GR-Touch-Point",
+            "fieldId" : "OPT-201-Organization-TouchPoint"
+          } ]
+        }, {
+          "id" : "OPT-030-Procedure-SProvider",
+          "name" : "Provided Service Type"
+        } ]
+      } ]
+    }, {
+      "id" : "GR-Procedure",
+      "name" : "Procedure",
+      "section" : true,
+      "content" : [ {
+        "id" : "GR-Procedure-Purpose",
+        "name" : "Purpose",
+        "section" : true,
+        "content" : [ {
+          "id" : "GR-Procedure-MainLegalBasis",
+          "name" : "Main Legal Basis",
+          "content" : [ {
+            "id" : "BT-01-notice",
+            "name" : "Procedure Legal Basis"
+          } ]
+        }, {
+          "id" : "GR-Procedure-LocalCrossBorderLaw",
+          "name" : "Local Law",
+          "content" : [ {
+            "id" : "BT-01(c)-Procedure",
+            "name" : "FIXME Legal Basis (ELI)"
+          }, {
+            "id" : "BT-01(d)-Procedure",
+            "name" : "Legal Basis (Text)"
+          } ]
+        }, {
+          "id" : "GR-Procedure-Description",
+          "name" : "Description",
+          "content" : [ {
+            "id" : "BT-22-Procedure",
+            "name" : "Internal Identifier"
+          }, {
+            "id" : "BT-21-Procedure",
+            "name" : "Title"
+          }, {
+            "id" : "BT-24-Procedure",
+            "name" : "Description"
+          }, {
+            "id" : "BT-23-Procedure",
+            "name" : "Main Nature"
+          }, {
+            "id" : "BT-531-Procedure",
+            "name" : "Additional Nature"
+          } ]
+        }, {
+          "id" : "GR-Procedure-Scope",
+          "name" : "Scope",
+          "content" : [ {
+            "id" : "BT-27-Procedure",
+            "name" : "Estimated Value"
+          }, {
+            "id" : "GR-Procedure-Scope-MainClassification",
+            "name" : "Main Classification",
+            "content" : [ {
+              "id" : "BT-26(m)-Procedure",
+              "name" : "FIXME Classification Type"
+            }, {
+              "id" : "BT-262-Procedure",
+              "name" : "FIXME Classification Code"
+            } ]
+          }, {
+            "id" : "GR-Procedure-Scope-AdditionalClassification",
+            "name" : "Additional Classification",
+            "repeatable" : true,
+            "content" : [ {
+              "id" : "BT-26(a)-Procedure",
+              "name" : "FIXME Classification Type"
+            }, {
+              "id" : "BT-263-Procedure",
+              "name" : "FIXME Classification Code"
+            } ]
+          } ]
+        }, {
+          "id" : "GR-Procedure-PlaceOfPerformance",
+          "name" : "Place of Performance",
+          "repeatable" : true,
+          "content" : [ {
+            "id" : "BT-5101(a)-Procedure",
+            "name" : " Street"
+          }, {
+            "id" : "BT-5101(b)-Procedure",
+            "name" : " Street"
+          }, {
+            "id" : "BT-5101(c)-Procedure",
+            "name" : " Street"
+          }, {
+            "id" : "BT-5131-Procedure",
+            "name" : "City"
+          }, {
+            "id" : "BT-5121-Procedure",
+            "name" : "Post Code"
+          }, {
+            "id" : "BT-5071-Procedure",
+            "name" : "FIXME Country Subdivision"
+          }, {
+            "id" : "BT-5141-Procedure",
+            "name" : "Place Performance Country Code"
+          }, {
+            "id" : "BT-727-Procedure",
+            "name" : " Services Other"
+          }, {
+            "id" : "BT-728-Procedure",
+            "name" : "Additional Information"
+          } ]
+        } ]
+      }, {
+        "id" : "GR-Procedure-TenderingTerms",
+        "name" : "Tendering Terms",
+        "section" : true,
+        "content" : [ {
+          "id" : "GR-Procedure-CrossBorderLaw",
+          "name" : "Cross Border Law",
+          "content" : [ {
+            "id" : "BT-09(a)-Procedure",
+            "name" : "Cross Border Law (ID)"
+          }, {
+            "id" : "BT-09(b)-Procedure",
+            "name" : "Cross Border Law (Description)"
+          } ]
+        } ]
+      }, {
+        "id" : "GR-Procedure-Procedure-subsection",
+        "name" : "Procedure",
+        "section" : true,
+        "content" : [ {
+          "id" : "GR-Procedure-Procedure",
+          "name" : "Procedure",
+          "content" : [ {
+            "id" : "BT-634-Procedure",
+            "name" : "Procurement Relaunch"
+          }, {
+            "id" : "BT-88-Procedure",
+            "name" : "Procedure Features"
+          }, {
+            "id" : "BT-105-Procedure",
+            "name" : "Procedure Type"
+          }, {
+            "id" : "BT-106-Procedure",
+            "name" : "Procedure Accelerated"
+          }, {
+            "id" : "BT-1351-Procedure",
+            "name" : "Procedure Accelerated Justification"
+          } ]
+        }, {
+          "id" : "GR-Procedure-DirectAward",
+          "name" : "Direct Award",
+          "content" : [ {
+            "id" : "BT-136-Procedure",
+            "name" : "Direct Award Justification Code"
+          }, {
+            "id" : "BT-135-Procedure",
+            "name" : "Direct Award Justification Text"
+          }, {
+            "id" : "BT-1252-Procedure",
+            "name" : "Direct Award Justification Previous Procedure Identifier"
+          } ]
+        }, {
+          "id" : "GR-Procedure-AdditionalInformation",
+          "name" : "Additional Information",
+          "content" : [ {
+            "id" : "BT-300-Procedure",
+            "name" : "Additional Information"
+          } ]
+        } ]
+      } ]
+    }, {
+      "id" : "GR-Lot",
+      "name" : "Lot",
+      "section" : true,
+      "repeatable" : true,
+      "content" : [ {
+        "id" : "GR-Lot-Purpose",
+        "name" : "Purpose",
+        "section" : true,
+        "content" : [ {
+          "id" : "BT-137-Lot",
+          "name" : "Purpose Lot Identifier",
+          "hidden" : true
+        }, {
+          "id" : "GR-Lot-PreviousPlanning",
+          "name" : "Previous Planning",
+          "repeatable" : true,
+          "content" : [ {
+            "id" : "BT-125(i)-Lot",
+            "name" : "Previous Planning Identifier"
+          }, {
+            "id" : "BT-1251-Lot",
+            "name" : "Previous Planning Part Identifier"
+          } ]
+        }, {
+          "id" : "GR-Lot-Description",
+          "name" : "Description",
+          "content" : [ {
+            "id" : "BT-22-Lot",
+            "name" : "Internal Identifier"
+          }, {
+            "id" : "BT-21-Lot",
+            "name" : "Title"
+          }, {
+            "id" : "BT-24-Lot",
+            "name" : "Description"
+          }, {
+            "id" : "BT-23-Lot",
+            "name" : "Main Nature"
+          }, {
+            "id" : "BT-531-Lot",
+            "name" : "Additional Nature"
+          } ]
+        }, {
+          "id" : "GR-Lot-Scope",
+          "name" : "Scope",
+          "content" : [ {
+            "id" : "BT-25-Lot",
+            "name" : "Quantity"
+          }, {
+            "id" : "BT-625-Lot",
+            "name" : "Unit"
+          }, {
+            "id" : "BT-27-Lot",
+            "name" : "Estimated Value"
+          }, {
+            "id" : "GR-Lot-Scope-MainClassification",
+            "name" : "Main Classification",
+            "content" : [ {
+              "id" : "BT-26(m)-Lot",
+              "name" : "FIXME Classification Type"
+            }, {
+              "id" : "BT-262-Lot",
+              "name" : "FIXME Classification Code"
+            } ]
+          }, {
+            "id" : "GR-Lot-Scope-AdditionalClassification",
+            "name" : "Additional Classification",
+            "repeatable" : true,
+            "content" : [ {
+              "id" : "BT-26(a)-Lot",
+              "name" : "FIXME Classification Type"
+            }, {
+              "id" : "BT-263-Lot",
+              "name" : "FIXME Classification Code"
+            } ]
+          } ]
+        }, {
+          "id" : "GR-Lot-ProcurementType",
+          "name" : "Procurement Type",
+          "content" : [ {
+            "id" : "BT-774-Lot",
+            "name" : "Green Procurement"
+          }, {
+            "id" : "BT-775-Lot",
+            "name" : "Social Procurement"
+          }, {
+            "id" : "BT-776-Lot",
+            "name" : "Innovative Procurement"
+          }, {
+            "id" : "GR-Lot-ProcurementType-Strategic",
+            "name" : "Strategic Procurement",
+            "content" : [ {
+              "id" : "BT-06-Lot",
+              "name" : "Strategic Procurement"
+            }, {
+              "id" : "BT-777-Lot",
+              "name" : "Strategic Procurement Description"
+            } ]
+          }, {
+            "id" : "GR-Lot-ProcurementType-Accessibility",
+            "name" : "Accessibility",
+            "content" : [ {
+              "id" : "BT-754-Lot",
+              "name" : "Accessibility"
+            }, {
+              "id" : "BT-755-Lot",
+              "name" : "Accessibility Justification"
+            } ]
+          } ]
+        }, {
+          "id" : "GR-Lot-PlaceOfPerformance",
+          "name" : "Place of Performance",
+          "repeatable" : true,
+          "content" : [ {
+            "id" : "BT-5101(a)-Lot",
+            "name" : " Street"
+          }, {
+            "id" : "BT-5101(b)-Lot",
+            "name" : " Street"
+          }, {
+            "id" : "BT-5101(c)-Lot",
+            "name" : " Street"
+          }, {
+            "id" : "BT-5131-Lot",
+            "name" : "City"
+          }, {
+            "id" : "BT-5121-Lot",
+            "name" : "Post Code"
+          }, {
+            "id" : "BT-5071-Lot",
+            "name" : "FIXME Country Subdivision"
+          }, {
+            "id" : "BT-5141-Lot",
+            "name" : "Place Performance Country Code"
+          }, {
+            "id" : "BT-727-Lot",
+            "name" : " Services Other"
+          }, {
+            "id" : "BT-728-Lot",
+            "name" : "Additional Information"
+          } ]
+        }, {
+          "id" : "GR-Lot-PlannedDuration",
+          "name" : "Planned Duration",
+          "content" : [ {
+            "id" : "GR-Lot-PlannedDuration-Dates",
+            "name" : "Duration Dates",
+            "content" : [ {
+              "id" : "BT-536-Lot",
+              "name" : "Duration Start Date"
+            }, {
+              "id" : "BT-537-Lot",
+              "name" : "Duration End Date"
+            } ]
+          }, {
+            "id" : "GR-Lot-PlannedDuration-Period",
+            "name" : "Duration Period",
+            "content" : [ {
+              "id" : "BT-36-Lot",
+              "name" : "FIXME Duration Period"
+            } ]
+          }, {
+            "id" : "BT-538-Lot",
+            "name" : "Duration Other"
+          } ]
+        }, {
+          "id" : "GR-Lot-ContractExtension",
+          "name" : "Contract Extension",
+          "content" : [ {
+            "id" : "BT-54-Lot",
+            "name" : "Options Description"
+          }, {
+            "id" : "BT-58-Lot",
+            "name" : "Renewal Maximum"
+          }, {
+            "id" : "BT-57-Lot",
+            "name" : "Renewal Description"
+          } ]
+        }, {
+          "id" : "GR-Lot-AuctionTerms",
+          "name" : "Auction Terms",
+          "content" : [ {
+            "id" : "BT-767-Lot",
+            "name" : "Electronic Auction"
+          } ]
+        }, {
+          "id" : "GR-Lot-EUFunds",
+          "name" : "EU Funds Availability",
+          "content" : [ {
+            "id" : "BT-60-Lot",
+            "name" : "EU Funds"
+          } ]
+        }, {
+          "id" : "GR-Lot-ContractingSystem",
+          "name" : "Contracting System / Technique",
+          "content" : [ {
+            "id" : "BT-765-Lot",
+            "name" : "Framework Agreement"
+          } ]
+        }, {
+          "id" : "GR-Lot-FrameworkAgreement",
+          "name" : "Framework Agreement",
+          "content" : [ {
+            "id" : "OPT-090-Lot",
+            "name" : "Buyer Categories",
+            "hidden" : true
+          }, {
+            "id" : "BT-111-Lot",
+            "name" : "FIXME Buyer Categories"
+          } ]
+        }, {
+          "id" : "GR-Lot-FiscalLegis",
+          "name" : "Fiscal Legislation",
+          "content" : [ {
+            "id" : "OPT-301-Lot-FiscalLegis",
+            "name" : "Fiscal Legislation Organization Technical Identifier Reference"
+          }, {
+            "id" : "OPT-110-Lot-FiscalLegis",
+            "name" : "Fiscal Legislation URL"
+          }, {
+            "id" : "OPT-111-Lot-FiscalLegis",
+            "name" : "Fiscal Legislation Document ID"
+          } ]
+        }, {
+          "id" : "GR-Lot-EnvironLegis",
+          "name" : "Environmental Legislation",
+          "content" : [ {
+            "id" : "OPT-301-Lot-EnvironLegis",
+            "name" : "Environmental Legislation Organization Technical Identifier Reference",
+            "references" : [ {
+              "groupId" : "GR-Organisations",
+              "fieldId" : "OPT-200-Organization-Company"
+            }, {
+              "groupId" : "GR-Touch-Point",
+              "fieldId" : "OPT-201-Organization-TouchPoint"
+            } ]
+          }, {
+            "id" : "OPT-120-Lot-EnvironLegis",
+            "name" : "Environmental Legislation URL"
+          }, {
+            "id" : "OPT-112-Lot-EnvironLegis",
+            "name" : "Environmental Legislation Document ID"
+          } ]
+        }, {
+          "id" : "GR-Lot-EmployLegis",
+          "name" : "Employment Legislation",
+          "content" : [ {
+            "id" : "OPT-301-Lot-EmployLegis",
+            "name" : "Employment Legislation Organization Technical Identifier Reference",
+            "references" : [ {
+              "groupId" : "GR-Organisations",
+              "fieldId" : "OPT-200-Organization-Company"
+            }, {
+              "groupId" : "GR-Touch-Point",
+              "fieldId" : "OPT-201-Organization-TouchPoint"
+            } ]
+          }, {
+            "id" : "OPT-130-Lot-EmployLegis",
+            "name" : "Employment Legislation URL"
+          }, {
+            "id" : "OPT-113-Lot-EmployLegis",
+            "name" : "Employment Legislation Document ID"
+          } ]
+        }, {
+          "id" : "GR-Lot-AdditionalInformation",
+          "name" : "Additional Information",
+          "content" : [ {
+            "id" : "BT-300-Lot",
+            "name" : "Additional Information"
+          } ]
+        } ]
+      }, {
+        "id" : "GR-Lot-TenderingTerms",
+        "name" : "Tendering Terms",
+        "section" : true,
+        "content" : [ {
+          "id" : "GR-Lot-AwardCriteria",
+          "name" : "Award Criteria",
+          "repeatable" : true,
+          "content" : [ {
+            "id" : "BT-733-Lot",
+            "name" : "FIXME Award Criteria Order Justification"
+          }, {
+            "id" : "BT-543-Lot",
+            "name" : "FIXME Award Criteria Complicated"
+          }, {
+            "id" : "GR-Lot-AwardCriteria-Criterion",
+            "name" : "Criterion",
+            "repeatable" : true,
+            "content" : [ {
+              "id" : "BT-5421-Lot",
+              "name" : "Award Criterion Number Weight"
+            }, {
+              "id" : "BT-5422-Lot",
+              "name" : "Award Criterion Number Fixed"
+            }, {
+              "id" : "BT-5423-Lot",
+              "name" : "Award Criterion Number Threshold"
+            }, {
+              "id" : "BT-541-Lot",
+              "name" : "Award Criterion Number"
+            }, {
+              "id" : "BT-539-Lot",
+              "name" : "FIXME Award Criterion Type"
+            }, {
+              "id" : "BT-734-Lot",
+              "name" : "Award Criterion Name"
+            }, {
+              "id" : "BT-540-Lot",
+              "name" : "Award Criterion Description"
+            } ]
+          } ]
+        } ]
+      }, {
+        "id" : "GR-Lot-SubmissionInfo",
+        "name" : "Submission Info",
+        "section" : true,
+        "content" : [ {
+          "id" : "GR-Lot-Procedure",
+          "name" : "Procedure",
+          "content" : [ {
+            "id" : "BT-634-Lot",
+            "name" : "Procurement Relaunch"
+          } ]
+        }, {
+          "id" : "GR-Lot-AddInfo",
+          "name" : "Additional Information Providing Organisation",
+          "content" : [ {
+            "id" : "OPT-301-Lot-AddInfo",
+            "name" : "Additional Info Provider Technical Identifier Reference",
+            "references" : [ {
+              "groupId" : "GR-Organisations",
+              "fieldId" : "OPT-200-Organization-Company"
+            }, {
+              "groupId" : "GR-Touch-Point",
+              "fieldId" : "OPT-201-Organization-TouchPoint"
+            } ]
+          } ]
+        }, {
+          "id" : "GR-Lot-DocProvider",
+          "name" : "Documents Providing Organisation",
+          "content" : [ {
+            "id" : "OPT-301-Lot-DocProvider",
+            "name" : "Document Provider Technical Identifier Reference",
+            "references" : [ {
+              "groupId" : "GR-Organisations",
+              "fieldId" : "OPT-200-Organization-Company"
+            }, {
+              "groupId" : "GR-Touch-Point",
+              "fieldId" : "OPT-201-Organization-TouchPoint"
+            } ]
+          } ]
+        } ]
+      }, {
+        "id" : "GR-Lot-Review",
+        "name" : "Review",
+        "section" : true,
+        "content" : [ {
+          "id" : "GR-Lot-Deadline",
+          "name" : "Review Deadlines",
+          "content" : [ {
+            "id" : "BT-99-Lot",
+            "name" : "Review Deadline Description"
+          } ]
+        }, {
+          "id" : "GR-Lot-ReviewOrg",
+          "name" : "Review Organisation",
+          "content" : [ {
+            "id" : "OPT-301-Lot-ReviewOrg",
+            "name" : "Review Organization Technical Identifier Reference",
+            "references" : [ {
+              "groupId" : "GR-Organisations",
+              "fieldId" : "OPT-200-Organization-Company"
+            }, {
+              "groupId" : "GR-Touch-Point",
+              "fieldId" : "OPT-201-Organization-TouchPoint"
+            } ]
+          } ]
+        }, {
+          "id" : "GR-Lot-ReviewInfo",
+          "name" : "Review Information Providing Organisation",
+          "content" : [ {
+            "id" : "OPT-301-Lot-ReviewInfo",
+            "name" : "Review Info Provider Technical Identifier Reference",
+            "references" : [ {
+              "groupId" : "GR-Organisations",
+              "fieldId" : "OPT-200-Organization-Company"
+            }, {
+              "groupId" : "GR-Touch-Point",
+              "fieldId" : "OPT-201-Organization-TouchPoint"
+            } ]
+          } ]
+        }, {
+          "id" : "GR-Lot-Mediator",
+          "name" : "Mediation Organisation",
+          "content" : [ {
+            "id" : "OPT-301-Lot-Mediator",
+            "name" : "Mediator Technical Identifier Reference",
+            "references" : [ {
+              "groupId" : "GR-Organisations",
+              "fieldId" : "OPT-200-Organization-Company"
+            }, {
+              "groupId" : "GR-Touch-Point",
+              "fieldId" : "OPT-201-Organization-TouchPoint"
+            } ]
+          } ]
+        } ]
+      } ]
+    }, {
+      "id" : "GR-LotsGroup",
+      "name" : "Group",
+      "section" : true,
+      "repeatable" : true,
+      "content" : [ {
+        "id" : "GR-LotsGroup-Purpose",
+        "name" : "Purpose",
+        "section" : true,
+        "content" : [ {
+          "id" : "BT-137-LotsGroup",
+          "name" : "Purpose Lot Identifier",
+          "hidden" : true
+        }, {
+          "id" : "GR-LotsGroup-Description",
+          "name" : "Description",
+          "content" : [ {
+            "id" : "BT-22-LotsGroup",
+            "name" : "Internal Identifier"
+          }, {
+            "id" : "BT-21-LotsGroup",
+            "name" : "Title"
+          }, {
+            "id" : "BT-24-LotsGroup",
+            "name" : "Description"
+          } ]
+        }, {
+          "id" : "GR-LotsGroup-Scope",
+          "name" : "Scope",
+          "content" : [ {
+            "id" : "BT-27-LotsGroup",
+            "name" : "Estimated Value"
+          } ]
+        }, {
+          "id" : "GR-LotsGroup-FrameworkAgreement",
+          "name" : "Framework Agreement",
+          "content" : [ {
+            "id" : "BT-157-LotsGroup",
+            "name" : "Group Estimated Maximum Value"
+          }, {
+            "id" : "OPT-090-LotsGroup",
+            "name" : "Buyer Categories",
+            "hidden" : true
+          } ]
+        }, {
+          "id" : "GR-LotsGroup-AdditionalInformation",
+          "name" : "Additional Information",
+          "content" : [ {
+            "id" : "BT-300-LotsGroup",
+            "name" : "Additional Information"
+          } ]
+        } ]
+      }, {
+        "id" : "GR-LotsGroup-TenderingTerms",
+        "name" : "Tendering Terms",
+        "section" : true,
+        "content" : [ {
+          "id" : "GR-LotsGroup-AwardCriteria",
+          "name" : "Award Criteria",
+          "repeatable" : true,
+          "content" : [ {
+            "id" : "BT-733-LotsGroup",
+            "name" : "FIXME Award Criteria Order Justification"
+          }, {
+            "id" : "BT-543-LotsGroup",
+            "name" : "FIXME Award Criteria Complicated"
+          }, {
+            "id" : "GR-LotsGroup-AwardCriteria-Criterion",
+            "name" : "Criterion",
+            "repeatable" : true,
+            "content" : [ {
+              "id" : "BT-5421-LotsGroup",
+              "name" : "Award Criterion Number Weight"
+            }, {
+              "id" : "BT-5422-LotsGroup",
+              "name" : "Award Criterion Number Fixed"
+            }, {
+              "id" : "BT-5423-LotsGroup",
+              "name" : "Award Criterion Number Threshold"
+            }, {
+              "id" : "BT-541-LotsGroup",
+              "name" : "Award Criterion Number"
+            }, {
+              "id" : "BT-539-LotsGroup",
+              "name" : "FIXME Award Criterion Type"
+            }, {
+              "id" : "BT-734-LotsGroup",
+              "name" : "Award Criterion Name"
+            }, {
+              "id" : "BT-540-LotsGroup",
+              "name" : "Award Criterion Description"
+            } ]
+          } ]
+        } ]
+      } ]
+    }, {
+      "id" : "GR-Result",
+      "name" : "Result",
+      "section" : true,
+      "content" : [ {
+        "id" : "GR-NoticeResult-Section",
+        "name" : "Notice Result",
+        "section" : true,
+        "content" : [ {
+          "id" : "BT-161-NoticeResult",
+          "name" : "Notice Value"
+        }, {
+          "id" : "GR-Unpublish-BT-161",
+          "name" : "Unpublish - BT-161",
+          "collapsed" : true,
+          "content" : [ {
+            "id" : "BT-195(BT-161)-NoticeResult",
+            "name" : "Unpublished Identification"
+          }, {
+            "id" : "BT-196(BT-161)-NoticeResult",
+            "name" : "Unpublished Justification Description"
+          }, {
+            "id" : "BT-197(BT-161)-NoticeResult",
+            "name" : "Unpublished Justification Code"
+          }, {
+            "id" : "BT-198(BT-161)-NoticeResult",
+            "name" : "Unpublished Accessibility Date"
+          } ]
+        }, {
+          "id" : "BT-118-NoticeResult",
+          "name" : "Notice Framework Value"
+        }, {
+          "id" : "GR-Unpublish-BT-118",
+          "name" : "Unpublish - BT-118",
+          "collapsed" : true,
+          "content" : [ {
+            "id" : "BT-195(BT-118)-NoticeResult",
+            "name" : "Unpublished Identification"
+          }, {
+            "id" : "BT-196(BT-118)-NoticeResult",
+            "name" : "Unpublished Justification Description"
+          }, {
+            "id" : "BT-197(BT-118)-NoticeResult",
+            "name" : "Unpublished Justification Code"
+          }, {
+            "id" : "BT-198(BT-118)-NoticeResult",
+            "name" : "Unpublished Accessibility Date"
+          } ]
+        }, {
+          "id" : "GR-GroupFramework",
+          "name" : "Group Framework",
+          "repeatable" : true,
+          "content" : [ {
+            "id" : "BT-556-NoticeResult",
+            "name" : "Group Framework Value Lot Identifier",
+            "references" : [ {
+              "groupId" : "GR-LotsGroup",
+              "fieldId" : "BT-137-LotsGroup"
+            } ]
+          }, {
+            "id" : "GR-Unpublish-BT-556",
+            "name" : "Unpublish - BT-556",
+            "collapsed" : true,
+            "content" : [ {
+              "id" : "BT-195(BT-556)-NoticeResult",
+              "name" : "Unpublished Identification"
+            }, {
+              "id" : "BT-196(BT-556)-NoticeResult",
+              "name" : "Unpublished Justification Description"
+            }, {
+              "id" : "BT-197(BT-556)-NoticeResult",
+              "name" : "Unpublished Justification Code"
+            }, {
+              "id" : "BT-198(BT-556)-NoticeResult",
+              "name" : "Unpublished Accessibility Date"
+            } ]
+          }, {
+            "id" : "BT-156-NoticeResult",
+            "name" : "Group Framework Value"
+          }, {
+            "id" : "GR-Unpublish-BT-156",
+            "name" : "Unpublish - BT-156",
+            "collapsed" : true,
+            "content" : [ {
+              "id" : "BT-195(BT-156)-NoticeResult",
+              "name" : "Unpublished Identification"
+            }, {
+              "id" : "BT-196(BT-156)-NoticeResult",
+              "name" : "Unpublished Justification Description"
+            }, {
+              "id" : "BT-197(BT-156)-NoticeResult",
+              "name" : "Unpublished Justification Code"
+            }, {
+              "id" : "BT-198(BT-156)-NoticeResult",
+              "name" : "Unpublished Accessibility Date"
+            } ]
+          } ]
+        } ]
+      }, {
+        "id" : "GR-LotResult-Section",
+        "name" : "Lot Results",
+        "section" : true,
+        "content" : [ {
+          "id" : "GR-LotResult",
+          "name" : "Lot Result",
+          "repeatable" : true,
+          "content" : [ {
+            "id" : "GR-Winner",
+            "name" : "Winner",
+            "content" : [ {
+              "id" : "BT-142-LotResult",
+              "name" : "Winner Chosen"
+            }, {
+              "id" : "GR-Unpublish-BT-142",
+              "name" : "Unpublish - BT-142",
+              "collapsed" : true,
+              "content" : [ {
+                "id" : "BT-195(BT-142)-LotResult",
+                "name" : "Unpublished Identification"
+              }, {
+                "id" : "BT-196(BT-142)-LotResult",
+                "name" : "Unpublished Justification Description"
+              }, {
+                "id" : "BT-197(BT-142)-LotResult",
+                "name" : "Unpublished Justification Code"
+              }, {
+                "id" : "BT-198(BT-142)-LotResult",
+                "name" : "Unpublished Accessibility Date"
+              } ]
+            }, {
+              "id" : "BT-144-LotResult",
+              "name" : "Not Awarded Reason"
+            }, {
+              "id" : "GR-Unpublish-BT-144",
+              "name" : "Unpublish - BT-144",
+              "collapsed" : true,
+              "content" : [ {
+                "id" : "BT-195(BT-144)-LotResult",
+                "name" : "Unpublished Identification"
+              }, {
+                "id" : "BT-196(BT-144)-LotResult",
+                "name" : "Unpublished Justification Description"
+              }, {
+                "id" : "BT-197(BT-144)-LotResult",
+                "name" : "Unpublished Justification Code"
+              }, {
+                "id" : "BT-198(BT-144)-LotResult",
+                "name" : "Unpublished Accessibility Date"
+              } ]
+            } ]
+          }, {
+            "id" : "GR-LotResult-1",
+            "name" : "LotResult 1",
+            "content" : [ {
+              "id" : "BT-13713-LotResult",
+              "name" : "Result Lot Identifier",
+              "references" : [ {
+                "groupId" : "GR-Lot",
+                "fieldId" : "BT-137-Lot"
+              } ]
+            }, {
+              "id" : "OPT-320-LotResult",
+              "name" : "Tender Identifier Reference",
+              "references" : [ {
+                "groupId" : "GR-LotTender",
+                "fieldId" : "OPT-321-Tender"
+              } ]
+            }, {
+              "id" : "OPT-315-LotResult",
+              "name" : "Contract Identifier Reference",
+              "references" : [ {
+                "groupId" : "GR-SettledContract",
+                "fieldId" : "OPT-316-Contract"
+              } ]
+            } ]
+          }, {
+            "id" : "GR-LotResult-2",
+            "name" : "LotResult 2",
+            "content" : [ {
+              "id" : "BT-660-LotResult",
+              "name" : "Framework Estimated Value"
+            }, {
+              "id" : "BT-709-LotResult",
+              "name" : "Framework Maximum Value"
+            }, {
+              "id" : "GR-Unpublish-BT-709",
+              "name" : "Unpublish - BT-709",
+              "collapsed" : true,
+              "content" : [ {
+                "id" : "BT-195(BT-709)-LotResult",
+                "name" : "Unpublished Identification"
+              }, {
+                "id" : "BT-196(BT-709)-LotResult",
+                "name" : "Unpublished Justification Description"
+              }, {
+                "id" : "BT-197(BT-709)-LotResult",
+                "name" : "Unpublished Justification Code"
+              }, {
+                "id" : "BT-198(BT-709)-LotResult",
+                "name" : "Unpublished Accessibility Date"
+              } ]
+            }, {
+              "id" : "OPT-155-LotResult",
+              "name" : "Vehicle Type"
+            }, {
+              "id" : "OPT-156-LotResult",
+              "name" : "Vehicle Numeric"
+            } ]
+          }, {
+            "id" : "GR-LotResult-Parties",
+            "name" : "Parties",
+            "content" : [ {
+              "id" : "OPT-301-LotResult-Financing",
+              "name" : "Financing Party (ID reference)",
+              "references" : [ {
+                "groupId" : "GR-Organisations",
+                "fieldId" : "OPT-200-Organization-Company"
+              }, {
+                "groupId" : "GR-Touch-Point",
+                "fieldId" : "OPT-201-Organization-TouchPoint"
+              } ]
+            }, {
+              "id" : "OPT-301-LotResult-Paying",
+              "name" : "Payer Party (ID reference)",
+              "references" : [ {
+                "groupId" : "GR-Organisations",
+                "fieldId" : "OPT-200-Organization-Company"
+              }, {
+                "groupId" : "GR-Touch-Point",
+                "fieldId" : "OPT-201-Organization-TouchPoint"
+              } ]
+            } ]
+          }, {
+            "id" : "GR-LotResult-TenderValue",
+            "name" : "Tender Value",
+            "content" : [ {
+              "id" : "BT-710-LotResult",
+              "name" : "Tender Value Lowest"
+            }, {
+              "id" : "GR-Unpublish-BT-710",
+              "name" : "Unpublish - BT-710",
+              "collapsed" : true,
+              "content" : [ {
+                "id" : "BT-195(BT-710)-LotResult",
+                "name" : "Unpublished Identification"
+              }, {
+                "id" : "BT-196(BT-710)-LotResult",
+                "name" : "Unpublished Justification Description"
+              }, {
+                "id" : "BT-197(BT-710)-LotResult",
+                "name" : "Unpublished Justification Code"
+              }, {
+                "id" : "BT-198(BT-710)-LotResult",
+                "name" : "Unpublished Accessibility Date"
+              } ]
+            }, {
+              "id" : "BT-711-LotResult",
+              "name" : "Tender Value Highest"
+            }, {
+              "id" : "GR-Unpublish-BT-711",
+              "name" : "Unpublish - BT-711",
+              "collapsed" : true,
+              "content" : [ {
+                "id" : "BT-195(BT-711)-LotResult",
+                "name" : "Unpublished Identification"
+              }, {
+                "id" : "BT-196(BT-711)-LotResult",
+                "name" : "Unpublished Justification Description"
+              }, {
+                "id" : "BT-197(BT-711)-LotResult",
+                "name" : "Unpublished Justification Code"
+              }, {
+                "id" : "BT-198(BT-711)-LotResult",
+                "name" : "Unpublished Accessibility Date"
+              } ]
+            } ]
+          }, {
+            "id" : "GR-LotResult-ReviewRequests",
+            "name" : "Review Requests",
+            "repeatable" : true,
+            "content" : [ {
+              "id" : "BT-636-LotResult",
+              "name" : "Buyer Review Requets Irregularity Type"
+            }, {
+              "id" : "BT-635-LotResult",
+              "name" : "Buyer Review Requets Count"
+            } ]
+          }, {
+            "id" : "GR-LotResult-ReviewComplainants",
+            "name" : "Review Complainants",
+            "repeatable" : true,
+            "content" : [ {
+              "id" : "BT-712(a)-LotResult",
+              "name" : "Buyer Review Complainants (Code)"
+            }, {
+              "id" : "BT-712(b)-LotResult",
+              "name" : "Buyer Review Complainants (Number)"
+            }, {
+              "id" : "GR-Unpublish-BT-712",
+              "name" : "Unpublish - BT-712",
+              "collapsed" : true,
+              "content" : [ {
+                "id" : "BT-195(BT-712)-LotResult",
+                "name" : "Unpublished Identification"
+              }, {
+                "id" : "BT-196(BT-712)-LotResult",
+                "name" : "Unpublished Justification Description"
+              }, {
+                "id" : "BT-197(BT-712)-LotResult",
+                "name" : "Unpublished Justification Code"
+              }, {
+                "id" : "BT-198(BT-712)-LotResult",
+                "name" : "Unpublished Accessibility Date"
+              } ]
+            } ]
+          }, {
+            "id" : "GR-LotResult-ReceivedSubmissions",
+            "name" : "Received Submissions",
+            "repeatable" : true,
+            "content" : [ {
+              "id" : "BT-760-LotResult",
+              "name" : "Received Submissions Type"
+            }, {
+              "id" : "GR-Unpublish-BT-760",
+              "name" : "Unpublish - BT-760",
+              "collapsed" : true,
+              "content" : [ {
+                "id" : "BT-195(BT-760)-LotResult",
+                "name" : "Unpublished Identification"
+              }, {
+                "id" : "BT-196(BT-760)-LotResult",
+                "name" : "Unpublished Justification Description"
+              }, {
+                "id" : "BT-197(BT-760)-LotResult",
+                "name" : "Unpublished Justification Code"
+              }, {
+                "id" : "BT-198(BT-760)-LotResult",
+                "name" : "Unpublished Accessibility Date"
+              } ]
+            }, {
+              "id" : "BT-759-LotResult",
+              "name" : "Received Submissions Count"
+            }, {
+              "id" : "GR-Unpublish-BT-759",
+              "name" : "Unpublish - BT-759",
+              "collapsed" : true,
+              "content" : [ {
+                "id" : "BT-195(BT-759)-LotResult",
+                "name" : "Unpublished Identification"
+              }, {
+                "id" : "BT-196(BT-759)-LotResult",
+                "name" : "Unpublished Justification Description"
+              }, {
+                "id" : "BT-197(BT-759)-LotResult",
+                "name" : "Unpublished Justification Code"
+              }, {
+                "id" : "BT-198(BT-759)-LotResult",
+                "name" : "Unpublished Accessibility Date"
+              } ]
+            } ]
+          } ]
+        } ]
+      }, {
+        "id" : "GR-LotTender-Section",
+        "name" : "Lot Tenders",
+        "section" : true,
+        "content" : [ {
+          "id" : "GR-LotTender",
+          "name" : "Lot Tender",
+          "repeatable" : true,
+          "content" : [ {
+            "id" : "GR-Tender",
+            "name" : "Tender",
+            "content" : [ {
+              "id" : "OPT-321-Tender",
+              "name" : "Tender Technical Identifier",
+              "hidden" : true
+            }, {
+              "id" : "BT-3201-Tender",
+              "name" : "Tender Identifier"
+            }, {
+              "id" : "BT-171-Tender",
+              "name" : "Tender Rank"
+            }, {
+              "id" : "GR-Unpublish-BT-171",
+              "name" : "Unpublish - BT-171",
+              "collapsed" : true,
+              "content" : [ {
+                "id" : "BT-195(BT-171)-Tender",
+                "name" : "Unpublished Identification"
+              }, {
+                "id" : "BT-196(BT-171)-Tender",
+                "name" : "Unpublished Justification Description"
+              }, {
+                "id" : "BT-197(BT-171)-Tender",
+                "name" : "Unpublished Justification Code"
+              }, {
+                "id" : "BT-198(BT-171)-Tender",
+                "name" : "Unpublished Accessibility Date"
+              } ]
+            }, {
+              "id" : "BT-193-Tender",
+              "name" : "Tender Variant"
+            }, {
+              "id" : "GR-Unpublish-BT-193",
+              "name" : "Unpublish - BT-193",
+              "collapsed" : true,
+              "content" : [ {
+                "id" : "BT-195(BT-193)-Tender",
+                "name" : "Unpublished Identification"
+              }, {
+                "id" : "BT-196(BT-193)-Tender",
+                "name" : "Unpublished Justification Description"
+              }, {
+                "id" : "BT-197(BT-193)-Tender",
+                "name" : "Unpublished Justification Code"
+              }, {
+                "id" : "BT-198(BT-193)-Tender",
+                "name" : "Unpublished Accessibility Date"
+              } ]
+            }, {
+              "id" : "BT-720-Tender",
+              "name" : "Tender Value"
+            }, {
+              "id" : "GR-Unpublish-BT-720",
+              "name" : "Unpublish - BT-720",
+              "collapsed" : true,
+              "content" : [ {
+                "id" : "BT-195(BT-720)-Tender",
+                "name" : "Unpublished Identification"
+              }, {
+                "id" : "BT-196(BT-720)-Tender",
+                "name" : "Unpublished Justification Description"
+              }, {
+                "id" : "BT-197(BT-720)-Tender",
+                "name" : "Unpublished Justification Code"
+              }, {
+                "id" : "BT-198(BT-720)-Tender",
+                "name" : "Unpublished Accessibility Date"
+              } ]
+            } ]
+          }, {
+            "id" : "GR-LotTender-1",
+            "name" : "LotTender 1",
+            "content" : [ {
+              "id" : "BT-13714-Tender",
+              "name" : "Tender Lot Identifier",
+              "references" : [ {
+                "groupId" : "GR-Lot",
+                "fieldId" : "BT-137-Lot"
+              } ]
+            }, {
+              "id" : "OPT-310-Tender",
+              "name" : "Tendering Party ID Reference",
+              "references" : [ {
+                "groupId" : "GR-TenderingParty",
+                "fieldId" : "OPT-210-Tenderer"
+              } ]
+            } ]
+          }, {
+            "id" : "GR-LotTender-Subcontracting",
+            "name" : "Subcontracting",
+            "content" : [ {
+              "id" : "BT-553-Tender",
+              "name" : "Subcontracting Value"
+            }, {
+              "id" : "GR-Unpublish-BT-553",
+              "name" : "Unpublish - BT-553",
+              "collapsed" : true,
+              "content" : [ {
+                "id" : "BT-195(BT-553)-Tender",
+                "name" : "Unpublished Identification"
+              }, {
+                "id" : "BT-196(BT-553)-Tender",
+                "name" : "Unpublished Justification Description"
+              }, {
+                "id" : "BT-197(BT-553)-Tender",
+                "name" : "Unpublished Justification Code"
+              }, {
+                "id" : "BT-198(BT-553)-Tender",
+                "name" : "Unpublished Accessibility Date"
+              } ]
+            }, {
+              "id" : "BT-554-Tender",
+              "name" : "Subcontracting Description"
+            }, {
+              "id" : "GR-Unpublish-BT-554",
+              "name" : "Unpublish - BT-554",
+              "collapsed" : true,
+              "content" : [ {
+                "id" : "BT-195(BT-554)-Tender",
+                "name" : "Unpublished Identification"
+              }, {
+                "id" : "BT-196(BT-554)-Tender",
+                "name" : "Unpublished Justification Description"
+              }, {
+                "id" : "BT-197(BT-554)-Tender",
+                "name" : "Unpublished Justification Code"
+              }, {
+                "id" : "BT-198(BT-554)-Tender",
+                "name" : "Unpublished Accessibility Date"
+              } ]
+            }, {
+              "id" : "BT-555-Tender",
+              "name" : "Subcontracting Percentage"
+            }, {
+              "id" : "GR-Unpublish-BT-555",
+              "name" : "Unpublish - BT-555",
+              "collapsed" : true,
+              "content" : [ {
+                "id" : "BT-195(BT-555)-Tender",
+                "name" : "Unpublished Identification"
+              }, {
+                "id" : "BT-196(BT-555)-Tender",
+                "name" : "Unpublished Justification Description"
+              }, {
+                "id" : "BT-197(BT-555)-Tender",
+                "name" : "Unpublished Justification Code"
+              }, {
+                "id" : "BT-198(BT-555)-Tender",
+                "name" : "Unpublished Accessibility Date"
+              } ]
+            }, {
+              "id" : "BT-773-Tender",
+              "name" : "Subcontracting"
+            }, {
+              "id" : "GR-Unpublish-BT-773",
+              "name" : "Unpublish - BT-773",
+              "collapsed" : true,
+              "content" : [ {
+                "id" : "BT-195(BT-773)-Tender",
+                "name" : "Unpublished Identification"
+              }, {
+                "id" : "BT-196(BT-773)-Tender",
+                "name" : "Unpublished Justification Description"
+              }, {
+                "id" : "BT-197(BT-773)-Tender",
+                "name" : "Unpublished Justification Code"
+              }, {
+                "id" : "BT-198(BT-773)-Tender",
+                "name" : "Unpublished Accessibility Date"
+              } ]
+            }, {
+              "id" : "BT-730-Tender",
+              "name" : "Subcontracting Value Known"
+            }, {
+              "id" : "GR-Unpublish-BT-730",
+              "name" : "Unpublish - BT-730",
+              "collapsed" : true,
+              "content" : [ {
+                "id" : "BT-195(BT-730)-Tender",
+                "name" : "Unpublished Identification"
+              }, {
+                "id" : "BT-196(BT-730)-Tender",
+                "name" : "Unpublished Justification Description"
+              }, {
+                "id" : "BT-197(BT-730)-Tender",
+                "name" : "Unpublished Justification Code"
+              }, {
+                "id" : "BT-198(BT-730)-Tender",
+                "name" : "Unpublished Accessibility Date"
+              } ]
+            }, {
+              "id" : "BT-731-Tender",
+              "name" : "Subcontracting Percentage Known"
+            }, {
+              "id" : "GR-Unpublish-BT-731",
+              "name" : "Unpublish - BT-731",
+              "collapsed" : true,
+              "content" : [ {
+                "id" : "BT-195(BT-731)-Tender",
+                "name" : "Unpublished Identification"
+              }, {
+                "id" : "BT-196(BT-731)-Tender",
+                "name" : "Unpublished Justification Description"
+              }, {
+                "id" : "BT-197(BT-731)-Tender",
+                "name" : "Unpublished Justification Code"
+              }, {
+                "id" : "BT-198(BT-731)-Tender",
+                "name" : "Unpublished Accessibility Date"
+              } ]
+            } ]
+          } ]
+        } ]
+      }, {
+        "id" : "GR-SettledContract-Section",
+        "name" : "Settled Contracts",
+        "section" : true,
+        "content" : [ {
+          "id" : "GR-SettledContract",
+          "name" : "Settled Contract",
+          "repeatable" : true,
+          "content" : [ {
+            "id" : "GR-SettledContract-1",
+            "name" : "SettledContract 1",
+            "content" : [ {
+              "id" : "OPT-316-Contract",
+              "name" : "Contract Technical Identifier",
+              "hidden" : true
+            }, {
+              "id" : "BT-150-Contract",
+              "name" : "Contract Identifier"
+            }, {
+              "id" : "BT-1451-Contract",
+              "name" : "Winner Decision Date"
+            }, {
+              "id" : "BT-145-Contract",
+              "name" : "Contract Conclusion Date"
+            }, {
+              "id" : "BT-721-Contract",
+              "name" : "Contract Title"
+            }, {
+              "id" : "BT-151-Contract",
+              "name" : "Contract URL"
+            }, {
+              "id" : "BT-768-Contract",
+              "name" : "Contract Framework Agreement"
+            }, {
+              "id" : "OPT-100-Contract",
+              "name" : "Framework Notice Identifier"
+            }, {
+              "id" : "BT-3202-Contract",
+              "name" : "Contract Tender ID (Reference)",
+              "references" : [ {
+                "groupId" : "GR-LotTender",
+                "fieldId" : "OPT-321-Tender"
+              } ]
+            }, {
+              "id" : "OPT-300-Contract-Signatory",
+              "name" : "Signatory Identifier Reference",
+              "references" : [ {
+                "groupId" : "GR-Organisations",
+                "fieldId" : "OPT-200-Organization-Company"
+              }, {
+                "groupId" : "GR-Touch-Point",
+                "fieldId" : "OPT-201-Organization-TouchPoint"
+              } ]
+            } ]
+          }, {
+            "id" : "GR-SettledContract-2",
+            "name" : "SettledContract 2",
+            "content" : [ {
+              "id" : "BT-5011-Contract",
+              "name" : "Contract EU Funds Identifier"
+            }, {
+              "id" : "BT-722-Contract",
+              "name" : "Contract EU Funds Name"
+            } ]
+          } ]
+        } ]
+      }, {
+        "id" : "GR-TenderingParty-Section",
+        "name" : "Tendering Parties",
+        "section" : true,
+        "content" : [ {
+          "id" : "GR-TenderingParty",
+          "name" : "Tendering Party",
+          "repeatable" : true,
+          "content" : [ {
+            "id" : "OPT-210-Tenderer",
+            "name" : "Tendering Party ID",
+            "hidden" : true
+          }, {
+            "id" : "GR-Tenderer",
+            "name" : "Tenderer",
+            "repeatable" : true,
+            "content" : [ {
+              "id" : "OPT-300-Tenderer",
+              "name" : "Tenderer ID Reference ",
+              "references" : [ {
+                "groupId" : "GR-Organisations",
+                "fieldId" : "OPT-200-Organization-Company"
+              }, {
+                "groupId" : "GR-Touch-Point",
+                "fieldId" : "OPT-201-Organization-TouchPoint"
+              } ]
+            }, {
+              "id" : "OPT-170-Tenderer",
+              "name" : "Tendering Party Leader"
+            } ]
+          }, {
+            "id" : "GR-Subcontractor",
+            "name" : "Subcontractor",
+            "repeatable" : true,
+            "content" : [ {
+              "id" : "OPT-301-Tenderer-SubCont",
+              "name" : "Subcontractor ID Reference",
+              "references" : [ {
+                "groupId" : "GR-Organisations",
+                "fieldId" : "OPT-200-Organization-Company"
+              }, {
+                "groupId" : "GR-Touch-Point",
+                "fieldId" : "OPT-201-Organization-TouchPoint"
+              } ]
+            }, {
+              "id" : "OPT-301-Tenderer-MainCont",
+              "name" : "Main Contractor ID Reference",
+              "references" : [ {
+                "groupId" : "GR-Organisations",
+                "fieldId" : "OPT-200-Organization-Company"
+              }, {
+                "groupId" : "GR-Touch-Point",
+                "fieldId" : "OPT-201-Organization-TouchPoint"
+              } ]
+            } ]
+          } ]
+        } ]
+      } ]
+    }, {
+      "id" : "GR-Change",
+      "name" : "Change",
+      "section" : true,
+      "content" : [ {
+        "id" : "BT-140-notice",
+        "name" : "Change Reason Code",
+        "readOnly" : true
+      }, {
+        "id" : "BT-762-notice",
+        "name" : "Change Reason Description"
+      }, {
+        "id" : "BT-758-notice",
+        "name" : "Change Notice Version Identifier",
+        "readOnly" : true
+      }, {
+        "id" : "BT-718-notice",
+        "name" : "Change Procurement Documents"
+      }, {
+        "id" : "BT-719-notice",
+        "name" : "Change Procurement Documents Date"
+      }, {
+        "id" : "GR-ChangeSections",
+        "name" : "Change sections",
+        "repeatable" : true,
+        "content" : [ {
+          "id" : "BT-13716-notice",
+          "name" : "Change Previous Section Identifier"
+        }, {
+          "id" : "BT-141(a)-notice",
+          "name" : "Change Description"
+        } ]
+      } ]
+    }, {
+      "id" : "GR-Organisations-Section",
+      "name" : "Organisations",
+      "section" : true,
+      "content" : [ {
+        "id" : "GR-Organisations-Subsection",
+        "name" : "Organisations",
+        "section" : true,
+        "content" : [ {
+          "id" : "GR-Organisations",
+          "name" : "Organisation",
+          "repeatable" : true,
+          "content" : [ {
+            "id" : "OPT-200-Organization-Company",
+            "name" : "Company Technical Identifier",
+            "hidden" : true
+          }, {
+            "id" : "BT-633-Organization",
+            "name" : "Organization Natural Person"
+          }, {
+            "id" : "GR-Company",
+            "name" : "Company",
+            "content" : [ {
+              "id" : "BT-500-Organization-Company",
+              "name" : "Name"
+            }, {
+              "id" : "BT-501-Organization-Company",
+              "name" : "Identifier"
+            }, {
+              "id" : "BT-16-Organization-Company",
+              "name" : "Part Name"
+            }, {
+              "id" : "BT-505-Organization-Company",
+              "name" : "Internet Address"
+            }, {
+              "id" : "BT-509-Organization-Company",
+              "name" : "eDelivery Gateway"
+            } ]
+          }, {
+            "id" : "GR-Company-Address",
+            "name" : "Company Address",
+            "content" : [ {
+              "id" : "BT-510(a)-Organization-Company",
+              "name" : "Street"
+            }, {
+              "id" : "BT-510(b)-Organization-Company",
+              "name" : "Street"
+            }, {
+              "id" : "BT-510(c)-Organization-Company",
+              "name" : "Street"
+            }, {
+              "id" : "BT-513-Organization-Company",
+              "name" : "City"
+            }, {
+              "id" : "BT-512-Organization-Company",
+              "name" : "Post Code"
+            }, {
+              "id" : "BT-507-Organization-Company",
+              "name" : "Country Subdivision"
+            }, {
+              "id" : "BT-514-Organization-Company",
+              "name" : "Country Code"
+            } ]
+          }, {
+            "id" : "GR-Company-Contact",
+            "name" : "Company Contact",
+            "content" : [ {
+              "id" : "BT-502-Organization-Company",
+              "name" : "Contact Point"
+            }, {
+              "id" : "BT-506-Organization-Company",
+              "name" : "Contact Email"
+            }, {
+              "id" : "BT-503-Organization-Company",
+              "name" : "Contact Phone"
+            }, {
+              "id" : "BT-739-Organization-Company",
+              "name" : "Contact Fax"
+            } ]
+          }, {
+            "id" : "GR-Company-BuyerExclusive",
+            "name" : "Buyer Exclusive",
+            "content" : [ {
+              "id" : "OPP-050-Organization",
+              "name" : "Buyers Group Lead Indicator"
+            }, {
+              "id" : "OPP-051-Organization",
+              "name" : "Awarding CPB Buyer Indicator"
+            }, {
+              "id" : "OPP-052-Organization",
+              "name" : "Acquiring CPB Buyer Indicator"
+            } ]
+          }, {
+            "id" : "GR-Company-EconomicOperatorExclusive",
+            "name" : "Economic Operator Exclusive",
+            "content" : [ {
+              "id" : "OPT-302-Organization",
+              "name" : "Beneficial Owner Reference",
+              "references" : [ {
+                "groupId" : "GR-UBO",
+                "fieldId" : "OPT-202-UBO"
+              } ]
+            }, {
+              "id" : "BT-165-Organization-Company",
+              "name" : "Winner Size"
+            }, {
+              "id" : "BT-746-Organization",
+              "name" : "Winner Listed"
+            } ]
+          }, {
+            "id" : "GR-Touch-Point",
+            "name" : "Touch Point",
+            "repeatable" : true,
+            "content" : [ {
+              "id" : "OPT-201-Organization-TouchPoint",
+              "name" : "TouchPoint Technical Identifier",
+              "hidden" : true
+            }, {
+              "id" : "BT-500-Organization-TouchPoint",
+              "name" : "Name"
+            }, {
+              "id" : "BT-16-Organization-TouchPoint",
+              "name" : "Part Name"
+            }, {
+              "id" : "BT-505-Organization-TouchPoint",
+              "name" : "Internet Address"
+            }, {
+              "id" : "BT-509-Organization-TouchPoint",
+              "name" : "eDelivery Gateway"
+            }, {
+              "id" : "GR-TouchPoint-Address",
+              "name" : "TouchPoint Address",
+              "content" : [ {
+                "id" : "BT-510(a)-Organization-TouchPoint",
+                "name" : "Street"
+              }, {
+                "id" : "BT-510(b)-Organization-TouchPoint",
+                "name" : "Street"
+              }, {
+                "id" : "BT-510(c)-Organization-TouchPoint",
+                "name" : "Street"
+              }, {
+                "id" : "BT-513-Organization-TouchPoint",
+                "name" : "City"
+              }, {
+                "id" : "BT-512-Organization-TouchPoint",
+                "name" : "Post Code"
+              }, {
+                "id" : "BT-507-Organization-TouchPoint",
+                "name" : "Country Subdivision"
+              }, {
+                "id" : "BT-514-Organization-TouchPoint",
+                "name" : "Country Code"
+              } ]
+            }, {
+              "id" : "GR-TouchPoint-Contact",
+              "name" : "TouchPoint Contact",
+              "content" : [ {
+                "id" : "BT-502-Organization-TouchPoint",
+                "name" : "Contact Point"
+              }, {
+                "id" : "BT-506-Organization-TouchPoint",
+                "name" : "Contact Email"
+              }, {
+                "id" : "BT-503-Organization-TouchPoint",
+                "name" : "Contact Phone"
+              }, {
+                "id" : "BT-739-Organization-TouchPoint",
+                "name" : "Contact Fax"
+              } ]
+            } ]
+          } ]
+        } ]
+      }, {
+        "id" : "GR-UBO-Subsection",
+        "name" : "Ultimate Beneficial Owner",
+        "section" : true,
+        "content" : [ {
+          "id" : "GR-UBO",
+          "name" : "Ultimate Beneficial Owner",
+          "repeatable" : true,
+          "content" : [ {
+            "id" : "OPT-202-UBO",
+            "name" : "Beneficial Owner Technical Identifier",
+            "hidden" : true
+          }, {
+            "id" : "BT-500-UBO",
+            "name" : "Name"
+          }, {
+            "id" : "OPT-160-UBO",
+            "name" : "First Name"
+          }, {
+            "id" : "BT-506-UBO",
+            "name" : "Contact Email Address"
+          }, {
+            "id" : "BT-503-UBO",
+            "name" : "Contact Telephone Number"
+          }, {
+            "id" : "BT-739-UBO",
+            "name" : "Contact Fax"
+          }, {
+            "id" : "BT-507-UBO",
+            "name" : "Country Subdivision"
+          }, {
+            "id" : "BT-510(a)-UBO",
+            "name" : "Street"
+          }, {
+            "id" : "BT-510(b)-UBO",
+            "name" : "Street"
+          }, {
+            "id" : "BT-510(c)-UBO",
+            "name" : "Street"
+          }, {
+            "id" : "BT-512-UBO",
+            "name" : "Post Code"
+          }, {
+            "id" : "BT-513-UBO",
+            "name" : "City"
+          }, {
+            "id" : "BT-514-UBO",
+            "name" : "Country Code"
+          }, {
+            "id" : "GR-UBO-Winner",
+            "name" : "TBD Winner",
+            "content" : [ {
+              "id" : "BT-706-UBO",
+              "name" : "Winner Owner Nationality"
+            } ]
+          } ]
+        } ]
+      } ]
+    } ]
+  }
+}
