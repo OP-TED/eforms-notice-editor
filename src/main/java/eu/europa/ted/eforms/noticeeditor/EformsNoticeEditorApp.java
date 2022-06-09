@@ -1,4 +1,4 @@
-package eu.europa.ted.eforms.noticeeditordemo;
+package eu.europa.ted.eforms.noticeeditor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,16 +9,16 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 @ConfigurationPropertiesScan
 @SpringBootApplication
 // @EnableAsync
-public class EformsNoticeEditorDemoApplication {
+public class EformsNoticeEditorApp {
 
   private static final Logger logger =
-      LoggerFactory.getLogger(EformsNoticeEditorDemoApplication.class);
+      LoggerFactory.getLogger(EformsNoticeEditorApp.class);
 
   public static void main(final String[] args) {
     logger.info("STARTING eForms Notice Editor Demo Application");
     // See README.md on how to run server.
     // https://spring.io/guides/gs/serving-web-content/
-    SpringApplication.run(EformsNoticeEditorDemoApplication.class, args);
+    SpringApplication.run(EformsNoticeEditorApp.class, args);
   }
 
 }

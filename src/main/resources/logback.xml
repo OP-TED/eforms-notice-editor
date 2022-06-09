@@ -31,7 +31,7 @@
 
   <logger name="org.springframework.security" level="DEBUG" />
   <logger name="org.springframework.web" level="DEBUG" />
-  <logger name="eu.europa.ted.eforms.noticeeditordemo" level="DEBUG" />
+  <logger name="eu.europa.ted.eforms.noticeeditor" level="DEBUG" />
   <logger name="eu.cec.digit.eulogin.client" level="DEBUG" />
 
   <root level="INFO">

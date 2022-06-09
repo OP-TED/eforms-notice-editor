@@ -9,7 +9,7 @@ For edition it reads a notice file (xml) and the corresponding notice type file 
 This is Jetty based (a bit like Tomcat but self contained):
 
 ```
-mvn compile exec:java -Dexec.mainClass="eu.europa.ted.eforms.noticeeditordemo.EformsNoticeEditorDemoApplication"
+mvn compile exec:java -Dexec.mainClass="eu.europa.ted.eforms.noticeeditor.EformsNoticeEditorApp"
 ```
 
 In your browser go to: `localhost:8080/` (or whatever the start logs say)
@@ -17,4 +17,4 @@ In your browser go to: `localhost:8080/` (or whatever the start logs say)
 Login credentials: see application.properties (will be done by EU login later probably through Spring Security module or via eUI ??)
 
 See application.properties 
-See HomeRestController.java
+See SdkRestController.java

@@ -1,4 +1,4 @@
-package eu.europa.ted.eforms.noticeeditordemo.genericode;
+package eu.europa.ted.eforms.noticeeditor.genericode;
 
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.PropertyException;

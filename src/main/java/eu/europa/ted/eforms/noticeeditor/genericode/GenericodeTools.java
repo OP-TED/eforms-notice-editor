@@ -1,9 +1,12 @@
-package eu.europa.ted.eforms.noticeeditordemo.genericode;
+package eu.europa.ted.eforms.noticeeditor.genericode;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import com.helger.genericode.v10.CodeListDocument;
 
+/**
+ * Helps loading .gc files (in XML but specific schema).
+ */
 public class GenericodeTools {
   public static final CodeListDocument parseGenericode(final InputStream is,
       @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = "OCP_OVERLY_CONCRETE_PARAMETER",

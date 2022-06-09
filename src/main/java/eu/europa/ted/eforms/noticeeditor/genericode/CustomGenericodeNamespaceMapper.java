@@ -1,4 +1,4 @@
-package eu.europa.ted.eforms.noticeeditordemo.genericode;
+package eu.europa.ted.eforms.noticeeditor.genericode;
 
 import javax.xml.namespace.NamespaceContext;
 import org.springframework.util.xml.SimpleNamespaceContext;

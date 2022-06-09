@@ -1,4 +1,4 @@
-package eu.europa.ted.eforms.noticeeditordemo.controller;
+package eu.europa.ted.eforms.noticeeditor.controller;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,18 +23,21 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import com.helger.genericode.v10.CodeListDocument;
-import eu.europa.ted.eforms.noticeeditordemo.genericode.CustomGenericodeMarshaller;
-import eu.europa.ted.eforms.noticeeditordemo.genericode.GenericodeTools;
-import eu.europa.ted.eforms.noticeeditordemo.util.IntuitiveStringComparator;
-import eu.europa.ted.eforms.noticeeditordemo.util.JavaTools;
+import eu.europa.ted.eforms.noticeeditor.genericode.CustomGenericodeMarshaller;
+import eu.europa.ted.eforms.noticeeditor.genericode.GenericodeTools;
+import eu.europa.ted.eforms.noticeeditor.util.IntuitiveStringComparator;
+import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 
-// @EnableAsync
+/**
+ *
+ */
 @SuppressWarnings("static-method")
 @RestController
-@RequestMapping(value = "/home")
-public class HomeRestController implements AsyncConfigurer {
+@RequestMapping(value = "/sdk")
+// @EnableAsync
+public class SdkRestController implements AsyncConfigurer {
 
-  private static final Logger logger = LoggerFactory.getLogger(HomeRestController.class);
+  private static final Logger logger = LoggerFactory.getLogger(SdkRestController.class);
 
   private static final String APP_VERSION = "1.0.0";
   private static final String EFORMS_SDKS = "eforms-sdks";
@@ -73,7 +76,7 @@ public class HomeRestController implements AsyncConfigurer {
   /**
    * @return JSON with basic home info.
    */
-  @RequestMapping(value = "/sdk/{sdkVersion}/notice-types", method = RequestMethod.GET,
+  @RequestMapping(value = "/{sdkVersion}/notice-types", method = RequestMethod.GET,
       produces = MediaType.APPLICATION_JSON_VALUE)
   public Map<String, Object> selectNoticeTypesList(
       @PathVariable(value = "sdkVersion") String sdkVersion) {
@@ -102,7 +105,7 @@ public class HomeRestController implements AsyncConfigurer {
     return map;
   }
 
-  @RequestMapping(value = "/sdk/{sdkVersion}/codelists/{codeListId}/lang/{langCode}",
+  @RequestMapping(value = "/{sdkVersion}/codelists/{codeListId}/lang/{langCode}",
       method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
   private void serveCodelist(final HttpServletResponse response,
       @PathVariable(value = "sdkVersion") final String sdkVersion,
@@ -111,7 +114,7 @@ public class HomeRestController implements AsyncConfigurer {
 
     final String pathStr = buildPathToSdk(sdkVersion, String.format("codelists/%s.gc", codeListId));
 
-    // use Helger lib to load SDK .gc file.
+    // Use GC Helger lib to load SDK .gc file.
     final CustomGenericodeMarshaller marshaller = GenericodeTools.getMarshaller();
     try (InputStream is = Files.newInputStream(Path.of(pathStr))) {
       final CodeListDocument codeListDoc = GenericodeTools.parseGenericode(is, marshaller);
@@ -132,7 +135,7 @@ public class HomeRestController implements AsyncConfigurer {
     }
   }
 
-  @RequestMapping(value = "/sdk/{sdkVersion}/fields", method = RequestMethod.GET,
+  @RequestMapping(value = "/{sdkVersion}/fields", method = RequestMethod.GET,
       produces = MediaType.APPLICATION_JSON_VALUE)
   public void serveNoticeTypeJson(final HttpServletResponse response,
       @PathVariable(value = "sdkVersion") String sdkVersion) {
@@ -141,7 +144,7 @@ public class HomeRestController implements AsyncConfigurer {
     serveSdkFile(response, sdkVersion, sdkRelativePathStr, filenameForDownload);
   }
 
-  @RequestMapping(value = "/sdk/{sdkVersion}/notice-types/{noticeId}", method = RequestMethod.GET,
+  @RequestMapping(value = "/{sdkVersion}/notice-types/{noticeId}", method = RequestMethod.GET,
       produces = MediaType.APPLICATION_JSON_VALUE)
   public void serveNoticeTypeJson(final HttpServletResponse response,
       @PathVariable(value = "sdkVersion") String sdkVersion,

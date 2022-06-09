@@ -1,4 +1,4 @@
-package eu.europa.ted.eforms.noticeeditordemo.util;
+package eu.europa.ted.eforms.noticeeditor.util;
 
 import java.io.Serializable;
 import java.util.Comparator;
