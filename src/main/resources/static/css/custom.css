@@ -12,7 +12,7 @@ body {
   margin-right: auto;
   margin-top: 0;
   background-color: #fff;
-  min-width: 360px;
+  min-width: 480px;
 }
 
 #main {
@@ -40,7 +40,6 @@ body {
 
 .notice-type {
   font-size: 14px;
-  background-color: #004494;
 }
 
 .notice-type-submit-button {
@@ -51,8 +50,11 @@ body {
   border-color: red;
 }
 
+.notice-type select {
+  max-width: 20em;
+}
+
 .notice-content {
-  background-color: #fff;
   padding: 0.25em;
   margin: 0.5em 0.25em 0.5em 0.25em;
   display: block;
@@ -63,13 +65,16 @@ body {
   cursor: pointer;
 }
 
-.notice-content-title {
+.notice-content-header {
   cursor: pointer;
   user-select: none;
+  color: #004494;
 }
 
 .notice-content-section {
-  border: solid 2px #000;
+  border: solid 2px #004494;
+  border-bottom: solid 4px #004494;
+  border-radius: 0.5em;
 }
 
 .notice-content-section-opened {
@@ -80,12 +85,37 @@ body {
 }
 
 .notice-content-repeatable {
-  border: solid 1px #f0f;
+  border: solid 4px #ddd;
+}
+
+.notice-content-valueList {
+  background-color: #ff0 !important;
+}
+
+.notice-content-instanceList {
+  background-color: #0ff !important;
+}
+
+.notice-content-hidden {
+  background-color: #999;
+}
+
+.notice-content-readOnly {
+  background-color: #ddd;
+}
+
+textarea:read-only {
+  background-color: #ddd;
 }
 
 .notice-content-field {
-  min-width: 21em;
-  border: solid 2px #000;
+  min-width: 30em;
+  border: solid 1px #999;
+  border-radius: 2px;
+}
+
+.notice-content-field-url {
+  min-width: 32em;
 }
 
 .notice-content-collapsed {
@@ -104,19 +134,19 @@ body {
 .notice-content-level1 .notice-content-header {
   font-size: 1.4em;
 }
-.notice-content-level2 .notice-content-title {
+.notice-content-level2 .notice-content-header {
   font-size: 1.1em;
 }
-.notice-content-level3 .notice-content-title {
+.notice-content-level3 .notice-content-header {
   font-size: 1em;
 }
-.notice-content-level4 .notice-content-title {
+.notice-content-level4 .notice-content-header {
   font-size: 1em;
 }
-.notice-content-level5 .notice-content-title {
+.notice-content-level5 .notice-content-header {
   font-size: 1em;
 }
-.notice-content-level6 .notice-content-title {
+.notice-content-level6 .notice-content-header {
   font-size: 1em;
 }
 

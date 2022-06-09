@@ -8,8 +8,8 @@
   const textAreaThreshold = 30;
   
   const i18n = {};
-	i18n["en"] = {"add.one": "Add one"};
-	i18n["fr"] = {"add.one": "Ajouter"};
+	i18n["en"] = {"add.more": "Add one more"};
+	i18n["fr"] = {"add.more": "En ajouter un"};
 
   function getLabel(lang, labelKey) {
 	  // How you get and handle i18n label data is up to you.
@@ -48,8 +48,7 @@
   }
   
   function sdkVersionChanged() {
-    const elemSdkSelector = getElemSdkSelector();
-    const sdkVersion = elemSdkSelector.value;
+    const sdkVersion = getSdkVersion();
     if (!sdkVersion) {
       return;
     }
@@ -71,7 +70,7 @@
 
  	  document.getElementById("notice-type-selector").onchange = function() {
  	    const noticeId = this.value;
- 	    const selectedSdkVersion = getElemSdkSelector().value;
+ 	    const selectedSdkVersion = getSdkVersion();
  	    createNoticeForm(selectedSdkVersion, noticeId, funcCallbackWhenLoadedDefinition);
  	  };
   }
@@ -137,19 +136,67 @@
       throw new Error("Field is null for " + fieldId);
     }
 	  
-		if (field.maxLength && field.maxLength > textAreaThreshold) {
+		if (field.maxLength && field.maxLength > textAreaThreshold && field.type !== "url") {
 		  formElem = document.createElement("textarea");
       containerElem.appendChild(formElem);
-
+      
     } else if (field.type === "code" || field.type === "internal-code") {
-      // TODO tttt codelist
-    	// select, when clicked load custom codelist json
-      // sdk/0.7.0/codelists/accessibility/lang/en
+
       formElem = document.createElement("select");
       containerElem.appendChild(formElem);
-    } else if (field.type === "indicator") {
-      // TODO tttt indicator
       
+      const fieldCodeListVal = field.codeList.value;
+      
+      var codelistId = fieldCodeListVal.id;
+      const parentId = fieldCodeListVal.parentId;
+      if (parentId) {
+        // This codelist is tailored.
+        // TODO tttt having to do this here is clearly not ideal.
+        codelistId = parentId + "_" + codelistId;
+      }
+      
+      const isHierarchical = fieldCodeListVal.type === "hierarchical";
+      if (isHierarchical) {
+        // TODO the data could be loaded in two steps.
+      }
+     
+      // TODO tttt codelist language
+      
+      const select = formElem;
+      const sdkVersion = getSdkVersion();
+      
+      // TODO tttt maybe that data could be cached and reused.
+      var urlToCodelistJson = "sdk/" + sdkVersion + "/codelists/" + codelistId + "/lang/en";
+      var afterCodelistLoad = function(data) {
+        // Dynamically load the options.
+ 	      select.appendChild(createOption("", field.name)); // Empty option.
+		 	  for (var code of data.codes) {
+  	      select.appendChild(createOption(code.codeValue, code.en));
+		 	  }
+      };
+      
+      // Give this a larger timeout as some codelists could be quite big.
+      // Ideally the JSON response should be cached for a while, you have to allow this server-side.
+      jsonGet(urlToCodelistJson, 6000, afterCodelistLoad, jsonGetOnError);
+      
+    } else if (field.type === "indicator") {
+    
+      // TODO tttt indicator
+			formElem = document.createElement("input");
+		  input.setAttribute("type", "text");
+			
+      containerElem.appendChild(formElem);
+			input = formElem;
+			
+		} else if (field.type === "id" || field.type === "id-ref") {
+      // TODO tttt in theory it should be only "id-ref"
+      if (content.valueList && content.valueList.length > 0) {
+			 	formElem = document.createElement("select");
+        containerElem.appendChild(formElem);
+			  const select = formElem;
+ 	      select.appendChild(createOption("", String(content.valueList))); // Empty option.
+			  // TODO tttt propose items from that other data LOT-0001 and so on.
+      }
 		} else {
 			formElem = document.createElement("input");
       containerElem.appendChild(formElem);
@@ -160,6 +207,11 @@
 		  
       if (field.type === "email") {
         input.setAttribute("type", "email");
+      }
+
+      if (field.type === "url") {
+        input.setAttribute("type", "url");
+        input.classList.add("notice-content-field-url");
       }
       
       if (isFieldTypeNumeric(field.type)) {
@@ -191,7 +243,8 @@
         // TODO tttt what about zoned-time ????
         input.setAttribute("type", "datetime-local");
       }
-
+      
+			// Pattern, regex for validation.
       if (field.pattern && field.pattern.severity === "ERROR") {
         input.setAttribute("pattern", field.pattern.value);
         
@@ -215,6 +268,11 @@
     if (field.maxLength) {
 		  formElem.setAttribute("maxlength", field.maxLength); 
 	  }
+
+	  if (content.readOnly) {
+	    // TODO tttt is there a default technical value to set or is readOnly only for edition ????
+		  formElem.setAttribute("readonly", "readonly");
+		}
 
 		const isRequired = isFieldValueMandatory(field, noticeId);
 		if (isRequired) {
@@ -259,7 +317,9 @@
     
     // Prefix the ids to avoid conflict with various other identifiers existing in the same page.
     // For repeatable fields the content editorCount ensures the ids are unique.
-    containerElem.setAttribute("id", idPrefix + content.id + "-" + content.editorCount);
+    
+    const countStr = lpad("0", String(content.editorCount), 4); // 0001, 0042, ...
+    containerElem.setAttribute("id", idPrefix + content.id + "-" + countStr);
 
 	  // The id will vary if the element is repeatable but the editor type will not.
     containerElem.setAttribute("data-editor-type", idPrefix + content.id);
@@ -269,6 +329,7 @@
     // 
     // Style: CSS classes and more.
     //
+    
     containerElem.classList.add("notice-content"); 
     containerElem.classList.add("notice-content-level" + level);
     
@@ -276,6 +337,14 @@
  	    containerElem.classList.add("notice-content-section");
     } else {
  	    containerElem.classList.add("notice-content-non-section");
+    }
+    
+    if (content.hidden) {
+ 	    containerElem.classList.add("notice-content-hidden"); 
+    }
+
+    if (content.readOnly) {
+ 	    containerElem.classList.add("notice-content-readOnly"); 
     }
     
     if (isCollapsed) {
@@ -286,10 +355,19 @@
       containerElem.classList.add("notice-content-repeatable");
     }
     
+    if (content.instanceList) {
+      containerElem.classList.add("notice-content-instanceList");
+    }
+    
     if (isField) {
  	    if (formElem) {
  	      formElem.classList.add("notice-content-field");
-
+ 	      
+        // TODO tttt keep valueList or change name ????
+		    if (content.valueList && content.valueList.length > 0) {
+		      formElem.classList.add("notice-content-valueList");
+		    }
+ 	      
    	    // TODO tttt should we even keep content.name in the content json ???
         formElem.setAttribute("placeholder", field.name); // Use field.name instead of content.name
        
@@ -305,10 +383,12 @@
 	      headerContainer.classList.add("notice-content-container")
 	      const header = document.createElement("h4");
 	      header.classList.add("notice-content-header");
-	      const headerText = isContentRepeatable ? content.name + " (" + content.editorCount + ")" : content.name;
+	      const paddedEditorCount = lpad("0", String(content.editorCount), 4); // 0001, 0042, ...
+	      const headerText = isContentRepeatable ? content.name + " (" + paddedEditorCount + ")" : content.name;
 	      header.appendChild(document.createTextNode(headerText));
 	      headerContainer.appendChild(header);
 	      containerElem.appendChild(headerContainer);
+	      containerElem.setAttribute("title", content.name); // Mouse over text on any section.
       }
     }
     
@@ -335,7 +415,7 @@
 		  // REPEAT LOGIC SETUP.
 		  const elemButtonAddMore = document.createElement("button");
 		  elemButtonAddMore.setAttribute("type", "button");
-		  elemButtonAddMore.textContent = getLabel(getSelectedLanguage(), "add.one");
+		  elemButtonAddMore.textContent = getLabel(getSelectedLanguage(), "add.more");
 		  // NOTE: here we add the content to the same parent as this is a sibling content and not a child content.
 		  const clickRepeatFunc = createContentOnClickFunc(parentElem, noticeId, content, level, fieldMap, nodeMap, true, false);
 		  elemButtonAddMore.addEventListener("click", clickRepeatFunc, false);
@@ -391,6 +471,10 @@
     return document.getElementById("notice-sdk-selector");
   }
   
+  function getSdkVersion() {
+    return getElemSdkSelector().value;
+  }
+  
   function getElemNoticeTypeSelector() {
     return document.getElementById("notice-type-selector");
   }
@@ -432,7 +516,7 @@
 	
 	function buildJsonGet(urlGet, timeoutMillis, fnOk, fnErr) {
 		const xhr = new XMLHttpRequest();
-		xhr.open("GET", urlGet);
+		xhr.open("GET", urlGet, true);  // Asnyc HTTP GET request by default.
 		xhr.setRequestHeader("Content-Type", "application/json");
 		xhr.timeout = timeoutMillis;
 		xhr.onload = function() {
@@ -444,6 +528,13 @@
 		  }
 		};
 		return xhr;
+	}
+	
+	function lpad(padText, textToPad, length) {
+    while (textToPad.length < length) {
+      textToPad = padText + textToPad;
+    }
+    return textToPad;
 	}
 	
 })();
