@@ -7,17 +7,143 @@
   // TODO tttt maxLength 30 seems to be the threshold in the fields.json, we should provide this in the fields.json as an extra top level info?
   const textAreaThreshold = 30;
   
+  const DATA_EDITOR_ID_REFERENCE = 'data-editor-id-reference';
+  const DATA_EDITOR_ID_REF_PREFIX = 'data-editor-id-ref-';
+  const DATA_EDITOR_INSTANCE_ID_FIELD = 'data-editor-instance-id-field';
+  
   const i18n = {};
-	i18n["en"] = {"add.more": "Add one more"};
-	i18n["fr"] = {"add.more": "En ajouter un"};
+	i18n["en"] = {
+	"add.more": "Add one more",
+	"select": "Select"
+	};
+	
+	i18n["fr"] = {
+	"add.more": "En ajouter un",
+	"select": "Choisir"
+	};
 
-  function getLabel(lang, labelKey) {
+  function getLabel(labelKey) {
+    getLabel(labelKey, getSelectedLanguage());
+  }
+  function getLabel(labelKey, lang) {
 	  // How you get and handle i18n label data is up to you.
 	  var dataForLang = i18n[lang];
 	  if (!dataForLang && i18n["en"] && lang !== "en") {
 	    dataForLang = i18n["en"];
 	  }
     return dataForLang[labelKey];
+  }
+  
+  class Editor {
+    constructor(dataFieldsJson, noticeType, noticeFormElement) {
+    
+      if (!dataFieldsJson.sdkVersion) {
+			  throw new Error("Invalid sdkVersion");
+			}
+
+			// FIELDS BY ID.
+			const fields = dataFieldsJson.fields;
+		  console.log("Loaded fields: " + fields.length);
+		  const fieldMap = {};
+		  for (var field of fields) {
+		    fieldMap[field.id] = field;
+		  }
+			
+			// NODES BY ID.
+			const nodes = dataFieldsJson.xmlStructure;
+		  console.log("Loaded nodes: " + nodes.length);
+		  const nodeMap = {};
+		  for (var node of nodes) {
+		    nodeMap[node.id] = node;
+		  }
+    
+      this.fieldMap = fieldMap;
+      this.nodeMap = nodeMap;
+      
+      this.noticeRootContent = noticeType.content;
+      this.noticeId = noticeType.noticeId;
+      
+      this.noticeFormElement = noticeFormElement;
+    }
+    
+    buildForm() {
+  	  const level = 1; // Top level, sub items will be on level 2, 3, 4 ...
+  	  
+      // This builds the form.
+  	  // TODO readContent could become part of the class as we pass "this" to it.
+    	readContent(this, this.noticeFormElement, this.noticeRootContent, level, false, null);
+    	
+    	// Fills selects that have id references.
+    	this.populateIdRefSelectsAll();
+    }
+    
+    buildIdPartial(content) {
+      return idPrefix + content.id;
+    }
+    
+    buildIdUnique(content) {
+      const countStr = lpad("0", String(content.editorCount), 4); // 0001, 0002, ...
+      return this.buildIdPartial(content) + "-" + countStr;
+    }
+    
+    findElementWithAttributeTag(tag) {
+      return this.findElementWithAttributeTags([tag]);
+    }
+    
+    findElementWithAttributeTags(tags) {
+      // Find the HTML elements having the tag (search HTML element by attribute).
+      const allFoundElements = [];
+      for (var tag of tags) {
+        const selector = "[" + DATA_EDITOR_INSTANCE_ID_FIELD + '="' + tag + '"]';
+        const foundElements = document.querySelectorAll(selector);
+        for (var element of foundElements) {
+          allFoundElements.push(element);
+        }
+      }
+      return allFoundElements;
+    }
+    
+    findElementWithAttributeIdRef(tag) {
+      // Find HTML elements that reference this kind of tag.
+      const selector = '[' + DATA_EDITOR_ID_REF_PREFIX + tag.toLowerCase() + '="true"]';
+      return document.querySelectorAll(selector);
+    }
+    
+    populateIdRefSelectsForTag(tag) {
+   	  const foundReferencedElements = this.findElementWithAttributeTag(tag);
+    	var foundReferencingElements = this.findElementWithAttributeIdRef(tag);
+
+      for (var selectElem of foundReferencingElements) {
+  	 		const selectedValue = selectElem.value;
+  		  selectElem.innerHtml = "";
+        for (var inputElem of foundReferencedElements) {
+  	      selectElem.appendChild(createOption(inputElem.value, inputElem.value));
+        }
+        // TODO tttt what happens if the value is not there anymore ????
+        selectElem.value = selectedValue;
+      }
+    }
+    
+    populateIdRefSelectsAll() {
+
+      // Find all in use tags.
+      const selector = "[" + DATA_EDITOR_ID_REFERENCE + "]";
+      const selectElements = document.querySelectorAll(selector);
+      const inUseTagSet = new Set();
+      for (var selectElem of selectElements) {
+      	const inUseTags = selectElem.getAttribute(DATA_EDITOR_ID_REFERENCE);
+      	const tags = JSON.parse(inUseTags);
+      	for (var tag of tags) {
+      	  inUseTagSet.add(tag);
+      	}
+      }
+
+      // The tags are unique, for each tag find values and populate selects.
+      for (var tag of inUseTagSet) {
+        this.populateIdRefSelectsForTag(tag);
+      }
+    }
+ 
   }
 	
 	function funcCallbackWhenLoadedDefinition() {
@@ -84,26 +210,10 @@
 	  }
 	  
 	  const urlToGetFieldJsonData = "/sdk/" + sdkVersion + "/fields";
-	  const jsonOkFunc = function (dataFields) {
-			if (!dataFields.sdkVersion) {
+	  const jsonOkFunc = function (dataFieldsJson) {
+			if (!dataFieldsJson.sdkVersion) {
 			  throw new Error("Invalid sdkVersion");
 			}
-
-			// FIELDS.
-			const fields = dataFields.fields;
-		  console.log("Loaded fields: " + fields.length);
-		  const fieldMap = {};
-		  for (var field of fields) {
-		    fieldMap[field.id] = field;
-		  }
-			
-			// NODES.
-			const nodes = dataFields.xmlStructure;
-		  console.log("Loaded nodes: " + nodes.length);
-		  const nodeMap = {};
-		  for (var node of nodes) {
-		    nodeMap[node.id] = node;
-		  }
 	
 		  // NOTE: the data could be loaded in parallel, but for this demo project we do it serial.
 		  const urlToGetNoticeTypeJsonData = "/sdk/" + sdkVersion + "/notice-types/" + noticeId;
@@ -114,8 +224,11 @@
 			  }
 			  setText("notice-sdkVersion", sdkVersion);
 			  setText("notice-noticeId", dataNoticeType.noticeId);
-			  parseNoticeTypeRoot(noticeFormElem, dataNoticeType, fieldMap, nodeMap);
+			  
+			  const editor = new Editor(dataFieldsJson, dataNoticeType, noticeFormElem);
 
+			  editor.buildForm(); // Build the form. Initialize.
+			  
 			  funcCallbackWhenLoadedDefinition();
 			  console.log("Loaded editor notice type: " + urlToGetNoticeTypeJsonData);
 		  });
@@ -124,17 +237,19 @@
 	  jsonGet(urlToGetFieldJsonData, 2000, jsonOkFunc, jsonGetOnError);
 	}
 	
-	function parseNoticeTypeRoot(noticeFormElem, noticeType, fieldMap, nodeMap) {
-	  const level = 1; // Top level, sub items will be on level 2, 3, 4 ...
-  	readContent(noticeFormElem, noticeType.noticeId, noticeType.content, level, fieldMap, nodeMap, false, null);
-	}
+	function buildFieldContainerElem(containerElem, content, editor) {
 	
-	function buildFieldContainerElem(containerElem, noticeId, content, fieldMap, nodeMap) {
+		const noticeId = editor.noticeId;
+    const fieldMap = editor.fieldMap;
+
+	  // Find the fields.json field associated with this notice type definition field.
     const fieldId = content.id;
     field = fieldMap[fieldId];
     if (!field) {
       throw new Error("Field is null for " + fieldId);
     }
+	  
+	  var formElem = null;
 	  
 		if (field.maxLength && field.maxLength > textAreaThreshold && field.type !== "url") {
 		  formElem = document.createElement("textarea");
@@ -188,15 +303,31 @@
       containerElem.appendChild(formElem);
 			input = formElem;
 			
-		} else if (field.type === "id" || field.type === "id-ref") {
+		} else if (field.type === "id-ref") {
       // TODO tttt in theory it should be only "id-ref"
-      if (content.valueList && content.valueList.length > 0) {
-			 	formElem = document.createElement("select");
-        containerElem.appendChild(formElem);
-			  const select = formElem;
- 	      select.appendChild(createOption("", String(content.valueList))); // Empty option.
-			  // TODO tttt propose items from that other data LOT-0001 and so on.
+		 	formElem = document.createElement("select");
+      containerElem.appendChild(formElem);
+		  const select = formElem;
+		  const valueList = content.valueList;
+      if (valueList && valueList.length > 0) {
+      
+ 	      select.appendChild(createOption("", getLabel("select") + " " + String(valueList))); // Empty option.
+
+  			// Allows to find back select even if not knowing the tag, to find all in use tags later on.
+  	    select.setAttribute(DATA_EDITOR_ID_REFERENCE, JSON.stringify(valueList));
+			  for (var tag of valueList) {
+			    // Allows to find back select by tag later on.
+			    select.setAttribute(DATA_EDITOR_ID_REF_PREFIX + tag, "true");
+			  }
+
+ 	      const foundElements = editor.findElementWithAttributeTags(valueList);
+	    	for (var foundElement of foundElements) {
+   	      select.appendChild(createOption(foundElement.value, foundElement.value));
+	    	}
+      } else {
+        // TODO tttt Is this case even possible ???
       }
+
 		} else {
 			formElem = document.createElement("input");
       containerElem.appendChild(formElem);
@@ -252,6 +383,27 @@
         // TODO tttt Maybe the fields json pattern should come with english text explaining the pattern for error messages. 
         input.setAttribute("title", field.pattern.value);
       }
+      
+      if (content.instanceIdField) {
+        input.setAttribute(DATA_EDITOR_INSTANCE_ID_FIELD, content.instanceIdField);
+        const countStr = lpad("0", String(content.editorCount), 4); // 0001, 0002, ...
+        const tag = content.instanceIdField;
+        input.value = tag + "-" + countStr;
+        
+ 	  	  // TODO tttt propose items from that other data XYZ-0001 and so on.
+			  // TODO tttt remove options if they are removed ? This is problematic for a select.
+		
+		 		// NOTE: this will not work on the first pass during creation as elements are not yet in the DOM.
+		 		// This will work during addition of extra elements 0002 and so on.
+        var foundReferencingElements = editor.findElementWithAttributeIdRef(tag);
+        for (var selectElem of foundReferencingElements) {
+   	      selectElem.appendChild(createOption(input.value, input.value));
+        }
+      }
+    }
+    
+    if (!formElem) {
+      throw new Error("A form element should have been defined at this point, for fieldId=" + fieldId);
     }
     
     // Set the language of the input text.
@@ -287,11 +439,15 @@
 		  containerElem.classList.add("notice-content-field-repeatable");
 		}
 		
+		formElem.setAttribute("id", editor.buildIdUnique(content));
+		
 		return {"containerElem" : containerElem, "formElem" : formElem, "field" : field};
 	}
 	
-	function readContent(parentElem, noticeId, content, level, fieldMap, nodeMap, isForRepeat, elemToExpand) {
-		console.debug("readContent content.id=" + content.id + ", level=" + level + ", isForRepeat=" + isForRepeat);	
+	function readContent(editor, parentElem, content, level, isForRepeat, elemToExpand) {
+	  const noticeId = editor.noticeId;
+	
+		//console.debug("readContent content.id=" + content.id + ", level=" + level + ", isForRepeat=" + isForRepeat);	
 	  const documentFragment = document.createDocumentFragment();
 	  content.editorLevel = level; // Enrich model for later.
     
@@ -302,6 +458,8 @@
 		const isSection = content.section;
 		
 		const isCollapsed = content.collapsed ? true : false;
+		
+		// TODO tttt compare content repeatable and node.repeatable (editor.nodeMap[...]), show conflicts
 	  var isContentRepeatable = content.repeatable ? true : false; // Can be reassigned if field...
 		 
 	  // The container element may already exist in the case of uncollapsing (expand).
@@ -310,7 +468,7 @@
     var field; // Can remain undefined or null.
 	  var formElem;
     if (isField) {
-    	const resultMap = buildFieldContainerElem(containerElem, noticeId, content, fieldMap, nodeMap);
+    	const resultMap = buildFieldContainerElem(containerElem, content, editor);
     	formElem = resultMap["formElem"];
     	field = resultMap["field"];
     }
@@ -318,11 +476,10 @@
     // Prefix the ids to avoid conflict with various other identifiers existing in the same page.
     // For repeatable fields the content editorCount ensures the ids are unique.
     
-    const countStr = lpad("0", String(content.editorCount), 4); // 0001, 0042, ...
-    containerElem.setAttribute("id", idPrefix + content.id + "-" + countStr);
+    containerElem.setAttribute("id", editor.buildIdUnique(content));
 
 	  // The id will vary if the element is repeatable but the editor type will not.
-    containerElem.setAttribute("data-editor-type", idPrefix + content.id);
+    containerElem.setAttribute("data-editor-type",  editor.buildIdPartial(content));
 
     containerElem.setAttribute("data-editor-count", content.editorCount);
 
@@ -383,7 +540,7 @@
 	      headerContainer.classList.add("notice-content-container")
 	      const header = document.createElement("h4");
 	      header.classList.add("notice-content-header");
-	      const paddedEditorCount = lpad("0", String(content.editorCount), 4); // 0001, 0042, ...
+	      const paddedEditorCount = lpad("0", String(content.editorCount), 4); // 0001, 0002, ...
 	      const headerText = isContentRepeatable ? content.name + " (" + paddedEditorCount + ")" : content.name;
 	      header.appendChild(document.createTextNode(headerText));
 	      headerContainer.appendChild(header);
@@ -397,7 +554,7 @@
       // EXPAND LOGIC SETUP.
       // Setup of on click event so that content can be loaded into DOM on demand later on.
       const isUseCapture = true; // As the child elements do not exist yet.
-	    const clickExpandFunc = createContentOnClickFunc(containerElem, noticeId, content, level, fieldMap, nodeMap, false, containerElem);
+	    const clickExpandFunc = createContentOnClickFunc(editor, containerElem, content, level, false, containerElem);
 	    containerElem.addEventListener("click", clickExpandFunc, isUseCapture);
 	    content.editorExpanded = false;
 		} else {
@@ -405,7 +562,7 @@
 		  if (content.content && !content.editorExpanded) {
 		    // Load sub items.
 			  for (var contentSub of content.content) {
-	  		  readContent(containerElem, noticeId, contentSub, level + 1, fieldMap, nodeMap, false, null); // Recursion on sub content.
+	  		  readContent(editor, containerElem, contentSub, level + 1, false, null); // Recursion on sub content.
 			  }
 		  }
 		}
@@ -415,9 +572,9 @@
 		  // REPEAT LOGIC SETUP.
 		  const elemButtonAddMore = document.createElement("button");
 		  elemButtonAddMore.setAttribute("type", "button");
-		  elemButtonAddMore.textContent = getLabel(getSelectedLanguage(), "add.more");
+		  elemButtonAddMore.textContent = getLabel("add.more");
 		  // NOTE: here we add the content to the same parent as this is a sibling content and not a child content.
-		  const clickRepeatFunc = createContentOnClickFunc(parentElem, noticeId, content, level, fieldMap, nodeMap, true, false);
+		  const clickRepeatFunc = createContentOnClickFunc(editor, parentElem, content, level, true, false);
 		  elemButtonAddMore.addEventListener("click", clickRepeatFunc, false);
 		  containerElem.appendChild(elemButtonAddMore);
 		}
@@ -432,11 +589,11 @@
     }
 	}
 	
-	function createContentOnClickFunc(containerElem, noticeId, content, level, fieldMap, nodeMap, isForRepeat, elemToExpand) {
+	function createContentOnClickFunc(editor, containerElem, content, level, isForRepeat, elemToExpand) {
 	  return function onClick(ev) {
       console.debug("clicked content=" + content.id);
 	    ev.stopPropagation();
-	    readContent(containerElem, noticeId, content, level + 1, fieldMap, nodeMap, isForRepeat, elemToExpand);
+	    readContent(editor, containerElem, content, level + 1, isForRepeat, elemToExpand);
 	    containerElem.classList.add("notice-content-section-opened");
     };
   }
