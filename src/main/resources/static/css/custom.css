@@ -84,16 +84,23 @@ body {
 .notice-content-non-section {
 }
 
+.notice-content-button {
+  margin-right: 1em;
+}
+
+.notice-content-button-add {
+}
+
+.notice-content-button-remove {
+  color: #a50;
+}
+
 .notice-content-repeatable {
   border: solid 4px #ddd;
 }
 
 .notice-content-valueList {
   background-color: #ff0 !important;
-}
-
-.notice-content-instanceList {
-  background-color: #0ff !important;
 }
 
 .notice-content-hidden {
@@ -124,7 +131,11 @@ textarea:read-only {
 
 .notice-content-required::after {
   content: " *";
-  color: red;
+}
+
+.notice-content-field-repeatable-mismatch {
+  content: " [+]";
+  color: #a50;
 }
 
 .notice-content-field-repeatable::after {

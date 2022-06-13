@@ -1,7 +1,7 @@
 (function() {
 	console.log("Loading editor script.");
 
-  // Avoids conflicts with other identifiers.
+  // Avoids conflicts with other identifiers in the context of this browser tab.
 	const idPrefix = "editor-id-";
 
   // TODO tttt maxLength 30 seems to be the threshold in the fields.json, we should provide this in the fields.json as an extra top level info?
@@ -14,17 +14,20 @@
   const i18n = {};
 	i18n["en"] = {
 	"add.more": "Add one more",
+	"remove": "Remove",
 	"select": "Select"
 	};
 	
 	i18n["fr"] = {
 	"add.more": "En ajouter un",
+	"remove": "Enlever",
 	"select": "Choisir"
 	};
 
   function getLabel(labelKey) {
     getLabel(labelKey, getSelectedLanguage());
   }
+  
   function getLabel(labelKey, lang) {
 	  // How you get and handle i18n label data is up to you.
 	  var dataForLang = i18n[lang];
@@ -187,7 +190,8 @@
     const noticeTypes = data.noticeTypes;
 	  const elemNoticeTypeSelector = getElemNoticeTypeSelector();
 	  elemNoticeTypeSelector.innerHtml = "";
-
+    elemNoticeTypeSelector.value = ""; // Reset the value.
+    
 		// Dynamically load the options.   
     for (var noticeType of noticeTypes) {
       elemNoticeTypeSelector.innerHtml = "";
@@ -199,6 +203,7 @@
  	    const selectedSdkVersion = getSdkVersion();
  	    createNoticeForm(selectedSdkVersion, noticeId, funcCallbackWhenLoadedDefinition);
  	  };
+ 	  document.getElementById("notice-type-selector").onchange();
   }
   
 	function createNoticeForm(sdkVersion, noticeId) {
@@ -210,14 +215,15 @@
 	  }
 	  
 	  const urlToGetFieldJsonData = "/sdk/" + sdkVersion + "/fields";
-	  const jsonOkFunc = function (dataFieldsJson) {
+	  const jsonOkFieldsFunc = function(dataFieldsJson) {
 			if (!dataFieldsJson.sdkVersion) {
 			  throw new Error("Invalid sdkVersion");
 			}
 	
 		  // NOTE: the data could be loaded in parallel, but for this demo project we do it serial.
 		  const urlToGetNoticeTypeJsonData = "/sdk/" + sdkVersion + "/notice-types/" + noticeId;
-	    jsonGet(urlToGetNoticeTypeJsonData, 2000, function(dataNoticeType) {
+		  
+		  const jsonOkNoticeTypeFunc = function(dataNoticeType) {
 	      const sdkVersion = dataNoticeType.sdkVersion;
 			  if (!sdkVersion) {
 			    throw new Error("Invalid sdkVersion: " + sdkVersion);
@@ -231,10 +237,11 @@
 			  
 			  funcCallbackWhenLoadedDefinition();
 			  console.log("Loaded editor notice type: " + urlToGetNoticeTypeJsonData);
-		  });
+		  };
+	    jsonGet(urlToGetNoticeTypeJsonData, 2000, jsonOkNoticeTypeFunc, jsonGetOnError);
 	  };
 	  
-	  jsonGet(urlToGetFieldJsonData, 2000, jsonOkFunc, jsonGetOnError);
+	  jsonGet(urlToGetFieldJsonData, 2000, jsonOkFieldsFunc, jsonGetOnError);
 	}
 	
 	function buildFieldContainerElem(containerElem, content, editor) {
@@ -437,6 +444,11 @@
 		if (isFieldRepeatable) {
 		  // Allow to add / remove fields.
 		  containerElem.classList.add("notice-content-field-repeatable");
+		  
+		  if (content.repeatable && !isFieldRepeatable) {
+		    console.error("fields.json repeatable mismatch on: " + field.id);
+   		  containerElem.classList.add("notice-content-field-repeatable-mismatch");
+		  }
 		}
 		
 		formElem.setAttribute("id", editor.buildIdUnique(content));
@@ -512,10 +524,6 @@
       containerElem.classList.add("notice-content-repeatable");
     }
     
-    if (content.instanceList) {
-      containerElem.classList.add("notice-content-instanceList");
-    }
-    
     if (isField) {
  	    if (formElem) {
  	      formElem.classList.add("notice-content-field");
@@ -573,10 +581,29 @@
 		  const elemButtonAddMore = document.createElement("button");
 		  elemButtonAddMore.setAttribute("type", "button");
 		  elemButtonAddMore.textContent = getLabel("add.more");
+		  elemButtonAddMore.classList.add("notice-content-button");
+		  elemButtonAddMore.classList.add("notice-content-button-add");
+		  
 		  // NOTE: here we add the content to the same parent as this is a sibling content and not a child content.
 		  const clickRepeatFunc = createContentOnClickFunc(editor, parentElem, content, level, true, false);
 		  elemButtonAddMore.addEventListener("click", clickRepeatFunc, false);
 		  containerElem.appendChild(elemButtonAddMore);
+		}
+		
+		if (isContentRepeatable && content.editorCount > 2) {
+		  // This element should have a remove button.
+		  const elemButtonRemove = document.createElement("button");
+		  elemButtonRemove.setAttribute("type", "button");
+		  elemButtonRemove.textContent = getLabel("remove");
+		  elemButtonRemove.classList.add("notice-content-button");
+		  elemButtonRemove.classList.add("notice-content-button-remove");
+		  
+		  elemButtonRemove.addEventListener("click", function(){
+  		  parentElem.removeChild(containerElem);
+  		  // TODO really or just keep incrementing?
+  		  //content.editorCount--; // Decrease the counter.
+		  }, false);
+	    containerElem.appendChild(elemButtonRemove);	  
 		}
 		
 		if (elemToExpand) {
