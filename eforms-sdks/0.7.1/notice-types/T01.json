@@ -2,192 +2,224 @@
   "ublVersion" : "2.3",
   "sdkVersion" : "0.7.0",
   "metadataDatabase" : {
-    "version" : "0.4.58",
-    "createdOn" : "2022-06-03T16:06:32"
+    "version" : "0.4.69",
+    "createdOn" : "2022-06-14T15:58:33"
   },
   "noticeId" : "T01",
   "metadata" : {
     "id" : "GR-Metadata",
     "name" : "Metadata",
+    "displayType" : "GROUP",
     "content" : [ {
       "id" : "BT-02-notice",
       "name" : "Notice Type",
-      "readOnly" : true
+      "readOnly" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "BT-03-notice",
       "name" : "Form Type",
-      "readOnly" : true
+      "readOnly" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "BT-701-notice",
       "name" : "Notice Identifier",
-      "readOnly" : true
+      "readOnly" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "BT-757-notice",
       "name" : "Notice Version",
-      "readOnly" : true
+      "readOnly" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "BT-702(a)-notice",
       "name" : "Notice Official Language",
-      "hidden" : true
+      "hidden" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "BT-702(b)-notice",
       "name" : "Notice Official Language",
-      "hidden" : true
+      "hidden" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "BT-05(a)-notice",
       "name" : "Notice Dispatch Date",
-      "hidden" : true
+      "hidden" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "BT-05(b)-notice",
       "name" : "Notice Dispatch Date",
-      "hidden" : true
+      "hidden" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "BT-738-notice",
       "name" : "Notice Publication Date Preferred",
-      "hidden" : true
+      "hidden" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "OPT-001-notice",
       "name" : "UBL Version",
-      "hidden" : true
+      "hidden" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "OPT-002-notice",
       "name" : "Customization ID",
-      "readOnly" : true
+      "readOnly" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "OPP-070-notice",
       "name" : "Notice Subtype",
-      "readOnly" : true
+      "readOnly" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "OPP-010-notice",
       "name" : "Notice Publication Number",
-      "hidden" : true
+      "hidden" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "OPP-011-notice",
       "name" : "OJEU Identifier",
-      "hidden" : true
+      "hidden" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "OPP-012-notice",
       "name" : "OJEU Publication Date",
-      "hidden" : true
+      "hidden" : true,
+      "displayType" : "GROUP"
     } ]
   },
   "content" : {
     "id" : "GR-Content",
     "name" : "Content",
+    "displayType" : "GROUP",
     "content" : [ {
       "id" : "GR-ContractingAuthority",
       "name" : "Contracting Authority",
       "section" : true,
+      "displayType" : "GROUP",
       "content" : [ {
         "id" : "GR-ContractingAuthority-Buyer",
         "name" : "Buyer",
         "repeatable" : true,
+        "displayType" : "GROUP",
         "content" : [ {
           "id" : "OPT-300-Procedure-Buyer",
           "name" : "Buyer Technical Identifier Reference",
-          "references" : [ {
-            "groupId" : "GR-Organisations",
-            "fieldId" : "OPT-200-Organization-Company"
-          }, {
-            "groupId" : "GR-Touch-Point",
-            "fieldId" : "OPT-201-Organization-TouchPoint"
-          } ]
+          "displayType" : "COMBOBOX"
         }, {
           "id" : "BT-11-Procedure-Buyer",
-          "name" : "Buyer Legal Type"
+          "name" : "Buyer Legal Type",
+          "displayType" : "TEXTBOX"
         }, {
           "id" : "BT-740-Procedure-Buyer",
-          "name" : "Buyer Contracting Entity"
+          "name" : "Buyer Contracting Entity",
+          "displayType" : "TEXTBOX"
         }, {
           "id" : "BT-10-Procedure-Buyer",
-          "name" : "Activity Authority"
+          "name" : "Activity Authority",
+          "displayType" : "TEXTBOX"
         }, {
           "id" : "BT-508-Procedure-Buyer",
-          "name" : "Buyer Profile URL"
+          "name" : "Buyer Profile URL",
+          "displayType" : "TEXTBOX"
         } ]
       }, {
         "id" : "GR-Procedure-SProvider",
         "name" : "Service Provider",
         "repeatable" : true,
+        "displayType" : "GROUP",
         "content" : [ {
           "id" : "OPT-300-Procedure-SProvider",
           "name" : "Service Provider Technical Identifier Reference",
-          "references" : [ {
-            "groupId" : "GR-Organisations",
-            "fieldId" : "OPT-200-Organization-Company"
-          }, {
-            "groupId" : "GR-Touch-Point",
-            "fieldId" : "OPT-201-Organization-TouchPoint"
-          } ]
+          "displayType" : "COMBOBOX"
         }, {
           "id" : "OPT-030-Procedure-SProvider",
-          "name" : "Provided Service Type"
+          "name" : "Provided Service Type",
+          "displayType" : "TEXTBOX"
         } ]
       } ]
     }, {
       "id" : "GR-Procedure",
       "name" : "Procedure",
       "section" : true,
+      "displayType" : "GROUP",
       "content" : [ {
         "id" : "GR-Procedure-Purpose",
         "name" : "Purpose",
         "section" : true,
+        "displayType" : "GROUP",
         "content" : [ {
           "id" : "GR-Procedure-MainLegalBasis",
           "name" : "Main Legal Basis",
+          "displayType" : "GROUP",
           "content" : [ {
             "id" : "BT-01-notice",
-            "name" : "Procedure Legal Basis"
+            "name" : "Procedure Legal Basis",
+            "displayType" : "TEXTBOX"
           } ]
         }, {
           "id" : "GR-Procedure-LocalCrossBorderLaw",
           "name" : "Local Law",
+          "displayType" : "GROUP",
           "content" : [ {
             "id" : "BT-01(c)-Procedure",
-            "name" : "FIXME Legal Basis (ELI)"
+            "name" : "FIXME Legal Basis (ELI)",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-01(d)-Procedure",
-            "name" : "Legal Basis (Text)"
+            "name" : "Legal Basis (Text)",
+            "displayType" : "TEXTBOX"
           } ]
         }, {
           "id" : "GR-Procedure-Description",
           "name" : "Description",
+          "displayType" : "GROUP",
           "content" : [ {
             "id" : "BT-22-Procedure",
-            "name" : "Internal Identifier"
+            "name" : "Internal Identifier",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-21-Procedure",
-            "name" : "Title"
+            "name" : "Title",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-23-Procedure",
-            "name" : "Main Nature"
+            "name" : "Main Nature",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "OPP-040-Procedure",
-            "name" : "Main Nature - Sub Type"
+            "name" : "Main Nature - Sub Type",
+            "displayType" : "TEXTBOX"
           } ]
         }, {
           "id" : "GR-Procedure-Scope",
           "name" : "Scope",
+          "displayType" : "GROUP",
           "content" : [ {
             "id" : "GR-Procedure-Scope-MainClassification",
             "name" : "Main Classification",
+            "displayType" : "GROUP",
             "content" : [ {
               "id" : "BT-26(m)-Procedure",
-              "name" : "FIXME Classification Type"
+              "name" : "FIXME Classification Type",
+              "displayType" : "TEXTBOX"
             }, {
               "id" : "BT-262-Procedure",
-              "name" : "FIXME Classification Code"
+              "name" : "FIXME Classification Code",
+              "displayType" : "TEXTBOX"
             } ]
           }, {
             "id" : "GR-Procedure-Scope-AdditionalClassification",
             "name" : "Additional Classification",
             "repeatable" : true,
+            "displayType" : "GROUP",
             "content" : [ {
               "id" : "BT-26(a)-Procedure",
-              "name" : "FIXME Classification Type"
+              "name" : "FIXME Classification Type",
+              "displayType" : "TEXTBOX"
             }, {
               "id" : "BT-263-Procedure",
-              "name" : "FIXME Classification Code"
+              "name" : "FIXME Classification Code",
+              "displayType" : "TEXTBOX"
             } ]
           } ]
         } ]
@@ -195,41 +227,52 @@
         "id" : "GR-Procedure-TenderingTerms",
         "name" : "Tendering Terms",
         "section" : true,
+        "displayType" : "GROUP",
         "content" : [ {
           "id" : "GR-Procedure-CrossBorderLaw",
           "name" : "Cross Border Law",
+          "displayType" : "GROUP",
           "content" : [ {
             "id" : "BT-09(a)-Procedure",
-            "name" : "Cross Border Law (ID)"
+            "name" : "Cross Border Law (ID)",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-09(b)-Procedure",
-            "name" : "Cross Border Law (Description)"
+            "name" : "Cross Border Law (Description)",
+            "displayType" : "TEXTBOX"
           } ]
         } ]
       }, {
         "id" : "GR-Procedure-Procedure-subsection",
         "name" : "Procedure",
         "section" : true,
+        "displayType" : "GROUP",
         "content" : [ {
           "id" : "GR-Procedure-Procedure",
           "name" : "Procedure",
+          "displayType" : "GROUP",
           "content" : [ {
             "id" : "BT-105-Procedure",
-            "name" : "Procedure Type"
+            "name" : "Procedure Type",
+            "displayType" : "TEXTBOX"
           } ]
         }, {
           "id" : "GR-Procedure-DirectAward",
           "name" : "Direct Award",
+          "displayType" : "GROUP",
           "content" : [ {
             "id" : "BT-136-Procedure",
-            "name" : "Direct Award Justification Code"
+            "name" : "Direct Award Justification Code",
+            "displayType" : "TEXTBOX"
           } ]
         }, {
           "id" : "GR-Procedure-AdditionalInformation",
           "name" : "Additional Information",
+          "displayType" : "GROUP",
           "content" : [ {
             "id" : "BT-300-Procedure",
-            "name" : "Additional Information"
+            "name" : "Additional Information",
+            "displayType" : "TEXTBOX"
           } ]
         } ]
       } ]
@@ -238,135 +281,167 @@
       "name" : "Lot",
       "section" : true,
       "repeatable" : true,
+      "displayType" : "GROUP",
+      "identifier" : "LOT",
       "content" : [ {
         "id" : "GR-Lot-Purpose",
         "name" : "Purpose",
         "section" : true,
+        "displayType" : "GROUP",
         "content" : [ {
           "id" : "BT-137-Lot",
           "name" : "Purpose Lot Identifier",
-          "hidden" : true
+          "hidden" : true,
+          "displayType" : "textbox",
+          "value" : "auto-generated"
         }, {
           "id" : "GR-Lot-Description",
           "name" : "Description",
+          "displayType" : "GROUP",
           "content" : [ {
             "id" : "BT-22-Lot",
-            "name" : "Internal Identifier"
+            "name" : "Internal Identifier",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-21-Lot",
-            "name" : "Title"
+            "name" : "Title",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-24-Lot",
-            "name" : "Description"
+            "name" : "Description",
+            "displayType" : "TEXTAREA"
           }, {
             "id" : "BT-23-Lot",
-            "name" : "Main Nature"
+            "name" : "Main Nature",
+            "displayType" : "RADIO"
           } ]
         }, {
           "id" : "GR-Lot-Scope",
           "name" : "Scope",
+          "displayType" : "GROUP",
           "content" : [ {
             "id" : "BT-25-Lot",
-            "name" : "Quantity"
+            "name" : "Quantity",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-625-Lot",
-            "name" : "Unit"
+            "name" : "Unit",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "GR-Lot-Scope-MainClassification",
             "name" : "Main Classification",
+            "displayType" : "GROUP",
             "content" : [ {
               "id" : "BT-26(m)-Lot",
-              "name" : "FIXME Classification Type"
+              "name" : "FIXME Classification Type",
+              "displayType" : "TEXTBOX"
             }, {
               "id" : "BT-262-Lot",
-              "name" : "FIXME Classification Code"
+              "name" : "FIXME Classification Code",
+              "displayType" : "TEXTBOX"
             } ]
           }, {
             "id" : "GR-Lot-Scope-AdditionalClassification",
             "name" : "Additional Classification",
             "repeatable" : true,
+            "displayType" : "GROUP",
             "content" : [ {
               "id" : "BT-26(a)-Lot",
-              "name" : "FIXME Classification Type"
+              "name" : "FIXME Classification Type",
+              "displayType" : "TEXTBOX"
             }, {
               "id" : "BT-263-Lot",
-              "name" : "FIXME Classification Code"
+              "name" : "FIXME Classification Code",
+              "displayType" : "TEXTBOX"
             } ]
           } ]
         }, {
           "id" : "GR-Lot-PlaceOfPerformance",
           "name" : "Place of Performance",
           "repeatable" : true,
+          "displayType" : "GROUP",
           "content" : [ {
             "id" : "BT-5101(a)-Lot",
-            "name" : " Street"
+            "name" : " Street",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-5101(b)-Lot",
-            "name" : " Street"
+            "name" : " Street",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-5101(c)-Lot",
-            "name" : " Street"
+            "name" : " Street",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-5131-Lot",
-            "name" : "City"
+            "name" : "City",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-5121-Lot",
-            "name" : "Post Code"
+            "name" : "Post Code",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-5071-Lot",
-            "name" : "FIXME Country Subdivision"
+            "name" : "FIXME Country Subdivision",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-5141-Lot",
-            "name" : "Place Performance Country Code"
+            "name" : "Place Performance Country Code",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-727-Lot",
-            "name" : " Services Other"
+            "name" : " Services Other",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-728-Lot",
-            "name" : "Additional Information"
+            "name" : "Additional Information",
+            "displayType" : "TEXTBOX"
           } ]
         }, {
           "id" : "GR-Lot-PlannedDuration",
           "name" : "Planned Duration",
+          "displayType" : "GROUP",
           "content" : [ {
             "id" : "GR-Lot-PlannedDuration-Dates",
             "name" : "Duration Dates",
+            "displayType" : "GROUP",
             "content" : [ {
               "id" : "BT-536-Lot",
-              "name" : "Duration Start Date"
+              "name" : "Duration Start Date",
+              "displayType" : "TEXTBOX"
             }, {
               "id" : "BT-537-Lot",
-              "name" : "Duration End Date"
+              "name" : "Duration End Date",
+              "displayType" : "TEXTBOX"
             } ]
           }, {
             "id" : "GR-Lot-PlannedDuration-Period",
             "name" : "Duration Period",
+            "displayType" : "GROUP",
             "content" : [ {
               "id" : "BT-36-Lot",
-              "name" : "FIXME Duration Period"
+              "name" : "FIXME Duration Period",
+              "displayType" : "TEXTBOX"
             } ]
           }, {
             "id" : "BT-538-Lot",
-            "name" : "Duration Other"
+            "name" : "Duration Other",
+            "displayType" : "TEXTBOX"
           } ]
         } ]
       }, {
         "id" : "GR-Lot-SubmissionInfo",
         "name" : "Submission Info",
         "section" : true,
+        "displayType" : "GROUP",
         "content" : [ {
           "id" : "GR-Lot-AddInfo",
           "name" : "Additional Information Providing Organisation",
+          "displayType" : "GROUP",
           "content" : [ {
             "id" : "OPT-301-Lot-AddInfo",
             "name" : "Additional Info Provider Technical Identifier Reference",
-            "references" : [ {
-              "groupId" : "GR-Organisations",
-              "fieldId" : "OPT-200-Organization-Company"
-            }, {
-              "groupId" : "GR-Touch-Point",
-              "fieldId" : "OPT-201-Organization-TouchPoint"
-            } ]
+            "displayType" : "COMBOBOX"
           } ]
         } ]
       } ]
@@ -374,168 +449,222 @@
       "id" : "GR-Change",
       "name" : "Change",
       "section" : true,
+      "displayType" : "GROUP",
       "content" : [ {
         "id" : "BT-140-notice",
         "name" : "Change Reason Code",
-        "readOnly" : true
+        "readOnly" : true,
+        "displayType" : "TEXTBOX"
       }, {
         "id" : "BT-762-notice",
-        "name" : "Change Reason Description"
+        "name" : "Change Reason Description",
+        "displayType" : "TEXTBOX"
       }, {
         "id" : "BT-758-notice",
         "name" : "Change Notice Version Identifier",
-        "readOnly" : true
+        "readOnly" : true,
+        "displayType" : "TEXTBOX"
       }, {
         "id" : "BT-718-notice",
-        "name" : "Change Procurement Documents"
+        "name" : "Change Procurement Documents",
+        "displayType" : "TEXTBOX"
       }, {
         "id" : "BT-719-notice",
-        "name" : "Change Procurement Documents Date"
+        "name" : "Change Procurement Documents Date",
+        "displayType" : "TEXTBOX"
       }, {
         "id" : "GR-ChangeSections",
         "name" : "Change sections",
         "repeatable" : true,
+        "displayType" : "GROUP",
         "content" : [ {
           "id" : "BT-13716-notice",
-          "name" : "Change Previous Section Identifier"
+          "name" : "Change Previous Section Identifier",
+          "displayType" : "TEXTBOX"
         }, {
           "id" : "BT-141(a)-notice",
-          "name" : "Change Description"
+          "name" : "Change Description",
+          "displayType" : "TEXTBOX"
         } ]
       } ]
     }, {
       "id" : "GR-Organisations-Section",
       "name" : "Organisations",
       "section" : true,
+      "displayType" : "GROUP",
       "content" : [ {
         "id" : "GR-Organisations-Subsection",
         "name" : "Organisations",
         "section" : true,
+        "displayType" : "GROUP",
         "content" : [ {
           "id" : "GR-Organisations",
           "name" : "Organisation",
           "repeatable" : true,
+          "displayType" : "GROUP",
+          "identifier" : "ORG",
           "content" : [ {
             "id" : "OPT-200-Organization-Company",
             "name" : "Company Technical Identifier",
-            "hidden" : true
+            "hidden" : true,
+            "displayType" : "textbox",
+            "value" : "auto-generated"
           }, {
             "id" : "BT-633-Organization",
-            "name" : "Organization Natural Person"
+            "name" : "Organization Natural Person",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "GR-Company",
             "name" : "Company",
+            "displayType" : "GROUP",
             "content" : [ {
               "id" : "BT-500-Organization-Company",
-              "name" : "Name"
+              "name" : "Name",
+              "displayType" : "TEXTBOX"
             }, {
               "id" : "BT-501-Organization-Company",
-              "name" : "Identifier"
+              "name" : "Identifier",
+              "displayType" : "TEXTBOX"
             }, {
               "id" : "BT-16-Organization-Company",
-              "name" : "Part Name"
+              "name" : "Part Name",
+              "displayType" : "TEXTBOX"
             }, {
               "id" : "BT-505-Organization-Company",
-              "name" : "Internet Address"
+              "name" : "Internet Address",
+              "displayType" : "TEXTBOX"
             } ]
           }, {
             "id" : "GR-Company-Address",
             "name" : "Company Address",
+            "displayType" : "GROUP",
             "content" : [ {
               "id" : "BT-510(a)-Organization-Company",
-              "name" : "Street"
+              "name" : "Street",
+              "displayType" : "TEXTBOX"
             }, {
               "id" : "BT-510(b)-Organization-Company",
-              "name" : "Street"
+              "name" : "Street",
+              "displayType" : "TEXTBOX"
             }, {
               "id" : "BT-510(c)-Organization-Company",
-              "name" : "Street"
+              "name" : "Street",
+              "displayType" : "TEXTBOX"
             }, {
               "id" : "BT-513-Organization-Company",
-              "name" : "City"
+              "name" : "City",
+              "displayType" : "TEXTBOX"
             }, {
               "id" : "BT-512-Organization-Company",
-              "name" : "Post Code"
+              "name" : "Post Code",
+              "displayType" : "TEXTBOX"
             }, {
               "id" : "BT-507-Organization-Company",
-              "name" : "Country Subdivision"
+              "name" : "Country Subdivision",
+              "displayType" : "TEXTBOX"
             }, {
               "id" : "BT-514-Organization-Company",
-              "name" : "Country Code"
+              "name" : "Country Code",
+              "displayType" : "TEXTBOX"
             } ]
           }, {
             "id" : "GR-Company-Contact",
             "name" : "Company Contact",
+            "displayType" : "GROUP",
             "content" : [ {
               "id" : "BT-502-Organization-Company",
-              "name" : "Contact Point"
+              "name" : "Contact Point",
+              "displayType" : "TEXTBOX"
             }, {
               "id" : "BT-506-Organization-Company",
-              "name" : "Contact Email"
+              "name" : "Contact Email",
+              "displayType" : "TEXTBOX"
             }, {
               "id" : "BT-503-Organization-Company",
-              "name" : "Contact Phone"
+              "name" : "Contact Phone",
+              "displayType" : "TEXTBOX"
             }, {
               "id" : "BT-739-Organization-Company",
-              "name" : "Contact Fax"
+              "name" : "Contact Fax",
+              "displayType" : "TEXTBOX"
             } ]
           }, {
             "id" : "GR-Touch-Point",
             "name" : "Touch Point",
             "repeatable" : true,
+            "displayType" : "GROUP",
+            "identifier" : "TPO",
             "content" : [ {
               "id" : "OPT-201-Organization-TouchPoint",
               "name" : "TouchPoint Technical Identifier",
-              "hidden" : true
+              "hidden" : true,
+              "displayType" : "textbox",
+              "value" : "auto-generated"
             }, {
               "id" : "BT-500-Organization-TouchPoint",
-              "name" : "Name"
+              "name" : "Name",
+              "displayType" : "TEXTBOX"
             }, {
               "id" : "BT-16-Organization-TouchPoint",
-              "name" : "Part Name"
+              "name" : "Part Name",
+              "displayType" : "TEXTBOX"
             }, {
               "id" : "BT-505-Organization-TouchPoint",
-              "name" : "Internet Address"
+              "name" : "Internet Address",
+              "displayType" : "TEXTBOX"
             }, {
               "id" : "GR-TouchPoint-Address",
               "name" : "TouchPoint Address",
+              "displayType" : "GROUP",
               "content" : [ {
                 "id" : "BT-510(a)-Organization-TouchPoint",
-                "name" : "Street"
+                "name" : "Street",
+                "displayType" : "TEXTBOX"
               }, {
                 "id" : "BT-510(b)-Organization-TouchPoint",
-                "name" : "Street"
+                "name" : "Street",
+                "displayType" : "TEXTBOX"
               }, {
                 "id" : "BT-510(c)-Organization-TouchPoint",
-                "name" : "Street"
+                "name" : "Street",
+                "displayType" : "TEXTBOX"
               }, {
                 "id" : "BT-513-Organization-TouchPoint",
-                "name" : "City"
+                "name" : "City",
+                "displayType" : "TEXTBOX"
               }, {
                 "id" : "BT-512-Organization-TouchPoint",
-                "name" : "Post Code"
+                "name" : "Post Code",
+                "displayType" : "TEXTBOX"
               }, {
                 "id" : "BT-507-Organization-TouchPoint",
-                "name" : "Country Subdivision"
+                "name" : "Country Subdivision",
+                "displayType" : "TEXTBOX"
               }, {
                 "id" : "BT-514-Organization-TouchPoint",
-                "name" : "Country Code"
+                "name" : "Country Code",
+                "displayType" : "TEXTBOX"
               } ]
             }, {
               "id" : "GR-TouchPoint-Contact",
               "name" : "TouchPoint Contact",
+              "displayType" : "GROUP",
               "content" : [ {
                 "id" : "BT-502-Organization-TouchPoint",
-                "name" : "Contact Point"
+                "name" : "Contact Point",
+                "displayType" : "TEXTBOX"
               }, {
                 "id" : "BT-506-Organization-TouchPoint",
-                "name" : "Contact Email"
+                "name" : "Contact Email",
+                "displayType" : "TEXTBOX"
               }, {
                 "id" : "BT-503-Organization-TouchPoint",
-                "name" : "Contact Phone"
+                "name" : "Contact Phone",
+                "displayType" : "TEXTBOX"
               }, {
                 "id" : "BT-739-Organization-TouchPoint",
-                "name" : "Contact Fax"
+                "name" : "Contact Fax",
+                "displayType" : "TEXTBOX"
               } ]
             } ]
           } ]
@@ -544,56 +673,75 @@
         "id" : "GR-UBO-Subsection",
         "name" : "Ultimate Beneficial Owner",
         "section" : true,
+        "displayType" : "GROUP",
         "content" : [ {
           "id" : "GR-UBO",
           "name" : "Ultimate Beneficial Owner",
           "repeatable" : true,
+          "displayType" : "GROUP",
+          "identifier" : "UBO",
           "content" : [ {
             "id" : "OPT-202-UBO",
             "name" : "Beneficial Owner Technical Identifier",
-            "hidden" : true
+            "hidden" : true,
+            "displayType" : "textbox",
+            "value" : "auto-generated"
           }, {
             "id" : "BT-500-UBO",
-            "name" : "Name"
+            "name" : "Name",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "OPT-160-UBO",
-            "name" : "First Name"
+            "name" : "First Name",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-506-UBO",
-            "name" : "Contact Email Address"
+            "name" : "Contact Email Address",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-503-UBO",
-            "name" : "Contact Telephone Number"
+            "name" : "Contact Telephone Number",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-739-UBO",
-            "name" : "Contact Fax"
+            "name" : "Contact Fax",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-507-UBO",
-            "name" : "Country Subdivision"
+            "name" : "Country Subdivision",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-510(a)-UBO",
-            "name" : "Street"
+            "name" : "Street",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-510(b)-UBO",
-            "name" : "Street"
+            "name" : "Street",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-510(c)-UBO",
-            "name" : "Street"
+            "name" : "Street",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-512-UBO",
-            "name" : "Post Code"
+            "name" : "Post Code",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-513-UBO",
-            "name" : "City"
+            "name" : "City",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "BT-514-UBO",
-            "name" : "Country Code"
+            "name" : "Country Code",
+            "displayType" : "TEXTBOX"
           }, {
             "id" : "GR-UBO-Winner",
             "name" : "TBD Winner",
+            "displayType" : "GROUP",
             "content" : [ {
               "id" : "BT-706-UBO",
-              "name" : "Winner Owner Nationality"
+              "name" : "Winner Owner Nationality",
+              "displayType" : "TEXTBOX"
             } ]
           } ]
         } ]
