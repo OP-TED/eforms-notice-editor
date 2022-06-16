@@ -2,110 +2,138 @@
   "ublVersion" : "2.3",
   "sdkVersion" : "0.7.0",
   "metadataDatabase" : {
-    "version" : "0.4.58",
-    "createdOn" : "2022-06-03T16:06:32"
+    "version" : "0.4.87",
+    "createdOn" : "2022-06-16T11:26:40"
   },
   "noticeId" : "X01",
   "metadata" : {
     "id" : "GR-Metadata",
     "name" : "Metadata",
+    "displayType" : "GROUP",
     "content" : [ {
       "id" : "BT-01-notice",
       "name" : "Procedure Legal Basis",
-      "readOnly" : true
+      "readOnly" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "BT-02-notice",
       "name" : "Notice Type",
-      "readOnly" : true
+      "readOnly" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "BT-03-notice",
       "name" : "Form Type",
-      "readOnly" : true
+      "readOnly" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "BT-701-notice",
       "name" : "Notice Identifier",
-      "readOnly" : true
+      "readOnly" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "BT-702(a)-notice",
       "name" : "Notice Official Language",
-      "hidden" : true
+      "hidden" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "BT-702(b)-notice",
       "name" : "Notice Official Language",
-      "hidden" : true
+      "hidden" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "BT-05(a)-notice",
       "name" : "Notice Dispatch Date",
-      "hidden" : true
+      "hidden" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "BT-05(b)-notice",
       "name" : "Notice Dispatch Date",
-      "hidden" : true
+      "hidden" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "OPT-001-notice",
       "name" : "UBL Version",
-      "hidden" : true
+      "hidden" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "OPT-002-notice",
       "name" : "Customization ID",
-      "readOnly" : true
+      "readOnly" : true,
+      "displayType" : "GROUP"
     }, {
       "id" : "OPP-070-notice",
       "name" : "Notice Subtype",
-      "readOnly" : true
+      "readOnly" : true,
+      "displayType" : "GROUP"
     } ]
   },
   "content" : {
     "id" : "GR-Content",
     "name" : "Content",
+    "displayType" : "GROUP",
     "content" : [ {
       "id" : "GR-Business-Section",
       "name" : "Notice",
       "section" : true,
+      "displayType" : "GROUP",
       "content" : [ {
         "id" : "OPP-100-Business",
-        "name" : "Notice Purpose"
+        "name" : "Notice Purpose",
+        "displayType" : "TEXTBOX"
       }, {
         "id" : "GR-Business-Party",
         "name" : "Business Party",
+        "displayType" : "GROUP",
         "content" : [ {
           "id" : "BT-500-Business",
-          "name" : "Official name"
+          "name" : "Official name",
+          "displayType" : "TEXTBOX"
         }, {
           "id" : "BT-501-Business-European",
-          "name" : "EU Registration Number"
+          "name" : "EU Registration Number",
+          "displayType" : "TEXTBOX"
         }, {
           "id" : "OPP-110-Business",
-          "name" : "Place of registration - Town"
+          "name" : "Place of registration - Town",
+          "displayType" : "TEXTBOX"
         }, {
           "id" : "OPP-111-Business",
-          "name" : "Place of registration - Postcode"
+          "name" : "Place of registration - Postcode",
+          "displayType" : "TEXTBOX"
         }, {
           "id" : "OPP-112-Business",
-          "name" : "Place of registration - Country"
+          "name" : "Place of registration - Country",
+          "displayType" : "TEXTBOX"
         }, {
           "id" : "OPP-113-Business-European",
-          "name" : "Date of registration"
+          "name" : "Date of registration",
+          "displayType" : "TEXTBOX"
         } ]
       }, {
         "id" : "GR-Business-Publication",
         "name" : "Publication",
+        "displayType" : "GROUP",
         "content" : [ {
           "id" : "OPP-120-Business",
-          "name" : "Name of Publication"
+          "name" : "Name of Publication",
+          "displayType" : "TEXTBOX"
         }, {
           "id" : "OPP-121-Business",
-          "name" : "Title of the announcement"
+          "name" : "Title of the announcement",
+          "displayType" : "TEXTBOX"
         }, {
           "id" : "OPP-122-Business",
-          "name" : "URL of the announcement"
+          "name" : "URL of the announcement",
+          "displayType" : "TEXTBOX"
         }, {
           "id" : "OPP-123-Business",
-          "name" : "Date of publication"
+          "name" : "Date of publication",
+          "displayType" : "TEXTBOX"
         } ]
       }, {
         "id" : "OPP-130-Business",
-        "name" : "Additional information"
+        "name" : "Additional information",
+        "displayType" : "TEXTBOX"
       } ]
     } ]
   }

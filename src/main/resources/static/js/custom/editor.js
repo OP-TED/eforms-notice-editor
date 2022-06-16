@@ -69,6 +69,46 @@
       this.noticeId = noticeType.noticeId;
       
       this.noticeFormElement = noticeFormElement;
+      
+      const serializeBtnElem = document.getElementById("id-editor-log-json");
+      const that = this;
+      const serializeToJsonFunc = function(event) {
+        console.debug("Attempting to serialize form to JSON.");
+        event.preventDefault();
+        that.toModel();
+      };
+      serializeBtnElem.addEventListener("click", serializeToJsonFunc, false);
+    }
+    
+    toModel() {
+    
+      // TODO tttt idScheme id increment and handling of repeat, should be done after adding to page.
+
+		  // OUT
+      // 0. create array
+      // 1. use selector on custom attributes (put parentId into custom data-attribute)
+      
+      // zzzz
+      // Select array of all element storing a value.
+      
+      // 2. fill array (in order), I hope selector handles order ???
+      // 2. order should already be ok, just use data-...-parentId to rebuild the tree
+      
+      const dataModel = {};
+      const fieldElems = document.querySelectorAll("[data-editor-value-field='true']");
+      for (var fieldElem of fieldElems) {
+        const contentId = fieldElem.getAttribute("data-editor-content-id");
+        const contentParentId = fieldElem.getAttribute("data-editor-content-parent-id");
+        dataModel[contentId]= {"id" : contentId, "parentId" : contentParentId, "value" : fieldElem.value};
+      }
+      console.dir(dataModel);
+    }
+    
+    fromModel() {
+      // IN
+      // Load form
+      // Loading of form data into form
+      // 0. recurse through data
     }
     
     buildForm() {
@@ -95,11 +135,6 @@
               console.debug("Attempty to copy value of " + valueExpr + " for fieldId=" + visitedContent.id);
            
               // TODO tttt this only works the first time and first item.
-              
-              
-              // TODO tttt idScheme id increment and handling of repeat, should be done after adding to page.
-              
-              
               
               // To fix this it should go through all the contained repeated elements. Use editor count?
               // TODO tttt In general the selects are the trickest part as the values could come from async loaded codelists...
@@ -264,7 +299,10 @@
 	    
 	    // This is the container and not the actual element that will contain the field value.
 	    containerElem.setAttribute("id", this.buildIdUniqueNew(content) + "-container-elem");
-	    containerElem.setAttribute("data-content-id", content.id + "-container-elem");
+	    
+	    containerElem.setAttribute("data-editor-content-id", content.id + "-container-elem");
+	    containerElem.setAttribute("data-editor-content-parent-id", parentElem.getAttribute("data-editor-content-id"));
+	     
 	    containerElem.setAttribute("data-editor-count", content.editorCount);
 	
 	    // The id will vary if the element is repeatable but the editor type will not.
@@ -394,8 +432,12 @@
 	    // This is the container and not the actual element that will contain the field value.
 	    if (formElem) {
 	      formElem.setAttribute("id", this.buildIdUniqueNew(content));
-	      formElem.setAttribute("data-content-id", content.id);
+
+	      formElem.setAttribute("data-editor-content-id", content.id);
+	      formElem.setAttribute("data-editor-content-parent-id", parentElem.getAttribute("data-editor-content-id")); 
+
 	      formElem.setAttribute("data-editor-count", content.editorCount);
+	      formElem.setAttribute("data-editor-value-field", "true"); 
 	    }
 	    
 	    if (isForRepeat) {
@@ -408,9 +450,9 @@
 	  
 	  createContentOnClickFunc(containerElem, content, level, isForRepeat, elemToExpand) {
 	    const that = this;
-      return function onClick(ev) {
+      return function onClick(event) {
         console.debug("clicked content=" + content.id);
-        ev.stopPropagation();
+        event.stopPropagation();
         that.readContentRecur(containerElem, content, level + 1, isForRepeat, elemToExpand);
         containerElem.classList.add("notice-content-section-opened");
       };
@@ -643,7 +685,7 @@
     }
     setText("editor-version", appVersion);
     
-     const elemSdkSelector = getElemSdkSelector();
+    const elemSdkSelector = getElemSdkSelector();
     elemSdkSelector.innerHtml = "";
     
      // Dynamically load the options.   
