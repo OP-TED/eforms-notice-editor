@@ -2,8 +2,8 @@
   "ublVersion" : "2.3",
   "sdkVersion" : "0.7.0",
   "metadataDatabase" : {
-    "version" : "0.4.69",
-    "createdOn" : "2022-06-14T15:58:33"
+    "version" : "0.4.235",
+    "createdOn" : "2022-07-06T11:15:40"
   },
   "noticeSubTypes" : [ {
     "documentType" : "PIN",

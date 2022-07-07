@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+<comment>node in English. File generated from metadata database version 0.4.138 created on the 2022-06-22T17:17:08</comment>
+<entry key="node|name|ND-BuyerReviewComplainants">Statistics regarding the number of Organizations requesting review for a given Irregularity Type (Number &amp; Code)</entry>
+<entry key="node|name|ND-Change">Information associated to a single Change (Section, Description &amp; Procurement Documents)</entry>
+<entry key="node|name|ND-ContractingParty">Contracting Party related Information (URL, Legal Type, Contracting Type, Activity, …)</entry>
+<entry key="node|name|ND-ExclusionGrounds">Exclusion Grounds (Code &amp; Description)</entry>
+<entry key="node|name|ND-Lot">Lot related information covering Tendering Terms, Tendering Process and Purpose</entry>
+<entry key="node|name|ND-LotAdditionalClassification">Classification for an Additional Commodity of a Lot</entry>
+<entry key="node|name|ND-LotAwardCriteria">Award Criteria related information (Descrition, Justification, Individual Criterion …) for a Lot</entry>
+<entry key="node|name|ND-LotAwardCriterion">Award Criterion related information (Descrition, Name, Parameter, Code …) for a Lot</entry>
+<entry key="node|name|ND-LotPlacePerformance">A location where the Procurement, for the Lot, should take place</entry>
+<entry key="node|name|ND-LotPreviousPlanning">Lot Previous Planning Reference</entry>
+<entry key="node|name|ND-LotResult">Outcome of the Procurement Procedure for a given Lot</entry>
+<entry key="node|name|ND-LotTender">Tender (or fragment of a Tender) submitted for a given Lot</entry>
+<entry key="node|name|ND-LotsGroup">LotsGroup related information covering Tendering Terms, Tendering Process and Purpose</entry>
+<entry key="node|name|ND-LotsGroupAwardCriteria">Award Criteria related information (Descrition, Justification, Individual Criterion …) for a Group of Lots</entry>
+<entry key="node|name|ND-LotsGroupAwardCriterion">Award Criterion related information (Descrition, Name, Parameter, Code …) for a Group of Lots</entry>
+<entry key="node|name|ND-Modification">Contract Modification (Section and Description)</entry>
+<entry key="node|name|ND-NoticeResultGroupFA">Maximal Value and the associated awarded Group of Lots of the Result Notice</entry>
+<entry key="node|name|ND-Organization">A Party involved in the Competition from either side (Buyer or Tenderer) with a Legal Entity (Company) and possibly additional Contact Points (touchpoints)</entry>
+<entry key="node|name|ND-Part">Part related information covering Tendering Terms, Tendering Process and Purpose</entry>
+<entry key="node|name|ND-PartAdditionalClassification">Classification for an Additional Commodity of a Part</entry>
+<entry key="node|name|ND-PartPlacePerformance">A location where the Procurement, for the Part, should take place</entry>
+<entry key="node|name|ND-PartPreviousPlanning">Part Previous Planning Reference</entry>
+<entry key="node|name|ND-Prize">Prize related information</entry>
+<entry key="node|name|ND-ProcedureAdditionalCommodityClassification">Classification for the Additional Commodity of the Procedure</entry>
+<entry key="node|name|ND-ProcedurePlacePerformanceAdditionalInformation">Additional Information about the location where the Procurement, for the Procedure as a whole, should take place</entry>
+<entry key="node|name|ND-RewardsPenalties">Information (Description) about applicable Rewards or Penalties</entry>
+<entry key="node|name|ND-SelectionCriteria">Selection Criteria including the ones for 2nd stage (Type, Name, Description, Use, Parameters)</entry>
+<entry key="node|name|ND-ServiceProviderParty">Provided Service (code) and Provider (Reference to Organization)</entry>
+<entry key="node|name|ND-SettledContract">Contract settled (or about to be settled) between a Contracting Party and a Tendering Party to satisfy the requirements expressed as part of the Procurement Procedure</entry>
+<entry key="node|name|ND-Tenderer">One of the member of the Tendring Party</entry>
+<entry key="node|name|ND-TenderingParty">Party formed of one or more organizations than jointly submitted a Tender</entry>
+<entry key="node|name|ND-Touchpoint">Contact details associated to a given role</entry>
+<entry key="node|name|ND-UBO">Ultimate Beneficial Owner</entry>
+</properties>

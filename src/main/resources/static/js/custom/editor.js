@@ -65,7 +65,8 @@
       this.fieldMap = fieldMap;
       this.nodeMap = nodeMap;
       
-      this.noticeRootContent = noticeType.content;
+      // The root content is an array.
+      this.noticeRootContent = {"id" : "THE_ROOT", "_label" : "", "content" : noticeType.content};
       this.noticeId = noticeType.noticeId;
       
       this.noticeFormElement = noticeFormElement;
@@ -128,7 +129,7 @@
       // Handle content "value" logic.
       const that = this;
       const visitorFunc = function(visitedContent) {
-        if (visitedContent.displayType !== "GROUP") {
+        if (visitedContent.contentType !== "group") {
           const valueExpr = visitedContent.value;
           if (valueExpr) {
             if (valueExpr != "auto-generated" && visitedContent.editorCount > 0) {
@@ -275,7 +276,7 @@
 	    // The editorCount will allow to make the id of this element unique.
 	    content.editorCount = content.editorCount >= 0 ? content.editorCount : 1;
 	
-	    const isField = !content.content;
+	    const isField =  content.contentType === "field" // !content.content;
 	    const isSection = content.section;
 	    
 	    const isCollapsed = content.collapsed ? true : false;
@@ -341,15 +342,18 @@
 	      if (formElem) {
 	        formElem.classList.add("notice-content-field");
 	         
-	        if (field.idSchemes && field.idSchemes.length > 0) {
+	        if (field.type === "id") {
 	          formElem.classList.add("notice-content-idRef");
 	        }
+	        if (field.type === "id-ref") {
+	          formElem.classList.add("notice-content-id");
+	        }
 	         
-	        // TODO tttt should we even keep content.name in the content json ???
-	        formElem.setAttribute("placeholder", field.name); // Use field.name instead of content.name
+	        // TODO tttt should we even keep content.description in the content json ???
+	        formElem.setAttribute("placeholder", content._label);
 	       
 	        if (!formElem.getAttribute("title")) {
-	          formElem.setAttribute("title", field.name + " (" + field.id + ")"); // Use field.name instead of content.name
+	          formElem.setAttribute("title", content._label + " (" + field.id + ")");
 	        }
 	       }
 	    } else {
@@ -361,11 +365,14 @@
 	        const header = document.createElement("h4");
 	        header.classList.add("notice-content-header");
 	        const paddedEditorCount = this.buildPaddedIdNumber(content);
-	        const headerText = isContentRepeatable ? content.name + " (" + paddedEditorCount + ")" : content.name;
+	        const headerText = isContentRepeatable ? content._label + " (" + paddedEditorCount + ")" : content._label;
+	        if (headerText === undefined) {
+	          alert("header text is undefined: " + content.id);
+	        }
 	        header.appendChild(document.createTextNode(headerText));
 	        headerContainer.appendChild(header);
 	        containerElem.appendChild(headerContainer);
-	        containerElem.setAttribute("title", content.name); // Mouse over text on any section.
+	        containerElem.setAttribute("title", content._label); // Mouse over text on any section.
 	      }
 	    }
 	    
@@ -505,7 +512,7 @@
 	      var urlToCodelistJson = "sdk/" + sdkVersion + "/codelists/" + codelistId + "/lang/en";
 	      var afterCodelistLoad = function(data) {
 	        // Dynamically load the options.
-	         select.appendChild(createOption("", field.name)); // Empty option.
+	         select.appendChild(createOption("", content._label)); // Empty option.
 	         for (var code of data.codes) {
 	          select.appendChild(createOption(code.codeValue, code.en));
 	         }
@@ -529,9 +536,9 @@
 	      formElem = document.createElement("select");
 	      containerElem.appendChild(formElem);
 	      const select = formElem;
-	      const idSchemes = field.idSchemes;
+	      const idSchemes = content._idSchemes;
 	      if (idSchemes && idSchemes.length > 0) {
-	      
+
 	        select.appendChild(createOption("", getLabel("select") + " " + String(idSchemes))); // Empty option.
 	
 	        // Allows to find back select even if not knowing the idScheme, to find all in use idSchemes later on.
@@ -545,8 +552,11 @@
 	        for (var foundElement of foundElements) {
 	          select.appendChild(createOption(foundElement.value, foundElement.value));
 	        }
+	      } else if (content.valueSource) {
+	        // TODO tttt handle valueSource.
+	        
 	      } else {
-	        // TODO tttt Is this case even possible ???
+	        console.error("content _idSchemes not found for contentId=" + content.id);
 	      }
 	
 	    } else {
@@ -605,22 +615,23 @@
 	        input.setAttribute("title", field.pattern.value);
 	      }
 	      
-	      if (field.type === "id" && field.idSchemes) {
-	        if (field.idSchemes.length > 1) {
-	          throw new Error("field.id=" + field.id);
-	        }
-	        const idScheme = field.idSchemes[0]; // In this case there is only one element.
-	        input.setAttribute(DATA_EDITOR_INSTANCE_ID_FIELD, idScheme);
-	        const countStr = this.buildPaddedIdNumber(content);
-	        input.value = idScheme + "-" + countStr; // Something like "XYZ-0001"
-	        
-	        // TODO tttt remove options if they are removed ? This is problematic for a select.
-	    
-	        // NOTE: this will not work on the first pass during creation as elements are not yet in the DOM.
-	        // This will work during addition of extra elements 0002 and so on.
-	        var foundReferencingElements = this.findElementWithAttributeIdRef(idScheme);
-	        for (var selectElem of foundReferencingElements) {
-	          selectElem.appendChild(createOption(input.value, input.value));
+	      if (field.type === "id") {
+	        const idScheme = content._idScheme; // In this case there is only one element, not an array.
+	        if (!idScheme) {
+	          console.warn("no content._idScheme found for contentId=" + content.id);
+	        } else {
+	          input.setAttribute(DATA_EDITOR_INSTANCE_ID_FIELD, idScheme);
+	          const countStr = this.buildPaddedIdNumber(content);
+	          input.value = idScheme + "-" + countStr; // Something like "XYZ-0001"
+	          
+	          // TODO tttt remove options if they are removed ? This is problematic for a select.
+	      
+	          // NOTE: this will not work on the first pass during creation as elements are not yet in the DOM.
+	          // This will work during addition of extra elements 0002 and so on.
+	          var foundReferencingElements = this.findElementWithAttributeIdRef(idScheme);
+	          for (var selectElem of foundReferencingElements) {
+	            selectElem.appendChild(createOption(input.value, input.value));
+	          }
 	        }
 	      }
 	    }
