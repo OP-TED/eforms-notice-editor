@@ -10,6 +10,25 @@
   const DATA_EDITOR_ID_REFERENCE = 'data-editor-id-reference';
   const DATA_EDITOR_ID_REF_PREFIX = 'data-editor-id-ref-';
   const DATA_EDITOR_INSTANCE_ID_FIELD = 'data-editor-instance-id-field';
+
+  const displayTypeToElemInfo = {};
+  displayTypeToElemInfo["CHECKBOX"] = {"tag": "input", "type" : "checkbox"};
+  displayTypeToElemInfo["COMBOBOX"] = {"tag": "select", "type" : "select"};
+  displayTypeToElemInfo["RADIO"] = {"tag": "input", "type" : "radio"};
+  displayTypeToElemInfo["TEXTAREA"] = {"tag": "textarea"};
+  displayTypeToElemInfo["TEXTBOX"] = {"tag": "input", "type": "text"};
+  
+  function buildFormElem(content) {
+    var elemInfo = displayTypeToElemInfo[content.displayType];
+    if (!elemInfo) {
+      elemInfo = displayTypeToElemInfo["TEXTBOX"];
+    }
+		const elem = document.createElement(elemInfo.tag);
+		if (elemInfo.type) {
+  		elem.setAttribute("type", elemInfo.type);
+		}
+		return elem;
+  }
   
   const i18n = {};
   i18n["en"] = {
@@ -478,14 +497,9 @@
 	    }
 	    
 	    var formElem = null;
-	    
-	    if (field.maxLength && field.maxLength > textAreaThreshold && field.type !== "url") {
-	      formElem = document.createElement("textarea");
-	      containerElem.appendChild(formElem);
-	      
-	    } else if (field.type === "code" || field.type === "internal-code") {
+	    if (field.type === "code" || field.type === "internal-code") {
 	
-	      formElem = document.createElement("select");
+	      formElem = buildFormElem(content.displayType);
 	      containerElem.appendChild(formElem);
 	      
 	      const fieldCodeListVal = field.codeList.value;
@@ -523,17 +537,13 @@
 	      jsonGet(urlToCodelistJson, 6000, afterCodelistLoad, jsonGetOnError);
 	      
 	    } else if (field.type === "indicator") {
-	    
-	      // TODO tttt indicator
-	      formElem = document.createElement("input");
+	      formElem = buildFormElem(content);
 	      const input = formElem;
-	      input.setAttribute("type", "text");
-	      
 	      containerElem.appendChild(formElem);
 	      
 	    } else if (field.type === "id-ref") {
 	      // TODO tttt in theory it should be only "id-ref"
-	      formElem = document.createElement("select");
+	      formElem = buildFormElem(content);
 	      containerElem.appendChild(formElem);
 	      const select = formElem;
 	      const idSchemes = content._idSchemes;
@@ -552,30 +562,29 @@
 	        for (var foundElement of foundElements) {
 	          select.appendChild(createOption(foundElement.value, foundElement.value));
 	        }
-	      } else if (content.valueSource) {
-	        // valueSource will be handled later in case there is a valueSource we do not expect _idSchemes. 
 	      } else {
-	        console.error("content _idSchemes not found for contentId=" + content.id);
+	        if (!content.valueSource) {
+    	      console.error("content _idSchemes not found for contentId=" + content.id);
+	        }
 	      }
 	
 	    } else {
-	      formElem = document.createElement("input");
+	      formElem = buildFormElem(content);
 	      containerElem.appendChild(formElem);
 	      const input = formElem;
 	      
-	      // Default to type text, it can be changed later on.
-	      input.setAttribute("type", "text");
-	      
-	      if (field.type === "email") {
-	        input.setAttribute("type", "email");
-	      }
+	      // The provided pattern will be used instead.
+	      //if (field.type === "email") {
+	      //  input.setAttribute("type", "email");
+	      //}
 	
 	      if (field.type === "url") {
-	        input.setAttribute("type", "url");
 	        input.classList.add("notice-content-field-url");
 	      }
 	      
 	      if (isFieldTypeNumeric(field.type)) {
+	      
+	        // Nice to have but not required.
 	        input.setAttribute("type", "number");
 	        if (field.type !== "integer") {
 	          input.setAttribute("steps", "any"); // Allow decimals like 3.1415
@@ -589,20 +598,11 @@
 	      
 	      // DATE.
 	      if (field.type === "date") {
-	        input.setAttribute("type", "date");
+	        input.setAttribute("type", "date"); // Nice to have but not required.
 	      }
-	      if (field.type === "zoned-date") {
-	        // TODO tttt what about zoned-date ????
-	        input.setAttribute("type", "datetime-local");
-	      }
-	      
 	      // TIME.
 	      if (field.type === "time") {
-	        input.setAttribute("type", "time");
-	      }
-	      if (field.type === "zoned-time") {
-	        // TODO tttt what about zoned-time ????
-	        input.setAttribute("type", "datetime-local");
+	        input.setAttribute("type", "time"); // Nice to have but not required.
 	      }
 	      
 	      // Pattern, regex for validation.
@@ -617,7 +617,7 @@
 	      if (field.type === "id") {
 	        const idScheme = content._idScheme; // In this case there is only one element, not an array.
 	        if (!idScheme) {
-	          console.warn("no content._idScheme found for contentId=" + content.id);
+	          console.warn("no content._idScheme found for contentId=" + content.id + ". This may be OK.");
 	        } else {
 	          input.setAttribute(DATA_EDITOR_INSTANCE_ID_FIELD, idScheme);
 	          const countStr = this.buildPaddedIdNumber(content);
