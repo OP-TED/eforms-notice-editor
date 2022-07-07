@@ -130,9 +130,9 @@
       const that = this;
       const visitorFunc = function(visitedContent) {
         if (visitedContent.contentType !== "group") {
-          const valueExpr = visitedContent.value;
+          const valueExpr = visitedContent.valueSource;
           if (valueExpr) {
-            if (valueExpr != "auto-generated" && visitedContent.editorCount > 0) {
+            if (visitedContent.editorCount > 0) {
               console.debug("Attempty to copy value of " + valueExpr + " for fieldId=" + visitedContent.id);
            
               // TODO tttt this only works the first time and first item.
@@ -553,8 +553,7 @@
 	          select.appendChild(createOption(foundElement.value, foundElement.value));
 	        }
 	      } else if (content.valueSource) {
-	        // TODO tttt handle valueSource.
-	        
+	        // valueSource will be handled later in case there is a valueSource we do not expect _idSchemes. 
 	      } else {
 	        console.error("content _idSchemes not found for contentId=" + content.id);
 	      }
