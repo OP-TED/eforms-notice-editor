@@ -4,9 +4,6 @@
   // Avoids conflicts with other identifiers in the context of this browser tab.
   const idPrefix = "editor-id-";
 
-  // TODO tttt maxLength 30 seems to be the threshold in the fields.json, we should provide this in the fields.json as an extra top level info?
-  const textAreaThreshold = 30;
-  
   const DATA_EDITOR_ID_REFERENCE = 'data-editor-id-reference';
   const DATA_EDITOR_ID_REF_PREFIX = 'data-editor-id-ref-';
   const DATA_EDITOR_INSTANCE_ID_FIELD = 'data-editor-instance-id-field';
@@ -21,7 +18,7 @@
   function buildFormElem(content) {
     var elemInfo = displayTypeToElemInfo[content.displayType];
     if (!elemInfo) {
-      elemInfo = displayTypeToElemInfo["TEXTBOX"];
+      elemInfo = displayTypeToElemInfo["TEXTBOX"]; // Fallback.
     }
 		const elem = document.createElement(elemInfo.tag);
 		if (elemInfo.type) {
@@ -72,6 +69,7 @@
       for (var field of fields) {
         fieldMap[field.id] = field;
       }
+      this.fieldMap = fieldMap;
       
       // NODES BY ID.
       const nodes = dataFieldsJson.xmlStructure;
@@ -80,8 +78,6 @@
       for (var node of nodes) {
         nodeMap[node.id] = node;
       }
-    
-      this.fieldMap = fieldMap;
       this.nodeMap = nodeMap;
       
       // The root content is an array.
@@ -101,7 +97,6 @@
     }
     
     toModel() {
-    
       // TODO tttt idScheme id increment and handling of repeat, should be done after adding to page.
 
 		  // OUT
@@ -210,16 +205,16 @@
     }
     
     visitContentRec(content, contentVisitorFuncs) {
-     if (!content) {
-       throw new Error("Invalid content");
-     }
-     if (!contentVisitorFuncs) {
-       throw new Error("Invalid contentVisitorFuncs");
-     }
-     for (var contentVisitorFunc of contentVisitorFuncs) {
-       contentVisitorFunc(content);
-     }
-     if (content.content && !content.editorExpanded) {
+      if (!content) {
+        throw new Error("Invalid content");
+      }
+      if (!contentVisitorFuncs) {
+        throw new Error("Invalid contentVisitorFuncs");
+      }
+      for (var contentVisitorFunc of contentVisitorFuncs) {
+        contentVisitorFunc(content);
+      }
+      if (content.content && !content.editorExpanded) {
 	      // Visit sub items.
 	      for (var contentSub of content.content) {
 	        this.visitContentRec(contentSub, contentVisitorFuncs); // Recursion on sub content.
@@ -336,21 +331,21 @@
 	    containerElem.classList.add("notice-content-level" + level);
 	    
 	    if (isSection) {
-	       containerElem.classList.add("notice-content-section");
+	      containerElem.classList.add("notice-content-section");
 	    } else {
-	       containerElem.classList.add("notice-content-non-section");
+	      containerElem.classList.add("notice-content-non-section");
 	    }
 	    
 	    if (content.hidden) {
-	       containerElem.classList.add("notice-content-hidden"); 
+	      containerElem.classList.add("notice-content-hidden"); 
 	    }
 	
 	    if (content.readOnly) {
-	       containerElem.classList.add("notice-content-readOnly"); 
+	      containerElem.classList.add("notice-content-readOnly"); 
 	    }
 	    
 	    if (isCollapsed) {
-	       containerElem.classList.add("notice-content-collapsed"); 
+	      containerElem.classList.add("notice-content-collapsed"); 
 	    }
 	    
 	    if (isContentRepeatable) {
@@ -367,31 +362,41 @@
 	        if (field.type === "id-ref") {
 	          formElem.classList.add("notice-content-id");
 	        }
-	         
-	        // TODO tttt should we even keep content.description in the content json ???
-	        formElem.setAttribute("placeholder", content._label);
+	        
+	        // Set the translation.
+	        // TODO tttt get translation, cache it
+	        const i18n = content._label;
+	        formElem.setAttribute("placeholder", i18n);
 	       
 	        if (!formElem.getAttribute("title")) {
-	          formElem.setAttribute("title", content._label + " (" + field.id + ")");
+	          formElem.setAttribute("title", i18n + " (" + field.id + ")");
 	        }
-	       }
+	      }
 	    } else {
 	      // This content is not a field.
 	      if (!elemToExpand) { // Always add title except if expanding.
 	        // We use the word "header" here to avoid confusion with the HTML title attribute.
+	      
 	        const headerContainer = document.createElement("div");
-	        headerContainer.classList.add("notice-content-container")
+	        headerContainer.classList.add("notice-content-container");
+	       
 	        const header = document.createElement("h4");
 	        header.classList.add("notice-content-header");
+	        
 	        const paddedEditorCount = this.buildPaddedIdNumber(content);
-	        const headerText = isContentRepeatable ? content._label + " (" + paddedEditorCount + ")" : content._label;
+	        
+	        // Set the translation.
+	        // TODO tttt get translation, cache it.
+	        const i18n = content._label;
+	        
+	        const headerText = isContentRepeatable ? i18n + " (" + paddedEditorCount + ")" : i18n;
 	        if (headerText === undefined) {
 	          alert("header text is undefined: " + content.id);
 	        }
 	        header.appendChild(document.createTextNode(headerText));
 	        headerContainer.appendChild(header);
 	        containerElem.appendChild(headerContainer);
-	        containerElem.setAttribute("title", content._label); // Mouse over text on any section.
+	        containerElem.setAttribute("title", i18n); // Mouse over text on any section.
 	      }
 	    }
 	    
@@ -499,7 +504,7 @@
 	    var formElem = null;
 	    if (field.type === "code" || field.type === "internal-code") {
 	
-	      formElem = buildFormElem(content.displayType);
+	      formElem = buildFormElem(content);
 	      containerElem.appendChild(formElem);
 	      
 	      const fieldCodeListVal = field.codeList.value;
@@ -514,21 +519,20 @@
 	      
 	      const isHierarchical = fieldCodeListVal.type === "hierarchical";
 	      if (isHierarchical) {
-	        // TODO the data could be loaded in two steps.
+	        // TODO the data could be loaded in two steps (big category, then sub items).
+	        // Currently the editor demo does not suppose this feature.
 	      }
-	     
-	      // TODO tttt codelist language
 	      
 	      const select = formElem;
 	      const sdkVersion = getSdkVersion();
 	      
-	      // TODO tttt maybe that data could be cached and reused.
+	      // TODO tttt codelist language: get only label for desired language instead of /en
 	      var urlToCodelistJson = "sdk/" + sdkVersion + "/codelists/" + codelistId + "/lang/en";
 	      var afterCodelistLoad = function(data) {
 	        // Dynamically load the options.
 	         select.appendChild(createOption("", content._label)); // Empty option.
 	         for (var code of data.codes) {
-	          select.appendChild(createOption(code.codeValue, code.en));
+	           select.appendChild(createOption(code.codeValue, code.en));
 	         }
 	      };
 	      
