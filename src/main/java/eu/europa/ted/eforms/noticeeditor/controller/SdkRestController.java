@@ -2,6 +2,7 @@ package eu.europa.ted.eforms.noticeeditor.controller;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -9,12 +10,14 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletResponse;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.ParserConfigurationException;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +28,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -36,6 +44,7 @@ import com.helger.genericode.v10.Value;
 import eu.europa.ted.eforms.noticeeditor.domain.Language;
 import eu.europa.ted.eforms.noticeeditor.genericode.CustomGenericodeMarshaller;
 import eu.europa.ted.eforms.noticeeditor.genericode.GenericodeTools;
+import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
 import eu.europa.ted.eforms.noticeeditor.util.IntuitiveStringComparator;
 import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
@@ -66,6 +75,7 @@ public class SdkRestController implements AsyncConfigurer {
 
   private static void serveJsonFile(final HttpServletResponse response, final String pathStr,
       final String filenameForDownload, final boolean isAsDownload) throws IOException {
+    Validate.notBlank(filenameForDownload, "filenameForDownload is blank");
     // ---------------------------------
     // THE FILE IS SMALL, JUST COPY IT.
     // ---------------------------------
@@ -76,6 +86,8 @@ public class SdkRestController implements AsyncConfigurer {
       // Indicate the content type and encoding BEFORE writing to output.
       response.setContentType("application/json");
       response.setCharacterEncoding(StandardCharsets.UTF_8.toString());
+      response.setHeader("Content-Encoding", "gzip"); // JSON is text, good for compression.
+
       if (isAsDownload) {
         response.setHeader("Content-Disposition",
             String.format("attachment; filename=\"%s\"", filenameForDownload));
@@ -85,8 +97,40 @@ public class SdkRestController implements AsyncConfigurer {
       org.apache.commons.io.IOUtils.copy(is, response.getOutputStream());
 
     } catch (IOException ex) {
-      logger.info("Error reponding with file '{}' for download.", pathStr, ex);
+      logger.info("Error responding with file '{}' for download.", pathStr, ex);
       throw new RuntimeException("IOException writing file to output stream.");
+    }
+    response.flushBuffer();
+  }
+
+  private static void serveJsonString(final HttpServletResponse response, final String jsonString,
+      final String filenameForDownload, final boolean isAsDownload) throws IOException {
+    Validate.notBlank(filenameForDownload, "filenameForDownload is blank");
+    // ---------------------------------
+    // THE FILE IS SMALL, JUST COPY IT.
+    // ---------------------------------
+    final Charset utf8 = StandardCharsets.UTF_8;
+    try (InputStream is = IOUtils.toInputStream(jsonString, utf8)) {
+      if (is == null) {
+        throw new RuntimeException(
+            String.format("InputStream is null for %s", filenameForDownload));
+      }
+      // Indicate the content type and encoding BEFORE writing to output.
+      response.setContentType("application/json");
+      response.setCharacterEncoding(utf8.toString());
+      // response.setHeader("Content-Encoding", "gzip"); // JSON is text, good for compression.
+
+      if (isAsDownload) {
+        response.setHeader("Content-Disposition",
+            String.format("attachment; filename=\"%s\"", filenameForDownload));
+      }
+
+      // Write response content.
+      org.apache.commons.io.IOUtils.copy(is, response.getOutputStream());
+
+    } catch (IOException ex) {
+      logger.info("Error responding with file '{}' for download.", filenameForDownload, ex);
+      throw new RuntimeException("IOException writing json string to output stream.");
     }
     response.flushBuffer();
   }
@@ -262,7 +306,7 @@ public class SdkRestController implements AsyncConfigurer {
       @PathVariable(value = "sdkVersion") String sdkVersion) {
     final String filenameForDownload = "fields.json";
     final String sdkRelativePathStr = String.format("fields/%s", filenameForDownload);
-    serveSdkFile(response, sdkVersion, sdkRelativePathStr, filenameForDownload);
+    serveSdkJsonFile(response, sdkVersion, sdkRelativePathStr, filenameForDownload);
   }
 
   @RequestMapping(value = "/{sdkVersion}/notice-types/{noticeId}", method = RequestMethod.GET,
@@ -272,13 +316,59 @@ public class SdkRestController implements AsyncConfigurer {
       @PathVariable(value = "noticeId") String noticeId) {
     final String filenameForDownload = String.format("%s.json", noticeId);
     final String sdkRelativePathStr = String.format("notice-types/%s", filenameForDownload);
-    serveSdkFile(response, sdkVersion, sdkRelativePathStr, filenameForDownload);
+    serveSdkJsonFile(response, sdkVersion, sdkRelativePathStr, filenameForDownload);
   }
+
+  @RequestMapping(value = "/{sdkVersion}/translations/fields/{langCode}.json",
+      method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+  public void serveTranslationsFields(final HttpServletResponse response,
+      @PathVariable(value = "sdkVersion") String sdkVersion,
+      @PathVariable(value = "langCode") String langCode)
+      throws ParserConfigurationException, SAXException, IOException {
+
+    // SECURITY: Do not inject the passed language directly into a string that goes to the file
+    // system. We use our internal enum as a whitelist.
+    final Language lang = Language.valueOfFromLocale(langCode);
+    final String filenameForDownload =
+        String.format("field_%s.xml", lang.getLocale().getLanguage());
+
+    final String sdkRelativePathStr = String.format("translations/%s", filenameForDownload);
+    final String pathStr = buildPathToSdk(sdkVersion, sdkRelativePathStr);
+    final Path path = Path.of(pathStr);
+
+    // <?xml version="1.0" encoding="UTF-8"?>
+    // <!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+    // <properties>
+    // <entry key="field|name|BT-01(c)-Procedure">Procedure Legal Basis (ELI - celex)</entry>
+    // ...
+
+    // Parse the XML, build a map of text by id.
+    final DocumentBuilder db = SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype();
+    final Document doc = db.parse(path.toFile());
+    doc.getDocumentElement().normalize();
+
+    final NodeList entries = doc.getElementsByTagName("entry");
+    final Map<String, String> labelById = new LinkedHashMap<>();
+    for (int i = 0; i < entries.getLength(); i++) {
+      final Node entry = entries.item(i);
+      if (entry.getNodeType() == Node.ELEMENT_NODE) {
+        final NamedNodeMap attributes = entry.getAttributes();
+        final String id = attributes.getNamedItem("key").getTextContent().strip();
+        final String labelText = entry.getTextContent().strip();
+        labelById.put(id, labelText);
+      }
+    }
+
+    // Convert to JSON text and respond with that.
+    final String jsonStr = new ObjectMapper().writeValueAsString(labelById);
+    serveSdkJsonString(response, jsonStr, filenameForDownload);
+  }
+
 
   /**
    * Common SDK folder logic.
    */
-  private void serveSdkFile(final HttpServletResponse response, final String sdkVersion,
+  private void serveSdkJsonFile(final HttpServletResponse response, final String sdkVersion,
       final String sdkRelativePathStr, final String filenameForDownload) {
     Validate.notBlank(sdkVersion, "sdkVersion is blank");
     try {
@@ -288,6 +378,25 @@ public class SdkRestController implements AsyncConfigurer {
       setResponseCacheControl(response, CACHE_MAX_AGE_SECONDS);
 
       serveJsonFile(response, pathStr, filenameForDownload, false);
+
+    } catch (Exception ex) {
+      logger.error(ex.toString(), ex);
+      throw new RuntimeException("Exception serving file.");
+    }
+  }
+
+  /**
+   * Common SDK folder logic.
+   */
+  private void serveSdkJsonString(final HttpServletResponse response, final String jsonStr,
+      final String filenameForDownload) {
+    Validate.notBlank(jsonStr, "jsonStr is blank");
+    try {
+      // As the sdkVersion and other details are in the url this can be cached for a while.
+      setResponseCacheControl(response, CACHE_MAX_AGE_SECONDS);
+
+      serveJsonString(response, jsonStr, filenameForDownload, false);
+
     } catch (Exception ex) {
       logger.error(ex.toString(), ex);
       throw new RuntimeException("Exception serving file.");

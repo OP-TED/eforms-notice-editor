@@ -53,10 +53,20 @@
     return dataForLang[labelKey];
   }
   
+  // --- i18n ---
+  function downloadSdkFieldsTranslations(languageCode, callbackFunc) {
+    const sdkVersion = getSdkVersion();
+    if (!sdkVersion) {
+      return;
+    }
+    // XHR to load translations (i18n) for fields.
+    jsonGet("/sdk/" + sdkVersion + "/translations/fields/" + languageCode + ".json", 4000, callbackFunc, jsonGetOnError);
+  }
+  
   // --- EDITOR ---
   
   class Editor {
-    constructor(dataFieldsJson, noticeType, noticeFormElement) {
+    constructor(dataFieldsJson, dataNoticeType, dataI18n, noticeFormElement) {
     
       if (!dataFieldsJson.sdkVersion) {
         throw new Error("Invalid sdkVersion");
@@ -80,9 +90,11 @@
       }
       this.nodeMap = nodeMap;
       
+      this.dataI18n = dataI18n;
+      
       // The root content is an array.
-      this.noticeRootContent = {"id" : "THE_ROOT", "_label" : "", "content" : noticeType.content};
-      this.noticeId = noticeType.noticeId;
+      this.noticeRootContent = {"id" : "THE_ROOT", "_label" : "", "content" : dataNoticeType.content};
+      this.noticeId = dataNoticeType.noticeId;
       
       this.noticeFormElement = noticeFormElement;
       
@@ -94,6 +106,11 @@
         that.toModel();
       };
       serializeBtnElem.addEventListener("click", serializeToJsonFunc, false);
+    }
+    
+    getTranslationById(labelId) {
+      const label = this.dataI18n[labelId];
+      return label ? label : null;
     }
     
     toModel() {
@@ -364,8 +381,7 @@
 	        }
 	        
 	        // Set the translation.
-	        // TODO tttt get translation, cache it
-	        const i18n = content._label;
+	        const i18n = this.getTranslationById(content._label);
 	        formElem.setAttribute("placeholder", i18n);
 	       
 	        if (!formElem.getAttribute("title")) {
@@ -386,7 +402,7 @@
 	        const paddedEditorCount = this.buildPaddedIdNumber(content);
 	        
 	        // Set the translation.
-	        // TODO tttt get translation, cache it.
+	        // TODO tttt get translations for group|name|...
 	        const i18n = content._label;
 	        
 	        const headerText = isContentRepeatable ? i18n + " (" + paddedEditorCount + ")" : i18n;
@@ -526,11 +542,13 @@
 	      const select = formElem;
 	      const sdkVersion = getSdkVersion();
 	      
+	      var that = this;
 	      // TODO tttt codelist language: get only label for desired language instead of /en
 	      var urlToCodelistJson = "sdk/" + sdkVersion + "/codelists/" + codelistId + "/lang/en";
 	      var afterCodelistLoad = function(data) {
 	        // Dynamically load the options.
-	         select.appendChild(createOption("", content._label)); // Empty option.
+	         const i18n = that.getTranslationById(content._label);
+	         select.appendChild(createOption("", i18n)); // Empty option.
 	         for (var code of data.codes) {
 	           select.appendChild(createOption(code.codeValue, code.en));
 	         }
@@ -719,7 +737,7 @@
       return;
     }
     // XHR to load existing notice types of selected SDK version.
-    jsonGet("/sdk/" + sdkVersion + "/notice-types", 2000, afterSdkNoticeTypesLoaded, jsonGetOnError);
+    jsonGet("/sdk/" + sdkVersion + "/notice-types", 3000, afterSdkNoticeTypesLoaded, jsonGetOnError);
   }
   
   function afterSdkNoticeTypesLoaded(data) {
@@ -751,34 +769,35 @@
       return;
     }
     
-    const urlToGetFieldJsonData = "/sdk/" + sdkVersion + "/fields";
-    const jsonOkFieldsFunc = function(dataFieldsJson) {
-      if (!dataFieldsJson.sdkVersion) {
-        throw new Error("Invalid sdkVersion");
-      }
-  
-      // NOTE: the data could be loaded in parallel, but for this demo project we do it serial.
-      const urlToGetNoticeTypeJsonData = "/sdk/" + sdkVersion + "/notice-types/" + noticeId;
-      
-      const jsonOkNoticeTypeFunc = function(dataNoticeType) {
-        const sdkVersion = dataNoticeType.sdkVersion;
-        if (!sdkVersion) {
-          throw new Error("Invalid sdkVersion: " + sdkVersion);
-        }
-        setText("notice-sdkVersion", sdkVersion);
-        setText("notice-noticeId", dataNoticeType.noticeId);
-        
-        const editor = new Editor(dataFieldsJson, dataNoticeType, noticeFormElem);
-
-        editor.buildForm(); // Build the form. Initialize.
-        
-        funcCallbackWhenLoadedDefinition();
-        console.log("Loaded editor notice type: " + urlToGetNoticeTypeJsonData);
-      };
-      jsonGet(urlToGetNoticeTypeJsonData, 2000, jsonOkNoticeTypeFunc, jsonGetOnError);
-    };
-    
-    jsonGet(urlToGetFieldJsonData, 2000, jsonOkFieldsFunc, jsonGetOnError);
+    downloadSdkFieldsTranslations("en", function(dataI18n) {
+	    const urlToGetFieldJsonData = "/sdk/" + sdkVersion + "/fields";
+	    const jsonOkFieldsFunc = function(dataFieldsJson) {
+	      if (!dataFieldsJson.sdkVersion) {
+	        throw new Error("Invalid sdkVersion");
+	      }
+	  
+	      // NOTE: the data could be loaded in parallel, but for this demo project we do it serial.
+	      const urlToGetNoticeTypeJsonData = "/sdk/" + sdkVersion + "/notice-types/" + noticeId;
+	      
+	      const jsonOkNoticeTypeFunc = function(dataNoticeType) {
+	        const sdkVersion = dataNoticeType.sdkVersion;
+	        if (!sdkVersion) {
+	          throw new Error("Invalid sdkVersion: " + sdkVersion);
+	        }
+	        setText("notice-sdkVersion", sdkVersion);
+	        setText("notice-noticeId", dataNoticeType.noticeId);
+	        
+	        const editor = new Editor(dataFieldsJson, dataNoticeType, dataI18n, noticeFormElem);
+	
+	        editor.buildForm(); // Build the form. Initialize.
+	        
+	        funcCallbackWhenLoadedDefinition();
+	        console.log("Loaded editor notice type: " + urlToGetNoticeTypeJsonData);
+	      };
+	      jsonGet(urlToGetNoticeTypeJsonData, 2000, jsonOkNoticeTypeFunc, jsonGetOnError);
+	    };
+	    jsonGet(urlToGetFieldJsonData, 2000, jsonOkFieldsFunc, jsonGetOnError);
+    });
   }
   
   // fields.json related functions.
