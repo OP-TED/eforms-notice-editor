@@ -86,7 +86,8 @@ public class SdkRestController implements AsyncConfigurer {
       // Indicate the content type and encoding BEFORE writing to output.
       response.setContentType("application/json");
       response.setCharacterEncoding(StandardCharsets.UTF_8.toString());
-      response.setHeader("Content-Encoding", "gzip"); // JSON is text, good for compression.
+
+      // setGzipResponse(response);
 
       if (isAsDownload) {
         response.setHeader("Content-Disposition",
@@ -118,7 +119,8 @@ public class SdkRestController implements AsyncConfigurer {
       // Indicate the content type and encoding BEFORE writing to output.
       response.setContentType("application/json");
       response.setCharacterEncoding(utf8.toString());
-      // response.setHeader("Content-Encoding", "gzip"); // JSON is text, good for compression.
+
+      // setGzipResponse(response);
 
       if (isAsDownload) {
         response.setHeader("Content-Disposition",
@@ -381,7 +383,8 @@ public class SdkRestController implements AsyncConfigurer {
 
     } catch (Exception ex) {
       logger.error(ex.toString(), ex);
-      throw new RuntimeException("Exception serving file.");
+      throw new RuntimeException(String.format("Exception serving file %s", filenameForDownload),
+          ex);
     }
   }
 
@@ -399,7 +402,8 @@ public class SdkRestController implements AsyncConfigurer {
 
     } catch (Exception ex) {
       logger.error(ex.toString(), ex);
-      throw new RuntimeException("Exception serving file.");
+      throw new RuntimeException(String.format("Exception serving file %s", filenameForDownload),
+          ex);
     }
   }
 
@@ -408,6 +412,14 @@ public class SdkRestController implements AsyncConfigurer {
     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control
     response.setHeader("Cache-Control",
         String.format("public, max-age=%s, immutable", maxAgeSeconds));
+  }
+
+  @SuppressWarnings("unused")
+  private static void setResponseGzip(final HttpServletResponse response) {
+    // In a non demo environment, you may want to setup gzip or put a proxy in front to do it.
+    // This will work well with text files like JSON files, XML files, ...
+    // https://stackoverflow.com/questions/21410317/using-gzip-compression-with-spring-boot-mvc-javaconfig-with-restful
+    response.setHeader("Content-Encoding", "gzip");
   }
 
 }

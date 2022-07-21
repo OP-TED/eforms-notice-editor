@@ -60,7 +60,7 @@
       return;
     }
     // XHR to load translations (i18n) for fields.
-    jsonGet("/sdk/" + sdkVersion + "/translations/fields/" + languageCode + ".json", 4000, callbackFunc, jsonGetOnError);
+    jsonGet("/sdk/" + sdkVersion + "/translations/fields/" + languageCode + ".json", 5000, callbackFunc, jsonGetOnError);
   }
   
   // --- EDITOR ---
@@ -370,6 +370,7 @@
 	    }
 	    
 	    if (isField) {
+	      // The content is a field.
 	      if (formElem) {
 	        formElem.classList.add("notice-content-field");
 	         
@@ -591,6 +592,8 @@
 	      }
 	
 	    } else {
+	      // Fallback.
+
 	      formElem = buildFormElem(content);
 	      containerElem.appendChild(formElem);
 	      const input = formElem;
@@ -698,6 +701,17 @@
 	        containerElem.classList.add("notice-content-field-repeatable-mismatch");
 	      }
 	    }
+	    
+	    if (field.privacy) {
+	      console.debug(field.id + ", field privacy code=" + field.privacy.code);
+	      containerElem.classList.add("notice-content-field-privacy");
+	       
+	      // "code" : "cro-bor-law",
+        // "unpublishedFieldId" : "BT-195(BT-09)-Procedure",
+        // "reasonCodeFieldId" : "BT-197(BT-09)-Procedure",
+        // "reasonDescriptionFieldId" : "BT-196(BT-09)-Procedure",
+        // "publicationDateFieldId" : "BT-198(BT-09)-Procedure"
+	    }
 			
 	    return {"containerElem" : containerElem, "formElem" : formElem, "field" : field};
 	  }
@@ -707,7 +721,7 @@
   function funcCallbackWhenLoadedDefinition() {
     document.getElementById("notice-info").style.display = "block";
   }
-  jsonGet("/sdk/info", 2000, afterInitDataLoaded, jsonGetOnError);
+  jsonGet("/sdk/info", 3000, afterInitDataLoaded, jsonGetOnError);
   
   function afterInitDataLoaded(data) {
     const sdkVersions = data.sdkVersions;
@@ -794,9 +808,9 @@
 	        funcCallbackWhenLoadedDefinition();
 	        console.log("Loaded editor notice type: " + urlToGetNoticeTypeJsonData);
 	      };
-	      jsonGet(urlToGetNoticeTypeJsonData, 2000, jsonOkNoticeTypeFunc, jsonGetOnError);
+	      jsonGet(urlToGetNoticeTypeJsonData, 4000, jsonOkNoticeTypeFunc, jsonGetOnError);
 	    };
-	    jsonGet(urlToGetFieldJsonData, 2000, jsonOkFieldsFunc, jsonGetOnError);
+	    jsonGet(urlToGetFieldJsonData, 4000, jsonOkFieldsFunc, jsonGetOnError);
     });
   }
   

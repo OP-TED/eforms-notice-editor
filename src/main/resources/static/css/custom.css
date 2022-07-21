@@ -129,6 +129,10 @@ textarea:read-only {
   border: dashed 1px #049;
 }
 
+.notice-content-field-privacy {
+  background-color: #909;
+}
+
 .notice-content-required::after {
   content: " *";
 }
