@@ -519,7 +519,7 @@
 	    }
 	    
 	    var formElem = null;
-	    if (field.type === "code" || field.type === "internal-code") {
+	    if (field.type === "code") {
 	
 	      formElem = buildFormElem(content);
 	      containerElem.appendChild(formElem);
