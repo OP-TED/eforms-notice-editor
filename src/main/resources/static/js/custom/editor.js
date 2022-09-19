@@ -133,6 +133,7 @@
         const contentId = fieldElem.getAttribute("data-editor-content-id");
         const contentParentId = fieldElem.getAttribute("data-editor-content-parent-id");
         dataModel[contentId]= {"id" : contentId, "parentId" : contentParentId, "value" : fieldElem.value};
+        // dataModel parentId
       }
       //console.dir(dataModel);
       textArea.value = JSON.stringify(dataModel, null, 2);
