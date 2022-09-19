@@ -43,7 +43,8 @@ body {
 }
 
 .notice-type-submit-button {
-  padding: 1em;
+  padding-left: 0.5em;
+  padding-right: 0.5em;
 }
 
 .notice-type input:invalid {
@@ -130,7 +131,7 @@ textarea:read-only {
 }
 
 .notice-content-field-privacy {
-  background-color: #909;
+  background-color: #fff;
 }
 
 .notice-content-required::after {
@@ -184,5 +185,10 @@ textarea:read-only {
 
 #editor-version-title {
   font-size: 1.2rem;
+}
+
+#id-editor-log-json-area {
+  display: none;
+  width: 50em;
 }
 

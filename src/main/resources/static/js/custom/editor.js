@@ -114,17 +114,18 @@
     }
     
     toModel() {
+      console.info("toModel");
+      const textArea = document.getElementById("id-editor-log-json-area");
+      textArea.value = '';
+
       // TODO tttt idScheme id increment and handling of repeat, should be done after adding to page.
 
 		  // OUT
       // 0. create array
       // 1. use selector on custom attributes (put parentId into custom data-attribute)
-      
-      // zzzz
       // Select array of all element storing a value.
-      
-      // 2. fill array (in order), I hope selector handles order ???
-      // 2. order should already be ok, just use data-...-parentId to rebuild the tree
+      // 2. fill array (in order)
+      // 3. order should already be ok, just use data-...-parentId to rebuild the tree
       
       const dataModel = {};
       const fieldElems = document.querySelectorAll("[data-editor-value-field='true']");
@@ -133,7 +134,9 @@
         const contentParentId = fieldElem.getAttribute("data-editor-content-parent-id");
         dataModel[contentId]= {"id" : contentId, "parentId" : contentParentId, "value" : fieldElem.value};
       }
-      console.dir(dataModel);
+      //console.dir(dataModel);
+      textArea.value = JSON.stringify(dataModel, null, 2);
+      textArea.style.display = 'block';
     }
     
     fromModel() {
