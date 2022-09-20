@@ -384,14 +384,6 @@
 	        if (field.type === "id-ref") {
 	          formElem.classList.add("notice-content-id");
 	        }
-	        
-	        // Set the translation.
-	        const i18n = this.getTranslationById(content._label);
-	        formElem.setAttribute("placeholder", i18n);
-	       
-	        if (!formElem.getAttribute("title")) {
-	          formElem.setAttribute("title", i18n + " (" + field.id + ")");
-	        }
 	      }
 	    } else {
 	      // This content is not a field.
@@ -463,7 +455,7 @@
 	      elemButtonRemove.classList.add("notice-content-button");
 	      elemButtonRemove.classList.add("notice-content-button-remove");
 	      
-	      elemButtonRemove.addEventListener("click", function(){
+	      elemButtonRemove.addEventListener("click", function() {
 	        parentElem.removeChild(containerElem);
 	        // TODO really or just keep incrementing?
 	        //content.editorCount--; // Decrease the counter.
@@ -483,13 +475,31 @@
 	    
 	    // This is the container and not the actual element that will contain the field value.
 	    if (formElem) {
-	      formElem.setAttribute("id", this.buildIdUniqueNew(content));
+        const formElemDomIdNew = this.buildIdUniqueNew(content);
+	      formElem.setAttribute("id", formElemDomIdNew);
 
 	      formElem.setAttribute("data-editor-content-id", content.id);
 	      formElem.setAttribute("data-editor-content-parent-id", parentElem.getAttribute("data-editor-content-id")); 
 
 	      formElem.setAttribute("data-editor-count", content.editorCount);
-	      formElem.setAttribute("data-editor-value-field", "true"); 
+	      formElem.setAttribute("data-editor-value-field", "true");
+
+        // Set the translation.
+        const i18n = this.getTranslationById(content._label);
+        if (i18n) {
+          formElem.setAttribute("placeholder", i18n);
+          if (formElem.getAttribute("type") == "radio" || formElem.getAttribute("type") == "checkbox") {
+            formElem.setAttribute("data-test1", i18n);
+            const labelElem = document.createElement("label");
+            labelElem.setAttribute("for", formElemDomIdNew);
+            labelElem.textContent = i18n;
+            containerElem.insertBefore(labelElem, formElem);
+          }
+        }
+
+        if (!formElem.getAttribute("title")) {
+          formElem.setAttribute("title", i18n + " (" + field.id + ")");
+        }
 	    }
 	    
 	    if (isForRepeat) {

@@ -122,6 +122,10 @@ textarea:read-only {
   border-radius: 2px;
 }
 
+.notice-content-field[type="radio"] {
+  min-width: 5em;
+}
+
 .notice-content-field-url {
   min-width: 32em;
 }
