@@ -118,7 +118,7 @@
       const textArea = document.getElementById("id-editor-log-json-area");
       textArea.value = '';
 
-      // TODO tttt idScheme id increment and handling of repeat, should be done after adding to page.
+      // TODO idScheme id increment and handling of repeat, should be done after adding to page.
 
 		  // OUT
       // 0. create array
@@ -170,10 +170,10 @@
             if (visitedContent.editorCount > 0) {
               console.debug("Attempty to copy value of " + valueExpr + " for fieldId=" + visitedContent.id);
            
-              // TODO tttt this only works the first time and first item.
+              // TODO this only works the first time and first item.
               
               // To fix this it should go through all the contained repeated elements. Use editor count?
-              // TODO tttt In general the selects are the trickest part as the values could come from async loaded codelists...
+              // TODO In general the selects are the trickest part as the values could come from async loaded codelists...
               const contentIdNumberMax = visitedContent.editorCount - 1;
               
               const visitedContentId = visitedContent.id;
@@ -276,7 +276,7 @@
         for (var inputElem of foundReferencedElements) {
           selectElem.appendChild(createOption(inputElem.value, inputElem.value));
         }
-        // TODO tttt what happens if the value is not there anymore ????
+        // TODO what happens if the value is not there anymore?
         selectElem.value = selectedValue;
       }
     }
@@ -316,7 +316,7 @@
 	    
 	    const isCollapsed = content.collapsed ? true : false;
 	    
-	    // TODO tttt compare content repeatable and node.repeatable (editor.nodeMap[...]), show conflicts
+	    // TODO compare content repeatable and node.repeatable (editor.nodeMap[...]), show conflicts
 	    var isContentRepeatable = content.repeatable ? true : false; // Can be reassigned if field...
 	     
 	    // The container element may already exist in the case of uncollapsing (expand).
@@ -407,7 +407,7 @@
 	        const paddedEditorCount = this.buildPaddedIdNumber(content);
 	        
 	        // Set the translation.
-	        // TODO tttt get translations for group|name|...
+	        // TODO get translations for group|name|...
 	        const i18n = content._label;
 	        
 	        const headerText = isContentRepeatable ? i18n + " (" + paddedEditorCount + ")" : i18n;
@@ -534,7 +534,7 @@
 	      const parentId = fieldCodeListVal.parentId;
 	      if (parentId) {
 	        // This codelist is tailored.
-	        // TODO tttt having to do this here is clearly not ideal.
+	        // TODO having to do this here is clearly not ideal.
 	        codelistId = parentId + "_" + codelistId;
 	      }
 	      
@@ -548,7 +548,7 @@
 	      const sdkVersion = getSdkVersion();
 	      
 	      var that = this;
-	      // TODO tttt codelist language: get only label for desired language instead of /en
+	      // TODO codelist language: get only label for desired language instead of /en
 	      var urlToCodelistJson = "sdk/" + sdkVersion + "/codelists/" + codelistId + "/lang/en";
 	      var afterCodelistLoad = function(data) {
 	        // Dynamically load the options.
@@ -569,7 +569,7 @@
 	      containerElem.appendChild(formElem);
 	      
 	    } else if (field.type === "id-ref") {
-	      // TODO tttt in theory it should be only "id-ref"
+	      // TODO in theory it should be only "id-ref"
 	      formElem = buildFormElem(content);
 	      containerElem.appendChild(formElem);
 	      const select = formElem;
@@ -620,7 +620,7 @@
 	        }
 	        
 	        // Min of zero would make sense in a lot of situations but a temperature could be negative.
-	        // TODO tttt should we use range / intervals like MinZero [0, NULL] for that ????
+	        // TODO should we use range / intervals like MinZero [0, NULL] for that?
 	        //input.setAttribute("min", "0");
 	        //input.setAttribute("max", ...);
 	      }
@@ -639,7 +639,7 @@
 	        input.setAttribute("pattern", field.pattern.value);
 	        
 	        // The browser will show: "Please match the requested format: _TITLE_HERE_"
-	        // TODO tttt Maybe the fields json pattern should come with english text explaining the pattern for error messages. 
+	        // TODO Maybe the fields json pattern should come with english text explaining the pattern for error messages. 
 	        input.setAttribute("title", field.pattern.value);
 	      }
 	      
@@ -652,7 +652,7 @@
 	          const countStr = this.buildPaddedIdNumber(content);
 	          input.value = idScheme + "-" + countStr; // Something like "XYZ-0001"
 	          
-	          // TODO tttt remove options if they are removed ? This is problematic for a select.
+	          // TODO remove options if they are removed? This is problematic for a select.
 	      
 	          // NOTE: this will not work on the first pass during creation as elements are not yet in the DOM.
 	          // This will work during addition of extra elements 0002 and so on.
@@ -684,7 +684,7 @@
 	    }
 	
 	    if (content.readOnly) {
-	      // TODO tttt is there a default technical value to set or is readOnly only for edition ????
+	      // TODO is there a default technical value to set or is readOnly only for edition?
 	      formElem.setAttribute("readonly", "readonly");
 	    }
 	
@@ -694,7 +694,7 @@
 	      containerElem.classList.add("notice-content-required");
 	    }
 	
-	    // TODO tttt repeatable, severity is a bit confusing ...
+	    // TODO repeatable, severity is a bit confusing ...
 	    const isFieldRepeatable = field.repeatable.value;
 	    if (isFieldRepeatable) {
 	      // Allow to add / remove fields.
@@ -821,7 +821,7 @@
   // fields.json related functions.
   
   function isFieldTypeNumeric(fieldType) {
-    // TODO tttt having to do so many ORs is annoying.
+    // TODO having to do so many ORs is annoying.
     return fieldType === "number" || fieldType === "integer" || fieldType === "amount";
   }
   

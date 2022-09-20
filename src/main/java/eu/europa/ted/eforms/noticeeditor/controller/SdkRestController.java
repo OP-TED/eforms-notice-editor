@@ -152,7 +152,6 @@ public class SdkRestController implements AsyncConfigurer {
       final ObjectMapper jsonMapper = JsonUtils.getStandardJacksonObjectMapper();
       final ObjectNode jsonCodelist = jsonMapper.createObjectNode();
 
-      // TODO tttt id is the longname we should document this somewhere ????
       jsonCodelist.put("id", longName); // By convention of the SDK the longname is the identifier.
 
       // This could be used in the UI for display purposes.
