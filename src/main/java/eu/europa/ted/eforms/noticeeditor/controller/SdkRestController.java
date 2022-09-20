@@ -23,7 +23,7 @@ import eu.europa.ted.eforms.noticeeditor.service.SdkService;
 public class SdkRestController implements AsyncConfigurer {
 
   /**
-   * @return JSON with basic home info.
+   * @return JSON containing basic home info
    */
   @RequestMapping(value = "/info", method = RequestMethod.GET,
       produces = MediaType.APPLICATION_JSON_VALUE)
@@ -32,7 +32,7 @@ public class SdkRestController implements AsyncConfigurer {
   }
 
   /**
-   * @return JSON with basic home info.
+   * @return JSON containing basic home info
    */
   @RequestMapping(value = "/{sdkVersion}/notice-types", method = RequestMethod.GET,
       produces = MediaType.APPLICATION_JSON_VALUE)
@@ -41,6 +41,9 @@ public class SdkRestController implements AsyncConfigurer {
     return SdkService.selectNoticeTypes(sdkVersion);
   }
 
+  /**
+   * @return JSON containing data about the specified codelist, with text in the given language
+   */
   @RequestMapping(value = "/{sdkVersion}/codelists/{codeListId}/lang/{langCode}",
       method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
   @ResponseBody
@@ -51,6 +54,9 @@ public class SdkRestController implements AsyncConfigurer {
     return SdkService.serveCodelistAsJson(sdkVersion, codeListId, langCode, response);
   }
 
+  /**
+   * @return JSON containing data about the SDK fields
+   */
   @RequestMapping(value = "/{sdkVersion}/fields", method = RequestMethod.GET,
       produces = MediaType.APPLICATION_JSON_VALUE)
   public void serveFieldsJson(final HttpServletResponse response,
@@ -60,6 +66,9 @@ public class SdkRestController implements AsyncConfigurer {
     SdkService.serveSdkJsonFile(response, sdkVersion, sdkRelativePathStr, filenameForDownload);
   }
 
+  /**
+   * @return JSON containing data about the SDK notice types
+   */
   @RequestMapping(value = "/{sdkVersion}/notice-types/{noticeId}", method = RequestMethod.GET,
       produces = MediaType.APPLICATION_JSON_VALUE)
   public void serveNoticeTypeJson(final HttpServletResponse response,
@@ -70,6 +79,9 @@ public class SdkRestController implements AsyncConfigurer {
     SdkService.serveSdkJsonFile(response, sdkVersion, sdkRelativePathStr, filenameForDownload);
   }
 
+  /**
+   * @return JSON containing data about translations for the given language
+   */
   @RequestMapping(value = "/{sdkVersion}/translations/fields/{langCode}.json",
       method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
   public void serveTranslationsFields(final HttpServletResponse response,

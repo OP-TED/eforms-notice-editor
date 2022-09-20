@@ -8,7 +8,6 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 @ConfigurationPropertiesScan
 @SpringBootApplication
-// @EnableAsync
 public class EformsNoticeEditorApp {
 
   private static final Logger logger = LoggerFactory.getLogger(EformsNoticeEditorApp.class);

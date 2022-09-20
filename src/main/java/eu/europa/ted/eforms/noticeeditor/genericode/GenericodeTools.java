@@ -8,10 +8,12 @@ import com.helger.genericode.v10.CodeListDocument;
  * Helps loading .gc files (in XML but specific schema).
  */
 public class GenericodeTools {
+
   public static final CodeListDocument parseGenericode(final InputStream is,
       @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = "OCP_OVERLY_CONCRETE_PARAMETER",
           justification = "We want to be precise here.") //
       final CustomGenericodeMarshaller marshaller) {
+    // NOTE: this relies on com.helger.genericode
     return marshaller.read(is);
   }
 
