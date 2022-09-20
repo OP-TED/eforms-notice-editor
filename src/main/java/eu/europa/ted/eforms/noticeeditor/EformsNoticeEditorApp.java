@@ -11,8 +11,9 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 // @EnableAsync
 public class EformsNoticeEditorApp {
 
-  private static final Logger logger =
-      LoggerFactory.getLogger(EformsNoticeEditorApp.class);
+  private static final Logger logger = LoggerFactory.getLogger(EformsNoticeEditorApp.class);
+
+  public static final String APP_VERSION = "1.0.0";
 
   public static void main(final String[] args) {
     logger.info("STARTING eForms Notice Editor Demo Application");
