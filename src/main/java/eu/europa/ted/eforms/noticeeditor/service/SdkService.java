@@ -45,15 +45,23 @@ import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 
 
 /**
- * Reads data from the SDK.
+ * Reads and serves data from the SDK.
  */
 public class SdkService {
 
   private static final Logger logger = LoggerFactory.getLogger(SdkService.class);
 
-  private static final String EFORMS_SDKS = "eforms-sdks";
+  private static final String EFORMS_SDKS_DIR = "eforms-sdks";
+
+  /**
+   * The number of seconds in one hour.
+   */
   private static final int SECONDS_IN_ONE_HOUR = 3600;
-  public static final int CACHE_MAX_AGE_SECONDS = SECONDS_IN_ONE_HOUR * 24;
+
+  /**
+   * This depends on the needs of your application and how often you update the SDK.
+   */
+  public static final int CACHE_MAX_AGE_SECONDS = SECONDS_IN_ONE_HOUR * 2;
 
   /**
    * SECURITY: this regex is security related, so be careful if you decide to change it. This is
@@ -77,7 +85,8 @@ public class SdkService {
       final ObjectMapper jsonMapper = JsonUtils.getStandardJacksonObjectMapper();
       final ObjectNode jsonCodelist = jsonMapper.createObjectNode();
 
-      jsonCodelist.put("id", longName); // By convention of the SDK the longname is the identifier.
+      // By convention of the SDK the longname is the codelist identifier.
+      jsonCodelist.put("id", longName);
 
       // This could be used in the UI for display purposes.
       jsonCodelist.put("longName", longName);
@@ -119,9 +128,10 @@ public class SdkService {
     }
   }
 
-  public static String buildPathToSdk(final String sdkVersion, final String sdkRelativePathStr) {
+  public static String buildPathToSdk(final String sdkDir, final String sdkVersion,
+      final String sdkRelativePathStr) {
     securityValidateSdkVersionFormatThrows(sdkVersion);
-    return String.format("%s/%s/%s", EFORMS_SDKS, sdkVersion, sdkRelativePathStr);
+    return String.format("%s/%s/%s", sdkDir, sdkVersion, sdkRelativePathStr);
   }
 
   private static Optional<Value> gcFindFirstColumnRef(final List<Value> gcRowValues,
@@ -160,9 +170,8 @@ public class SdkService {
     logger.info("Fetching main info: {}", instantNowIso8601Str);
 
     map.put("appVersion", EformsNoticeEditorApp.APP_VERSION);
-
     try {
-      final List<String> availableSdkVersions = JavaTools.listFolders(EFORMS_SDKS);
+      final List<String> availableSdkVersions = JavaTools.listFolders(EFORMS_SDKS_DIR);
       availableSdkVersions.sort(new IntuitiveStringComparator<String>());
       Collections.reverse(availableSdkVersions);
       map.put("sdkVersions", availableSdkVersions);
@@ -174,14 +183,14 @@ public class SdkService {
     return map;
   }
 
-  public static Map<String, Object> selectNoticeTypes(String sdkVersion) {
+  public static Map<String, Object> selectNoticeTypes(final String sdkVersion) {
     securityValidateSdkVersionFormatThrows(sdkVersion);
 
     final Map<String, Object> map = new LinkedHashMap<>();
     map.put("sdkVersion", sdkVersion);
     try {
       final List<String> availableNoticeTypes =
-          JavaTools.listFiles(EFORMS_SDKS + "/" + sdkVersion + "/notice-types/");
+          JavaTools.listFiles(EFORMS_SDKS_DIR + "/" + sdkVersion + "/notice-types/");
 
       final List<String> noticeTypes = availableNoticeTypes.stream()//
           // Remove some files.
@@ -202,8 +211,8 @@ public class SdkService {
   public static String serveCodelistAsJson(final String sdkVersion, final String codeListId,
       final String langCode, final HttpServletResponse response)
       throws JsonProcessingException, IOException {
-    final String pathStr =
-        SdkService.buildPathToSdk(sdkVersion, String.format("codelists/%s.gc", codeListId));
+    final String pathStr = SdkService.buildPathToSdk(EFORMS_SDKS_DIR, sdkVersion,
+        String.format("codelists/%s.gc", codeListId));
 
     // As the SDK and other details are inside the url this data can be cached for a while.
     SdkService.setResponseCacheControl(response, SdkService.CACHE_MAX_AGE_SECONDS);
@@ -224,7 +233,6 @@ public class SdkService {
       // Indicate the content type and encoding BEFORE writing to output.
       response.setContentType("application/json");
       response.setCharacterEncoding(StandardCharsets.UTF_8.toString());
-
       // setGzipResponse(response);
 
       if (isAsDownload) {
@@ -257,7 +265,6 @@ public class SdkService {
       // Indicate the content type and encoding BEFORE writing to output.
       response.setContentType("application/json");
       response.setCharacterEncoding(utf8.toString());
-
       // setGzipResponse(response);
 
       if (isAsDownload) {
@@ -282,11 +289,10 @@ public class SdkService {
       final String sdkRelativePathStr, final String filenameForDownload) {
     Validate.notBlank(sdkVersion, "sdkVersion is blank");
     try {
-      final String pathStr = buildPathToSdk(sdkVersion, sdkRelativePathStr);
+      final String pathStr = buildPathToSdk(EFORMS_SDKS_DIR, sdkVersion, sdkRelativePathStr);
 
       // As the sdkVersion and other details are in the url this can be cached for a while.
       setResponseCacheControl(response, CACHE_MAX_AGE_SECONDS);
-
       serveJsonFile(response, pathStr, filenameForDownload, false);
 
     } catch (Exception ex) {
@@ -325,7 +331,7 @@ public class SdkService {
         String.format("field_%s.xml", lang.getLocale().getLanguage());
 
     final String sdkRelativePathStr = String.format("translations/%s", filenameForDownload);
-    final String pathStr = buildPathToSdk(sdkVersion, sdkRelativePathStr);
+    final String pathStr = buildPathToSdk(EFORMS_SDKS_DIR, sdkVersion, sdkRelativePathStr);
     final Path path = Path.of(pathStr);
 
     // <?xml version="1.0" encoding="UTF-8"?>
