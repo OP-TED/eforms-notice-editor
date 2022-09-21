@@ -1,5 +1,6 @@
 package eu.europa.ted.eforms.noticeeditor.service;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -12,6 +13,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -28,6 +30,7 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -375,14 +378,17 @@ public class SdkService {
   /**
    * Reads an SDK translation file for given SDK and language. The files are in XML format but they
    * will be converted to JSON.
+   *
+   * @return Map of the labels by id
    */
-  public static void serveTranslationFields(final HttpServletResponse response, String sdkVersion,
-      String langCode) throws ParserConfigurationException, SAXException, IOException {
+  public static Map<String, String> getTranslations(final String sdkVersion,
+      final String labelAssetType, final String langCode)
+      throws ParserConfigurationException, SAXException, IOException {
     // SECURITY: Do not inject the passed language directly into a string that goes to the file
     // system. We use our internal enum as a whitelist.
     final Language lang = Language.valueOfFromLocale(langCode);
     final String filenameForDownload =
-        String.format("field_%s.xml", lang.getLocale().getLanguage());
+        String.format("%s_%s.xml", labelAssetType, lang.getLocale().getLanguage());
 
     final String sdkRelativePathStr = String.format("translations/%s", filenameForDownload);
     final String pathStr = buildPathToSdk(EFORMS_SDKS_DIR, sdkVersion, sdkRelativePathStr);
@@ -397,7 +403,22 @@ public class SdkService {
 
     // Parse the XML, build a map of text by id.
     final DocumentBuilder db = SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype();
-    final Document doc = db.parse(path.toFile());
+    final File file = path.toFile();
+
+    // NOTE: the file may not exist if there are no translations yet.
+    if (lang != Language.EN && !file.exists()) {
+      // The best fallback is to respond as if the file was there but with empty values.
+      // The keys (labelIds) are the same in english, we are only missing the values.
+      // Take the english file to get the keys and leave the the translations empty.
+      logger.warn("File does not exist: " + file.getName());
+      final Map<String, String> fallbackMap = getTranslations(sdkVersion, labelAssetType, "en");
+      for (final Entry<String, String> entry : fallbackMap.entrySet()) {
+        entry.setValue("");
+      }
+      return fallbackMap;
+    }
+
+    final Document doc = db.parse(file);
     doc.getDocumentElement().normalize();
 
     // Get all entries and populate a map with the key and values.
@@ -412,11 +433,27 @@ public class SdkService {
         labelById.put(id, labelText);
       }
     }
+    return labelById;
+  }
+
+  public static void serveTranslations(final HttpServletResponse response, final String sdkVersion,
+      final String langCode, String filenameForDownload)
+      throws ParserConfigurationException, SAXException, IOException, JsonProcessingException {
+    final Map<String, String> labelById = new LinkedHashMap<>();
+
+    // Security: set the asset type on the server side!
+    final String labelAssetTypeField = "field";
+    labelById.putAll(SdkService.getTranslations(sdkVersion, labelAssetTypeField, langCode));
+
+    // Security: set the asset type on the server side!
+    final String labelAssetTypeGroup = "group";
+    labelById.putAll(SdkService.getTranslations(sdkVersion, labelAssetTypeGroup, langCode));
 
     // Convert to JSON string and respond.
     final String jsonStr = new ObjectMapper().writeValueAsString(labelById);
     serveSdkJsonString(response, jsonStr, filenameForDownload);
   }
+
 
   /**
    * HTTP header, cache related.

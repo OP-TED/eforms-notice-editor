@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.xml.sax.SAXException;
+import eu.europa.ted.eforms.noticeeditor.domain.Language;
 import eu.europa.ted.eforms.noticeeditor.service.SdkService;
 
 /**
@@ -82,13 +83,15 @@ public class SdkRestController implements AsyncConfigurer {
   /**
    * Get JSON containing data about translations for the given language.
    */
-  @RequestMapping(value = "/{sdkVersion}/translations/fields/{langCode}.json",
-      method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+  @RequestMapping(value = "/{sdkVersion}/translations/{langCode}.json", method = RequestMethod.GET,
+      produces = MediaType.APPLICATION_JSON_VALUE)
   public void serveTranslationsFields(final HttpServletResponse response,
       @PathVariable(value = "sdkVersion") String sdkVersion,
       @PathVariable(value = "langCode") String langCode)
       throws ParserConfigurationException, SAXException, IOException {
-    SdkService.serveTranslationFields(response, sdkVersion, langCode);
+    final Language lang = Language.valueOfFromLocale(langCode);
+    final String filenameForDownload = String.format("i18n_%s.xml", lang.getLocale().getLanguage());
+    SdkService.serveTranslations(response, sdkVersion, langCode, filenameForDownload);
   }
 
 }

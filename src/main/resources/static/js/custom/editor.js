@@ -65,19 +65,19 @@
     // How you get and handle i18n label data is up to you.
     var dataForLang = i18n[lang];
     if (!dataForLang && i18n["en"] && lang !== "en") {
-      dataForLang = i18n["en"];
+      dataForLang = i18n["en"]; // Fallback to english.
     }
     return dataForLang[labelKey];
   }
   
   // --- i18n ---
-  function downloadSdkFieldsTranslations(languageCode, callbackFunc) {
+  function downloadSdkTranslations(languageCode, callbackFunc) {
     const sdkVersion = getSdkVersion();
     if (!sdkVersion) {
       return;
     }
     // XHR to load translations (i18n) for fields.
-    jsonGet("/sdk/" + sdkVersion + "/translations/fields/" + languageCode + ".json", 5000, callbackFunc, jsonGetOnError);
+    jsonGet("/sdk/" + sdkVersion + "/translations/" + languageCode + ".json", 5000, callbackFunc, jsonGetOnError);
   }
   
   // --- EDITOR ---
@@ -112,8 +112,8 @@
       
       this.dataI18n = dataI18n;
       
-      // The root content is an array.
-      this.noticeRootContent = {"id" : "THE_ROOT", "_label" : "", "content" : dataNoticeType.content};
+      // The root content is an array. Build a dummy element to hold the content.
+      this.noticeRootContent = {"id" : "THE_ROOT", "_label" : null, "content" : dataNoticeType.content};
       this.noticeId = dataNoticeType.noticeId;
       
       this.noticeFormElement = noticeFormElement;
@@ -130,7 +130,11 @@
     
     getTranslationById(labelId) {
       const label = this.dataI18n[labelId];
-      return label ? label : null;
+      if (!label) {
+        console.log("Missing label for key='" + labelId + "'");
+      }
+      return label ? label : labelId; // Showing the labelId instead helps debugging.
+      // return label ? label : null;
     }
     
     toModel() {
@@ -421,12 +425,16 @@
 	        const paddedEditorCount = this.buildPaddedIdNumber(content);
 	        
 	        // Set the translation.
-	        // TODO get translations for group|name|...
-	        const i18n = content._label;
+	        // Get translations for group|name|...
+          // There is an exception for the root dummy element.
+	        const i18n = content.id === "THE_ROOT" ? "" : this.getTranslationById(content._label);
 	        
 	        const headerText = isContentRepeatable ? i18n + " (" + paddedEditorCount + ")" : i18n;
 	        if (headerText === undefined) {
 	          alert("header text is undefined: " + content.id);
+	        }
+          if (headerText === null) {
+	          alert("header text is null: " + content.id);
 	        }
 	        header.appendChild(document.createTextNode(headerText));
 	        headerContainer.appendChild(header);
@@ -834,7 +842,7 @@
     
     // GET the translations for the default language.
     // Note that here the string "en" stands for english.
-    downloadSdkFieldsTranslations("en", function(dataI18n) {
+    downloadSdkTranslations(getSelectedLanguage(), function(dataI18n) {
       
 	    const jsonOkFieldsFunc = function(dataFieldsJson) {
         if (!dataFieldsJson.sdkVersion) {
@@ -937,7 +945,7 @@
    * Generic error handling, provided as a demo.
    */
   function jsonGetOnError(xhr) {
-    const msg = "Error loading data.";
+    const msg = "Error loading data, error=" + xhr.responseText;
     if (console.error) {
       console.error(msg);
     } else {
