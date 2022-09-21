@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This file specifies a spotbugs filter for excluding reports that should not be considered errors. 
+  The format of this file is documented at: https://spotbugs.readthedocs.io/en/latest/filter.html When 
+  possible, please specify the full names of the bug codes, using the pattern attribute, to make it clearer 
+  what reports are being suppressed. You can find a listing of codes at: https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html -->
+<FindBugsFilter>
+  <!-- <Match> -->
+  <!-- <Package name="~eu\.europa\.ted\.mdc\.generated.*" /> -->
+  <!-- </Match> -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP" />
+  </Match>
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP2" />
+  </Match>
+  <Match>
+    <Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE" />
+  </Match>
+  <Match>
+    <Bug pattern="IMC_IMMATURE_CLASS_WRONG_FIELD_ORDER" />
+  </Match>
+  <Match>
+    <Bug pattern="USFW_UNSYNCHRONIZED_SINGLETON_FIELD_WRITES" />
+  </Match>
+  <Match>
+    <Bug pattern="IMC_IMMATURE_CLASS_NO_TOSTRING" />
+  </Match>
+  <Match>
+    <Bug pattern="PRMC_POSSIBLY_REDUNDANT_METHOD_CALLS" />
+  </Match>
+  <Match>
+    <Bug pattern="NAB_NEEDLESS_BOOLEAN_CONSTANT_CONVERSION" />
+  </Match>
+</FindBugsFilter>

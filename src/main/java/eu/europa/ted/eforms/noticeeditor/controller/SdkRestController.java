@@ -23,26 +23,26 @@ import eu.europa.ted.eforms.noticeeditor.service.SdkService;
 public class SdkRestController implements AsyncConfigurer {
 
   /**
-   * @return JSON containing basic home info
+   * Get JSON containing basic home info.
    */
   @RequestMapping(value = "/info", method = RequestMethod.GET,
       produces = MediaType.APPLICATION_JSON_VALUE)
   public Map<String, Object> selectHomeInfo() {
-    return SdkService.selectHomePageInfo();
+    return SdkService.getHomePageInfo();
   }
 
   /**
-   * @return JSON containing basic home info
+   * Get JSON containing basic home info.
    */
   @RequestMapping(value = "/{sdkVersion}/notice-types", method = RequestMethod.GET,
       produces = MediaType.APPLICATION_JSON_VALUE)
   public Map<String, Object> selectNoticeTypesList(
       @PathVariable(value = "sdkVersion") String sdkVersion) {
-    return SdkService.selectNoticeTypes(sdkVersion);
+    return SdkService.getNoticeSubTypes(sdkVersion);
   }
 
   /**
-   * @return JSON containing data about the specified codelist, with text in the given language
+   * Get JSON containing data about the specified codelist, with text in the given language.
    */
   @RequestMapping(value = "/{sdkVersion}/codelists/{codeListId}/lang/{langCode}",
       method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -55,7 +55,7 @@ public class SdkRestController implements AsyncConfigurer {
   }
 
   /**
-   * @return JSON containing data about the SDK fields
+   * GET JSON containing data about the SDK fields.
    */
   @RequestMapping(value = "/{sdkVersion}/fields", method = RequestMethod.GET,
       produces = MediaType.APPLICATION_JSON_VALUE)
@@ -67,7 +67,7 @@ public class SdkRestController implements AsyncConfigurer {
   }
 
   /**
-   * @return JSON containing data about the SDK notice types
+   * Get JSON containing data about the SDK notice types.
    */
   @RequestMapping(value = "/{sdkVersion}/notice-types/{noticeId}", method = RequestMethod.GET,
       produces = MediaType.APPLICATION_JSON_VALUE)
@@ -80,7 +80,7 @@ public class SdkRestController implements AsyncConfigurer {
   }
 
   /**
-   * @return JSON containing data about translations for the given language
+   * Get JSON containing data about translations for the given language.
    */
   @RequestMapping(value = "/{sdkVersion}/translations/fields/{langCode}.json",
       method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)

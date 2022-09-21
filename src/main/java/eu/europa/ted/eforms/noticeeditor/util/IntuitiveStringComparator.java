@@ -34,7 +34,7 @@ import java.util.Comparator;
 public class IntuitiveStringComparator<T extends CharSequence>
     implements Comparator<T>, Serializable {
 
-  private static final long serialVersionUID = -2889071416930310978L;
+  private static final long serialVersionUID = -3441045060365882217L;
 
   // https://coderanch.com/t/328108/java/Ordering-AlphaNumeric-ascending-Order
   // Goes from "11", "12", "2", ... to "2", "11", "12"

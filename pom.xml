@@ -17,7 +17,19 @@
   <description>Demo project for Spring Boot</description>
 
   <properties>
+    <!-- Java compiler -->
     <java.version>11</java.version>
+
+    <!-- Dependencies versions -->
+    <version.spotbugs>4.4.1</version.spotbugs>
+
+    <!-- Maven plugins versions -->
+    <version.checkstyle.plugin>3.1.2</version.checkstyle.plugin>
+    <version.build-helper.plugin>3.3.0</version.build-helper.plugin>
+    <version.sb-contrib.plugin>7.4.7</version.sb-contrib.plugin>
+    <version.spotbugs.plugin>4.3.0</version.spotbugs.plugin>
+    <version.spring-boot>2.6.6</version.spring-boot>
+    <version.surefire.plugin>3.0.0-M7</version.surefire.plugin> <!-- Versions prior to 3.0.x do not pick up Junit 5 tests correctly. -->
   </properties>
 
   <dependencies>
@@ -53,7 +65,6 @@
       <artifactId>commons-lang3</artifactId>
     </dependency>
 
-    <!-- https://mvnrepository.com/artifact/commons-io/commons-io -->
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
@@ -70,12 +81,228 @@
   </dependencies>
 
   <build>
+
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${version.surefire.plugin}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>${version.surefire.plugin}</version>
+          <executions>
+            <execution>
+              <goals>
+                <goal>integration-test</goal>
+                <goal>verify</goal>
+              </goals>
+            </execution>
+          </executions>
+          <configuration>
+            <includes>
+              <include>**/*IT.java</include>
+              <include>**/*It.java</include>
+            </includes>
+            <systemPropertyVariables>
+              <spring.datasource.url>${datasource.url}</spring.datasource.url>
+              <spring.datasource.username>${datasource.username}</spring.datasource.username>
+              <spring.datasource.password>${datasource.password}</spring.datasource.password>
+            </systemPropertyVariables>
+          </configuration>
+        </plugin>
+
+        <plugin>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-maven-plugin</artifactId>
+          <version>${version.spring-boot}</version>
+        </plugin>
+
+        <plugin>
+          <groupId>com.github.spotbugs</groupId>
+          <artifactId>spotbugs-maven-plugin</artifactId>
+          <version>${version.spotbugs.plugin}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>build-helper-maven-plugin</artifactId>
+          <version>${version.build-helper.plugin}</version>
+        </plugin>
+
+        <plugin>
+          <!-- https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-checkstyle-plugin -->
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-checkstyle-plugin</artifactId>
+          <version>${version.checkstyle.plugin}</version>
+          <dependencies>
+            <dependency>
+              <groupId>com.puppycrawl.tools</groupId>
+              <artifactId>checkstyle</artifactId>
+              <!-- NOTE: versions before 8 something got confused by lambdas, luckily 9 solves this. -->
+              <version>9.0</version>
+            </dependency>
+          </dependencies>
+          <configuration>
+            <configLocation>/src/main/resources/checkstyle-step2.xml
+            </configLocation>
+            <encoding>UTF-8</encoding>
+            <consoleOutput>true</consoleOutput>
+            <failsOnError>false</failsOnError>
+            <linkXRef>false</linkXRef>
+          </configuration>
+          <executions>
+            <execution>
+              <id>validate</id>
+              <phase>validate</phase>
+              <goals>
+                <goal>check</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
     <plugins>
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
       </plugin>
+      <plugin>
+        <!-- https://mvnrepository.com/artifact/com.github.spotbugs/spotbugs-maven-plugin -->
+        <!-- mvn spotbugs:spotbugs -->
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <configuration>
+          <!-- min less more max https://spotbugs.readthedocs.io/en/stable/effort.html# -->
+          <effort>Max</effort>
+          <threshold>Medium</threshold>
+          <xmlOutput>true</xmlOutput>
+          <!-- false, for now ... -->
+          <failOnError>false</failOnError>
+          <!-- https://stackoverflow.com/questions/52336795/spotbugs-maven-plugin-exclude-a-directory -->
+          <excludeFilterFile>spotbugs-exclude.xml</excludeFilterFile>
+          <visitors>
+            <!-- Aka detectors -->
+            <!-- For specific rule excludes see spotbugs-exclude.xml -->
+            AppendingToAnObjectOutputStream,AtomicityProblem,BadResultSetAccess,
+            BadSyntaxForRegularExpression,BadUseOfReturnValue,BadlyOverriddenAdapter,
+            BooleanReturnNull,CheckImmutableAnnotation,CheckRelaxingNullnessAnnotation,
+            CheckTypeQualifiers,CloneIdiom,ComparatorIdiom,ConfusedInheritance,
+            ConfusionBetweenInheritedAndOuterMethod,CrossSiteScripting,DefaultEncodingDetector,
+            DoInsideDoPrivileged,DontCatchIllegalMonitorStateException,DontIgnoreResultOfPutIfAbsent,
+            DontUseEnum,DroppedException,DumbMethodInvocations,DumbMethods,DuplicateBranches,
+            EqualsOperandShouldHaveClassCompatibleWithThis,ExplicitSerialization,
+            FinalizerNullsFields,FindBadCast2,FindBadForLoop,FindComparatorProblems,
+            FindDeadLocalStores,FindDoubleCheck,FindEmptySynchronizedBlock,
+            FindFieldSelfAssignment,FindFinalizeInvocations,FindFloatEquality,FindHEmismatch,
+            FindInconsistentSync2,FindJSR166LockMonitorenter,FindLocalSelfAssignment2,
+            FindMaskedFields,FindMismatchedWaitOrNotify,FindNakedNotify,FindNonShortCircuit,
+            FindNullDeref,FindNullDerefsInvolvingNonShortCircuitEvaluation,FindOpenStream,
+            FindPuzzlers,FindRefComparison,FindReturnRef,FindRoughConstants,FindRunInvocations,
+            FindSelfComparison,FindSelfComparison2,FindSleepWithLockHeld,FindSpinLoop,
+            FindSqlInjection,FindTwoLockWait,FindUncalledPrivateMethods,FindUnconditionalWait,
+            FindUninitializedGet,FindUnrelatedTypesInGenericContainer,FindUnreleasedLock,
+            FindUnsatisfiedObligation,FindUnsyncGet,FindUseOfNonSerializableValue,
+            FindUselessControlFlow,FindUselessObjects,FormatStringChecker,
+            HugeSharedStringConstants,IDivResultCastToDouble,IncompatMask,InconsistentAnnotations,
+            InfiniteLoop,InfiniteRecursiveLoop,InheritanceUnsafeGetResource,InitializationChain,
+            InitializeNonnullFieldsInConstructor,InstantiateStaticClass,IntCast2LongAsInstant,
+            InvalidJUnitTest,IteratorIdioms,LazyInit,LoadOfKnownNullValue,
+            LostLoggerDueToWeakReference,MethodReturnCheck,MultithreadedInstanceAccess,
+            MutableEnum,MutableLock,MutableStaticFields,Naming,NoteUnconditionalParamDerefs,
+            NumberConstructor,OptionalReturnNull,OverridingEqualsNotSymmetrical,
+            PreferZeroLengthArrays,QuestionableBooleanAssignment,
+            ReadOfInstanceFieldInMethodInvokedByConstructorInSuperclass,
+            ReadReturnShouldBeChecked,RedundantConditions,RedundantInterfaces,RepeatedConditionals,
+            RuntimeExceptionCapture,SerializableIdiom,StartInConstructor,StaticCalendarDetector,
+            StringConcatenation,SuperfluousInstanceOf,SuspiciousThreadInterrupted,SwitchFallthrough,
+            SynchronizationOnSharedBuiltinConstant,SynchronizeAndNullCheckField,
+            SynchronizeOnClassLiteralNotGetClass,SynchronizingOnContentsOfFieldToProtectField,
+            URLProblems,UncallableMethodOfAnonymousClass,UnnecessaryMath,UnreadFields,
+            VarArgsProblems,VolatileUsage,WaitInLoop,WrongMapIterator,
+            <!-- ,XMLFactoryBypas -->
+            <!-- Spotbugs CONTRIB rules -->
+            <!-- https://github.com/mebigfatguy/fb-contrib/tree/spotbugs/src/main/java/com/mebigfatguy/fbcontrib/detect -->
+            AbnormalFinallyBlockReturn,AbstractClassEmptyMethods,
+            <!-- AbstractCollectionScanningDetector, -->
+            AbstractOverriddenMethod,AnnotationIssues,ArrayBasedCollections,ArrayIndexOutOfBounds,
+            ArrayWrappedCallByReference,BackportReusePublicIdentifiers,
+            <!-- BloatedAssignmentScope, -->
+            <!-- BloatedSynchronizedBlock, -->
+            BogusExceptionDeclaration,BuryingLogic,CharsetIssues,ClassEnvy,
+            CloneUsability,CollectionNamingConfusion,CommonsEqualsBuilderToEquals,
+            CommonsHashcodeBuilderToHashcode,CommonsStringBuilderToString,CompareClassNameEquals,
+            ConcurrentCollectionIssues,ConflatingResourcesAndFiles,ConflictingTimeUnits,
+            ConfusingArrayAsList,ConfusingAutoboxedOverloading,ConfusingFunctionSemantics,
+            ConstantListIndex,ContainsBasedConditional,ContraVariantArrayAssignment,
+            CopiedOverriddenMethod,CustomBuiltXML,CyclomaticComplexity,DateComparison,
+            DeletingWhileIterating,DeprecatedTypesafeEnumPattern,DubiousListCollection,
+            DubiousMapCollection,DubiousSetOfCollections,
+            <!-- EnumIssues, -->
+            ExceptionSoftening,FieldCouldBeLocal,FinalParameters,
+            FindClassCircularDependencies,FloatingPointLoops,FunctionalInterfaceIssues,
+            HangingExecutors,HttpClientProblems,IOIssues,ImmatureClass,ImproperPropertiesUse,
+            InappropriateToStringUse,InconsistentKeyNameCasing,IncorrectInternalClassUse,
+            InefficientStringBuffering,InheritanceTypeChecking,InvalidConstantArgument,
+            JAXRSIssues,JDBCVendorReliance,JPAIssues,LingeringGraphicsObjects,ListIndexedIterating,
+            ListUsageIssues,LiteralStringComparison,LocalSynchronizedCollection,
+            <!-- LocalTypeDetector, -->
+            LoggerOddities,LostExceptionStackTrace,ManualArrayCopy,MapUsageIssues,
+            MethodReturnsConstant,MisleadingOverloadModel,
+            <!-- MissingMethodsDetector, -->
+            ModifyingUnmodifiableCollection,MoreDumbMethods,NeedlessAutoboxing,
+            NeedlessCustomSerialization,NeedlessInstanceRetrieval,
+            NeedlessMemberCollectionSynchronization,NonCollectionMethodUse,
+            NonFunctionalField,NonOwnedSynchronization,NonProductiveMethodCall,
+            NonRecycleableTaglibs,NonSymmetricEquals,OptionalIssues,
+            OrphanedDOMNode,OverlyConcreteParameter,OverlyPermissiveMethod,
+            OverzealousCasting,ParallelLists,PartiallyConstructedObjectAccess,
+            PoorMansEnum,PoorlyDefinedParameter,PossibleConstantAllocationInLoop,
+            PossibleIncompleteSerialization,PossibleMemoryBloat,
+            PossibleUnsuspectedSerialization,PossiblyRedundantMethodCalls,
+            PresizeCollections,ReflectionIssues,ReflectionOnObjectMethods,
+            RuntimeExceptionDeclared,SQLInLoop,Section508Compliance,SetUsageIssues,
+            SideEffectConstructor,SillynessPotPourri,SloppyClassReflection,SluggishGui,
+            SpoiledChildInterfaceImplementor,SpuriousThreadStates,StackedTryBlocks,
+            StaticArrayCreatedInMethod,StaticMethodInstanceInvocation,
+            StringifiedTypes,SuboptimalExpressionOrder,
+            <!-- SuspiciousArgumentTypes, -->
+            SuspiciousCloneAlgorithm,SuspiciousClusteredSessionSupport,
+            SuspiciousComparatorReturnValues,SuspiciousGetterSetterUse,
+            SuspiciousJDKVersionUse,SuspiciousLoopSearch,SuspiciousNullGuard,
+            SuspiciousShadedClassUse,SuspiciousUninitializedArray,
+            SuspiciousWaitOnConcurrentObject,SyncCollectionIterators,
+            TailRecursion,TristateBooleanPattern,UnboundMethodTemplateParameter,
+            UnitTestAssertionOddities,Unjitable,UnnecessaryApiConversion,
+            UnnecessaryNewNullCheck,UnnecessaryStoreBeforeReturn,
+            UnrelatedCollectionContents,UnrelatedReturnValues,UnsynchronizedSingletonFieldWrites,
+            UnusedParameter,UseAddAll,UseCharacterParameterizedMethod,UseEnumCollections,
+            UseSplit,UseToArray,UseTryWithResources,UseVarArgs,WeakExceptionMessaging,WiringIssues,
+            WriteOnlyCollection
+          </visitors>
+          <plugins>
+            <plugin>
+              <groupId>com.mebigfatguy.sb-contrib</groupId>
+              <artifactId>sb-contrib</artifactId>
+              <version>${version.sb-contrib.plugin}</version>
+            </plugin>
+          </plugins>
+        </configuration>
+
+        <dependencies>
+          <!-- overwrite dependency on spotbugs if you want to specify the version of spotbugs -->
+          <dependency>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs</artifactId>
+            <version>${version.spotbugs}</version>
+          </dependency>
+        </dependencies>
+
+      </plugin>
     </plugins>
+
   </build>
 
 </project>

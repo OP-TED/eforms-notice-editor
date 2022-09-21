@@ -6,15 +6,19 @@ For edition it reads a notice file (xml) and the corresponding notice type file 
 
 ## Run server
 
-This is Jetty based (a bit like Tomcat but self contained):
+This is Jetty based (a bit like Tomcat but self contained, you could easily switch to Tomcat):
 
 ```
 mvn compile exec:java -Dexec.mainClass="eu.europa.ted.eforms.noticeeditor.EformsNoticeEditorApp"
 ```
 
 In your browser go to: `localhost:8080/` (or whatever the start logs say)
+For the port settings see `application.properties`.
 
-Login credentials: see application.properties (will be done by EU login later probably through Spring Security module or via eUI ??)
+Login credentials and security: Spring Security could be used.
 
-See application.properties 
-See SdkRestController.java
+## Important files
+
+application.properties 
+SdkRestController.java
+SdkService.java
