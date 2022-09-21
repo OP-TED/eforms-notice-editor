@@ -116,6 +116,14 @@ textarea:read-only {
   background-color: #ddd;
 }
 
+.notice-content-field-label {
+  padding-right: 1em;
+}
+
+.notice-content-field-label-block {
+  display: block;
+}
+
 .notice-content-field {
   min-width: 30em;
   border: solid 1px #999;

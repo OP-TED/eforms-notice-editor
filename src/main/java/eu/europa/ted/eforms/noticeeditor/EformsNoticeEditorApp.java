@@ -6,6 +6,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
+/**
+ * The entry point, a Spring boot application.
+ */
 @ConfigurationPropertiesScan
 @SpringBootApplication
 public class EformsNoticeEditorApp {
@@ -18,6 +21,10 @@ public class EformsNoticeEditorApp {
     logger.info("STARTING eForms Notice Editor Demo Application");
     // See README.md on how to run server.
     // https://spring.io/guides/gs/serving-web-content/
+
+    // Here you have access to command line args.
+    // logger.debug("args={}", Arrays.toString(args));
+
     SpringApplication.run(EformsNoticeEditorApp.class, args);
   }
 

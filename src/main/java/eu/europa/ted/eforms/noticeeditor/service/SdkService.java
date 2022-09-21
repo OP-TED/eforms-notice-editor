@@ -166,7 +166,7 @@ public class SdkService {
    *
    * @return true if valid, else false
    */
-  private static boolean securityValidateSdkVersionFormat(final String sdkVersion) {
+  static boolean securityValidateSdkVersionFormat(final String sdkVersion) {
     if (StringUtils.isBlank(sdkVersion)) {
       return false;
     }

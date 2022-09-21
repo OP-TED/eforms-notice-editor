@@ -1,5 +1,13 @@
+// The front-end editor script written in plain JavaScript and using plain HTML for demo purposes (tech agnostic).
+// Responsible for loading SDK data from the back-end for the front-end UI and creating the dynamic form (HTML DOM manipulation).
+// index.html <- document -> editor.js <- XHR -> back-end REST API
+// NOTE: For bigger scripts and maintenability you could also use something like TypeScript instead.
 (function() {
   console.log("Loading editor script.");
+
+  // Init: loads initial editor home page data.
+  jsonGet("/sdk/info", 3000, afterInitDataLoaded, jsonGetOnError);
+  
 
   // Avoids conflicts with other identifiers in the context of this browser tab.
   const idPrefix = "editor-id-";
@@ -28,22 +36,31 @@
   }
   
   const i18n = {};
+
+  // Some custom english translations for the editor itself.
   i18n["en"] = {
     "add.more": "Add one more",
     "remove": "Remove",
     "select": "Select"
   };
   
+  // Some custom french translations for the editor itself.
   i18n["fr"] = {
     "add.more": "En ajouter un",
     "remove": "Enlever",
     "select": "Choisir"
   };
 
+  /**
+   * Gets label for given key and currently selected language.
+   */
   function getLabel(labelKey) {
     getLabel(labelKey, getSelectedLanguage());
   }
-  
+
+  /**
+   * Gets label for given key and language.
+   */
   function getLabel(labelKey, lang) {
     // How you get and handle i18n label data is up to you.
     var dataForLang = i18n[lang];
@@ -65,6 +82,9 @@
   
   // --- EDITOR ---
   
+  /**
+  * Editor class: it stores SDK data like loaded fields, nodes, translations, ...
+  */
   class Editor {
     constructor(dataFieldsJson, dataNoticeType, dataI18n, noticeFormElement) {
     
@@ -324,8 +344,10 @@
 	
 	    var field; // Can remain undefined or null.
 	    var formElem;
+      var labelElem;
 	    if (isField) {
 	      const resultMap = this.buildFieldContainerElem(containerElem, content);
+        labelElem = resultMap["labelElem"];
 	      formElem = resultMap["formElem"];
 	      field = resultMap["field"];
 	    }
@@ -486,15 +508,13 @@
 
         // Set the translation.
         const i18n = this.getTranslationById(content._label);
-        if (i18n) {
-          formElem.setAttribute("placeholder", i18n);
-          if (formElem.getAttribute("type") == "radio" || formElem.getAttribute("type") == "checkbox") {
-            formElem.setAttribute("data-test1", i18n);
-            const labelElem = document.createElement("label");
-            labelElem.setAttribute("for", formElemDomIdNew);
-            labelElem.textContent = i18n;
-            containerElem.insertBefore(labelElem, formElem);
-          }
+        if (i18n && labelElem) {
+
+          // The placeholder attribute works for some types of inputs only, but will not work for radio, checkbox, ...
+          // It can be used to reduce the size of the form.
+          //formElem.setAttribute("placeholder", i18n);
+
+          labelElem.textContent = i18n;
         }
 
         if (!formElem.getAttribute("title")) {
@@ -610,7 +630,7 @@
 
 	      formElem = buildFormElem(content);
 	      containerElem.appendChild(formElem);
-	      const input = formElem;
+        const input = formElem;
 	      
 	      // The provided pattern will be used instead.
 	      //if (field.type === "email") {
@@ -677,6 +697,17 @@
 	    if (!formElem) {
 	      throw new Error("A form element should have been defined at this point, for fieldId=" + fieldId);
 	    }
+
+      // Add a label tag.
+      const labelElem = document.createElement("label");
+      labelElem.classList.add("notice-content-field-label");
+      if (formElem.getAttribute("type") != "radio" && formElem.getAttribute("type") != "checkbox") {
+        labelElem.classList.add("notice-content-field-label-block"); 
+      }
+      if (formElem.getAttribute("id")) {
+        labelElem.setAttribute("for", formElem.getAttribute("id"));
+      }
+      containerElem.insertBefore(labelElem, formElem);
 	    
 	    // Set the language of the input text.
 	    if (field.type === "text" || field.type === "text-multilingual") {
@@ -701,7 +732,9 @@
 	    const isRequired = isFieldValueMandatory(field, noticeId);
 	    if (isRequired) {
 	      formElem.setAttribute("required", "required");
-	      containerElem.classList.add("notice-content-required");
+        if (labelElem) {
+          labelElem.classList.add("notice-content-required");
+        }
 	    }
 	
 	    // TODO repeatable, severity is a bit confusing ...
@@ -727,16 +760,18 @@
         // "publicationDateFieldId" : "BT-198(BT-09)-Procedure"
 	    }
 			
-	    return {"containerElem" : containerElem, "formElem" : formElem, "field" : field};
+	    return {"containerElem" : containerElem, "formElem" : formElem, "labelElem" : labelElem, "field" : field};
 	  }
 	  
   } // End of Editor class.
   
+  /**
+   * Displays the notice info after loading.
+   */
   function funcCallbackWhenLoadedDefinition() {
     document.getElementById("notice-info").style.display = "block";
   }
-  jsonGet("/sdk/info", 3000, afterInitDataLoaded, jsonGetOnError);
-  
+
   function afterInitDataLoaded(data) {
     const sdkVersions = data.sdkVersions;
     const appVersion = data.appVersion;
@@ -797,38 +832,46 @@
       return;
     }
     
+    // GET the translations for the default language.
+    // Note that here the string "en" stands for english.
     downloadSdkFieldsTranslations("en", function(dataI18n) {
-	    const urlToGetFieldJsonData = "/sdk/" + sdkVersion + "/fields";
+      
 	    const jsonOkFieldsFunc = function(dataFieldsJson) {
-	      if (!dataFieldsJson.sdkVersion) {
+        if (!dataFieldsJson.sdkVersion) {
 	        throw new Error("Invalid sdkVersion");
 	      }
-	  
-	      // NOTE: the data could be loaded in parallel, but for this demo project we do it serial.
-	      const urlToGetNoticeTypeJsonData = "/sdk/" + sdkVersion + "/notice-types/" + noticeId;
-	      
+
 	      const jsonOkNoticeTypeFunc = function(dataNoticeType) {
-	        const sdkVersion = dataNoticeType.sdkVersion;
+          const sdkVersion = dataNoticeType.sdkVersion;
 	        if (!sdkVersion) {
-	          throw new Error("Invalid sdkVersion: " + sdkVersion);
+            throw new Error("Invalid sdkVersion: " + sdkVersion);
 	        }
 	        setText("notice-sdkVersion", sdkVersion);
 	        setText("notice-noticeId", dataNoticeType.noticeId);
 	        
 	        const editor = new Editor(dataFieldsJson, dataNoticeType, dataI18n, noticeFormElem);
-	
+          
 	        editor.buildForm(); // Build the form. Initialize.
 	        
 	        funcCallbackWhenLoadedDefinition();
 	        console.log("Loaded editor notice type: " + urlToGetNoticeTypeJsonData);
 	      };
+        
+        // GET available notice types.
+        const urlToGetNoticeTypeJsonData = "/sdk/" + sdkVersion + "/notice-types/" + noticeId;
 	      jsonGet(urlToGetNoticeTypeJsonData, 4000, jsonOkNoticeTypeFunc, jsonGetOnError);
 	    };
+      
+      // GET the fields.json data.
+      // We load the entire fields.json to simplify the code later on.
+      // You could also dynamically load data only when it is needed, but this would create many requests which may be slow.
+      // This is a URL to the back-end REST API.
+      const urlToGetFieldJsonData = "/sdk/" + sdkVersion + "/fields";
 	    jsonGet(urlToGetFieldJsonData, 4000, jsonOkFieldsFunc, jsonGetOnError);
     });
   }
   
-  // fields.json related functions.
+  // fields.json data related functions.
   
   function isFieldTypeNumeric(fieldType) {
     // TODO having to do so many ORs is annoying.
@@ -852,7 +895,7 @@
     return false;
   }
   
-  // Functions specific to the HTML.
+  // Functions specific to the HTML, DOM.
   
   function getElemSdkSelector() {
     return document.getElementById("notice-sdk-selector");
@@ -880,6 +923,9 @@
     document.getElementById(id).textContent = text;
   }
   
+  /**
+   * Creates an option tag for use in a select.
+   */
   function createOption(valueTechnical, valueLabel) {
     const elemOption = document.createElement("option");
     elemOption.setAttribute("value", valueTechnical);
@@ -887,6 +933,9 @@
     return elemOption;
   }
   
+  /**
+   * Generic error handling, provided as a demo.
+   */
   function jsonGetOnError(xhr) {
     const msg = "Error loading data.";
     if (console.error) {
@@ -901,11 +950,16 @@
     buildJsonGet(urlGet, timeoutMillis, fnOk, fnErr).send();
   }
   
+  /**
+   * Helper to perform HTTP GET XHR for JSON (XHR = Xml Http Request, for AJAX).
+   * In general the back-end REST API is called from here.
+   */
   function buildJsonGet(urlGet, timeoutMillis, fnOk, fnErr) {
     const xhr = new XMLHttpRequest();
     xhr.open("GET", urlGet, true);  // Asnyc HTTP GET request by default.
     xhr.setRequestHeader("Content-Type", "application/json");
     xhr.timeout = timeoutMillis;
+    // For proxy settings: check your browser configuration.
     xhr.onload = function() {
       if (xhr.status === 200) {
         const jsonData = JSON.parse(xhr.responseText);
@@ -917,6 +971,9 @@
     return xhr;
   }
   
+  /**
+   * Left pad text.
+   */
   function lpad(padText, textToPad, length) {
     while (textToPad.length < length) {
       textToPad = padText + textToPad;
