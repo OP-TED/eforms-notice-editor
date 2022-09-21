@@ -287,7 +287,7 @@ public class SdkService {
 
     } catch (IOException ex) {
       logger.info("Error responding with file '{}' for download.", pathStr, ex);
-      throw new RuntimeException("IOException writing file to output stream.");
+      throw new RuntimeException("IOException writing file to output stream.", ex);
     }
   }
 
@@ -329,7 +329,7 @@ public class SdkService {
 
     } catch (IOException ex) {
       logger.info("Error responding with file '{}' for download.", filenameForDownload, ex);
-      throw new RuntimeException("IOException writing json string to output stream.");
+      throw new RuntimeException("IOException writing json string to output stream.", ex);
     }
   }
 
