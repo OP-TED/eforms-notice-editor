@@ -39,14 +39,14 @@
 
   // Some custom english translations for the editor itself.
   i18n["en"] = {
-    "add.more": "Add one more",
+    "add.more": "Add",
     "remove": "Remove",
     "select": "Select"
   };
   
   // Some custom french translations for the editor itself.
   i18n["fr"] = {
-    "add.more": "En ajouter un",
+    "add.more": "Ajouter",
     "remove": "Enlever",
     "select": "Choisir"
   };
@@ -154,11 +154,55 @@
       const dataModel = {};
       const fieldElems = document.querySelectorAll("[data-editor-value-field='true']");
       for (var fieldElem of fieldElems) {
+        const data = {};
+        
+        const domId = fieldElem.getAttribute("id");
+        data["domId"] = domId;
+
         const contentId = fieldElem.getAttribute("data-editor-content-id");
+        data["contentId"] = contentId;
+
+				const contentType = fieldElem.getAttribute("data-editor-type");        
+				data["type"] = contentType;
+
+				const contentCount = fieldElem.getAttribute("data-editor-count");        
+				data["contentCount"] = contentCount;
+
+        // The form value (text inside of form fields, input, select, textarea, ...).
+        const value = fieldElem.value;        
+				data["value"] = value;
+				
+				//
+				// Parent related logic.
+				//
         const contentParentId = fieldElem.getAttribute("data-editor-content-parent-id");
-        dataModel[contentId]= {"id" : contentId, "parentId" : contentParentId, "value" : fieldElem.value};
-        // dataModel parentId
+        data["contentParentId"] = contentParentId;
+        const parentSelector = "[data-editor-content-id='" + contentParentId + "']";
+
+			  // IMPORTANT: this is not the direct DOM parent, but the logical content container (group).
+				const containerParentElem = fieldElem.closest(parentSelector);
+				
+				// TODO tttt Need to find a way to group them by the parent. probably via the DOM.
+        const contentParentCount = containerParentElem.getAttribute("data-editor-count");        
+				data["contentParentCount"] = contentParentCount;
+        
+        const field = this.fieldMap[contentId];
+        if (!field) {
+          throw new Error("Unknown fieldId=" + contentId);
+        }
+        data["contentNodeId"] = field["parentNodeId"];  
+        
+				// Unique identifier.
+        // IMPORTANT: the content id is unique in the notice type definition, but not 
+        // in the form due to repeatable elements !!!
+        const uniqueId =  contentId + "-" + contentCount //fieldElem.getAttribute("id");
+        if (dataModel[uniqueId]) {
+          throw new Error("dataModel[uniqueId] already exists for uniqueId=" + uniqueId + ", domId=" + domId);
+        }
+        dataModel[uniqueId] = data;
+        
       }
+      
       //console.dir(dataModel);
       textArea.value = JSON.stringify(dataModel, null, 2);
       textArea.style.display = 'block';
@@ -176,7 +220,7 @@
       
       // This builds the form.
       // TODO readContent could become part of the class as we pass "this" to it.
-      this.readContentRecur(this.noticeFormElement, this.noticeRootContent, rootLevel, false, null);
+      this.readContentRecur(this.noticeFormElement, this.noticeRootContent, rootLevel, false, null, null);
       
       // Fills selects that have id references.
       this.populateIdRefSelectsAll();
@@ -325,7 +369,7 @@
       }
     }
     
-    readContentRecur(parentElem, content, level, isForRepeat, elemToExpand) {
+    readContentRecur(parentElem, content, level, isForRepeat, elemToExpandOpt, siblingOpt) {
 	    const noticeId = this.noticeId;
 	  
 	    //console.debug("readContentRecur content.id=" + content.id + ", level=" + level + ", isForRepeat=" + isForRepeat);  
@@ -339,12 +383,11 @@
 	    const isSection = content.section;
 	    
 	    const isCollapsed = content.collapsed ? true : false;
-	    
-	    // TODO compare content repeatable and node.repeatable (editor.nodeMap[...]), show conflicts
-	    var isContentRepeatable = content.repeatable ? true : false; // Can be reassigned if field...
+
+	    var isContentRepeatable = content._repeatable ? true : false; // Can be reassigned if field...
 	     
 	    // The container element may already exist in the case of uncollapsing (expand).
-	    var containerElem = elemToExpand ? elemToExpand : document.createElement("div");
+	    var containerElem = elemToExpandOpt ? elemToExpandOpt : document.createElement("div");
 	
 	    var field; // Can remain undefined or null.
 	    var formElem;
@@ -369,7 +412,7 @@
 	
 	    // The id will vary if the element is repeatable but the editor type will not.
 	    containerElem.setAttribute("data-editor-type",  this.buildIdPartial(content));
-	
+
 	    // 
 	    // Style: CSS classes and more.
 	    //
@@ -413,7 +456,7 @@
 	      }
 	    } else {
 	      // This content is not a field.
-	      if (!elemToExpand) { // Always add title except if expanding.
+	      if (!elemToExpandOpt) { // Always add title except if expanding.
 	        // We use the word "header" here to avoid confusion with the HTML title attribute.
 	      
 	        const headerContainer = document.createElement("div");
@@ -444,10 +487,10 @@
 	    }
 	    
 	    // If collapsed the child content should not be loaded yet.
-	    if (isCollapsed && !elemToExpand) {
+	    if (isCollapsed && !elemToExpandOpt) {
 	      // EXPAND LOGIC SETUP.
 	      // Setup of on click event so that content can be loaded into DOM on demand later on.
-	      const clickExpandFunc = this.createContentOnClickFunc(containerElem, content, level, false, containerElem);
+	      const clickExpandFunc = this.createContentOnClickFunc(containerElem, content, level, false, containerElem, null);
 
 	      const isUseCapture = true; // As the child elements do not exist yet.
 	      containerElem.addEventListener("click", clickExpandFunc, isUseCapture);
@@ -458,12 +501,12 @@
 	      if (content.content && !content.editorExpanded) {
 	        // Load sub items.
 	        for (var contentSub of content.content) {
-	          this.readContentRecur(containerElem, contentSub, level + 1, false, null); // Recursion on sub content.
+	          this.readContentRecur(containerElem, contentSub, level + 1, false, null, null); // Recursion on sub content.
 	        }
 	      }
 	    }
-	    
 	    if (isContentRepeatable) {
+
 	      // REPEAT LOGIC SETUP.
 	      const elemButtonAddMore = document.createElement("button");
 	      elemButtonAddMore.setAttribute("type", "button");
@@ -472,34 +515,43 @@
 	      elemButtonAddMore.classList.add("notice-content-button-add");
 	      
 	      // NOTE: here we add the content to the same parent as this is a sibling content and not a child content.
-	      const clickRepeatFunc = this.createContentOnClickFunc(parentElem, content, level, true, false);
+        const siblingOpt = containerElem; // Also specify the sibling so it can be added in the correct place inside the parent.
+	      const clickRepeatFunc = this.createContentOnClickFunc(parentElem, content, level, true, null, siblingOpt);
 	      elemButtonAddMore.addEventListener("click", clickRepeatFunc, false);
 	      containerElem.appendChild(elemButtonAddMore);
 	    }
 	    
-	    if (isContentRepeatable && content.editorCount > 2) {
+	    if (isContentRepeatable && content.editorCount > 1) {
 	      // This element should have a remove button.
 	      const elemButtonRemove = document.createElement("button");
 	      elemButtonRemove.setAttribute("type", "button");
 	      elemButtonRemove.textContent = getLabel("remove");
 	      elemButtonRemove.classList.add("notice-content-button");
 	      elemButtonRemove.classList.add("notice-content-button-remove");
-	      
-	      elemButtonRemove.addEventListener("click", function() {
+	    
+        elemButtonRemove.addEventListener("click", function() {
 	        parentElem.removeChild(containerElem);
 	        // TODO really or just keep incrementing?
 	        //content.editorCount--; // Decrease the counter.
 	      }, false);
+
 	      containerElem.appendChild(elemButtonRemove);    
 	    }
 	    
-	    if (elemToExpand) {
+	    if (elemToExpandOpt) {
 	      // The existing element has been expanded.
 	      content.editorExpanded = true;
 	    } else {
 	      // Add fragment to DOM (browser will update).
 	      documentFragment.appendChild(containerElem);
-	      parentElem.appendChild(documentFragment); // Add to fragment (not in DOM yet).
+
+        if (siblingOpt) {
+          // Add to parent next to sibling.
+          editorInsertAfter(documentFragment, siblingOpt);
+        } else {
+          // Add to parent.
+          parentElem.appendChild(documentFragment);
+        }
 	      // The element is in the page now.
 	    }
 	    
@@ -508,10 +560,14 @@
         const formElemDomIdNew = this.buildIdUniqueNew(content);
 	      formElem.setAttribute("id", formElemDomIdNew);
 
+        // IMPORTANT: this links the form items with the NTD and thus in some cases with the field and node map.
 	      formElem.setAttribute("data-editor-content-id", content.id);
+
 	      formElem.setAttribute("data-editor-content-parent-id", parentElem.getAttribute("data-editor-content-id")); 
 
 	      formElem.setAttribute("data-editor-count", content.editorCount);
+	      
+	      // This is used later on to retrieve form values.
 	      formElem.setAttribute("data-editor-value-field", "true");
 
         // Set the translation.
@@ -538,12 +594,12 @@
 	    content.editorCount++; // The content has been added.
 	  }
 	  
-	  createContentOnClickFunc(containerElem, content, level, isForRepeat, elemToExpand) {
+	  createContentOnClickFunc(containerElem, content, level, isForRepeat, elemToExpandOpt, siblingOpt) {
 	    const that = this;
       return function onClick(event) {
         console.debug("clicked content=" + content.id);
         event.stopPropagation();
-        that.readContentRecur(containerElem, content, level + 1, isForRepeat, elemToExpand);
+        that.readContentRecur(containerElem, content, level + 1, isForRepeat, elemToExpandOpt, siblingOpt);
         containerElem.classList.add("notice-content-section-opened");
       };
     }
@@ -751,7 +807,7 @@
 	      // Allow to add / remove fields.
 	      containerElem.classList.add("notice-content-field-repeatable");
 	      
-	      if (content.repeatable && !isFieldRepeatable) {
+	      if (content._repeatable && !isFieldRepeatable) {
 	        console.error("fields.json repeatable mismatch on: " + field.id);
 	        containerElem.classList.add("notice-content-field-repeatable-mismatch");
 	      }
@@ -929,6 +985,13 @@
   
   function setText(id, text) {
     document.getElementById(id).textContent = text;
+  }
+
+  /**
+   * Insert node after the existing node. This only works if the existing node has a parent.
+   */
+  function editorInsertAfter(nodeToInsert, existingNode) {
+    existingNode.parentNode.insertBefore(nodeToInsert, existingNode.nextSibling);
   }
   
   /**

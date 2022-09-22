@@ -84,8 +84,7 @@ public class SdkRestController implements AsyncConfigurer {
    * Get JSON containing data about translations for the given language.
    */
   @RequestMapping(value = "/{sdkVersion}/translations/{langCode}.json", method = RequestMethod.GET,
-      produces = MediaType.APPLICATION_JSON_VALUE)
-  public void serveTranslationsFields(final HttpServletResponse response,
+      produces = MediaType.APPLICATION_JSON_VALUE)  public void serveTranslationsFields(final HttpServletResponse response,
       @PathVariable(value = "sdkVersion") String sdkVersion,
       @PathVariable(value = "langCode") String langCode)
       throws ParserConfigurationException, SAXException, IOException {
