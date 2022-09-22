@@ -39,16 +39,16 @@
 
   // Some custom english translations for the editor itself.
   i18n["en"] = {
-    "add.more": "Add",
-    "remove": "Remove",
-    "select": "Select"
+    "editor.add.more": "Add",
+    "editor.remove": "Remove",
+    "editor.select": "Select"
   };
   
   // Some custom french translations for the editor itself.
   i18n["fr"] = {
-    "add.more": "Ajouter",
-    "remove": "Enlever",
-    "select": "Choisir"
+    "editor.add.more": "Ajouter",
+    "editor.remove": "Enlever",
+    "editor.select": "Choisir"
   };
 
   /**
@@ -182,7 +182,7 @@
 			  // IMPORTANT: this is not the direct DOM parent, but the logical content container (group).
 				const containerParentElem = fieldElem.closest(parentSelector);
 				
-				// TODO tttt Need to find a way to group them by the parent. probably via the DOM.
+				// TODO tttt Need to find a way to group them by the parent same. probably via the DOM.
         const contentParentCount = containerParentElem.getAttribute("data-editor-count");        
 				data["contentParentCount"] = contentParentCount;
         
@@ -200,7 +200,6 @@
           throw new Error("dataModel[uniqueId] already exists for uniqueId=" + uniqueId + ", domId=" + domId);
         }
         dataModel[uniqueId] = data;
-        
       }
       
       //console.dir(dataModel);
@@ -505,12 +504,13 @@
 	        }
 	      }
 	    }
-	    if (isContentRepeatable) {
+	    
+	    if (isContentRepeatable && !content.hidden) {
 
 	      // REPEAT LOGIC SETUP.
 	      const elemButtonAddMore = document.createElement("button");
 	      elemButtonAddMore.setAttribute("type", "button");
-	      elemButtonAddMore.textContent = getLabel("add.more");
+	      elemButtonAddMore.textContent = getLabel("editor.add.more");
 	      elemButtonAddMore.classList.add("notice-content-button");
 	      elemButtonAddMore.classList.add("notice-content-button-add");
 	      
@@ -521,11 +521,11 @@
 	      containerElem.appendChild(elemButtonAddMore);
 	    }
 	    
-	    if (isContentRepeatable && content.editorCount > 1) {
+	    if (isContentRepeatable && !content.hidden && content.editorCount > 1) {
 	      // This element should have a remove button.
 	      const elemButtonRemove = document.createElement("button");
 	      elemButtonRemove.setAttribute("type", "button");
-	      elemButtonRemove.textContent = getLabel("remove");
+	      elemButtonRemove.textContent = getLabel("editor.remove");
 	      elemButtonRemove.classList.add("notice-content-button");
 	      elemButtonRemove.classList.add("notice-content-button-remove");
 	    
@@ -647,7 +647,7 @@
 	      var afterCodelistLoad = function(data) {
 	        // Dynamically load the options.
 	         const i18n = that.getTranslationById(content._label);
-	         select.appendChild(createOption("", i18n)); // Empty option.
+	         select.appendChild(createOption("", "")); // Empty option, has no value.
 	         for (var code of data.codes) {
 	           select.appendChild(createOption(code.codeValue, code.en));
 	         }
@@ -670,8 +670,9 @@
 	      const idSchemes = content._idSchemes;
 	      if (idSchemes && idSchemes.length > 0) {
 
-	        select.appendChild(createOption("", getLabel("select") + " " + String(idSchemes))); // Empty option.
-	
+	        select.appendChild(createOption("", "")); // Empty option, has no value.
+		      //select.appendChild(createOption("", getLabel("editor.select") + " " + String(idSchemes))); // Empty option, has no value.
+
 	        // Allows to find back select even if not knowing the idScheme, to find all in use idSchemes later on.
 	        select.setAttribute(DATA_EDITOR_ID_REFERENCE, JSON.stringify(idSchemes));
 	        for (var idScheme of idSchemes) {
