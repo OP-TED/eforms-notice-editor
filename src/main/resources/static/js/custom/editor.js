@@ -5,9 +5,11 @@
 (function() {
   console.log("Loading editor script.");
 
+  const timeOutDefaultMillis = 3000;
+  const timeOutLargeMillis = 6000;
+
   // Init: loads initial editor home page data.
-  jsonGet("/sdk/info", 3000, afterInitDataLoaded, jsonGetOnError);
-  
+  jsonGet("/sdk/info", timeOutDefaultMillis, afterInitDataLoaded, jsonGetOnError);
 
   // Avoids conflicts with other identifiers in the context of this browser tab.
   const idPrefix = "editor-id-";
@@ -137,6 +139,9 @@
       // return label ? label : null;
     }
     
+    /**
+     * Reads from the Form and populates a model object.
+     */
     toModel() {
       console.info("toModel");
       const textArea = document.getElementById("id-editor-log-json-area");
@@ -208,28 +213,30 @@
     }
     
     fromModel() {
-      // IN
-      // Load form
       // Loading of form data into form
       // 0. recurse through data
+      // This will be done later.
     }
     
     buildForm() {
       const rootLevel = 1; // Top level, sub items will be on level 2, 3, 4 ...
       
-      // This builds the form.
-      // TODO readContent could become part of the class as we pass "this" to it.
+      // This builds the initial empty form.
       this.readContentRecur(this.noticeFormElement, this.noticeRootContent, rootLevel, false, null, null);
       
-      // Fills selects that have id references.
+      // Post process: Fills selects that have id references.
       this.populateIdRefSelectsAll();
       
-      this.handleValueLogic(this.noticeRootContent);
+      // Handle valueSource related logic.
+      this.handleValueSourceLogic(this.noticeRootContent);
     }
     
-    handleValueLogic(content) {
-      // Handle content "value" logic.
+    /**
+     * Handles content "valueSource" starting from the passed content.
+     */
+    handleValueSourceLogic(content) {
       const that = this;
+      // Define the content visitor.
       const visitorFunc = function(visitedContent) {
         if (visitedContent.contentType !== "group") {
           const valueExpr = visitedContent.valueSource;
@@ -256,6 +263,7 @@
           }
         }
       };
+      // Apply content visitor.
       that.visitContentRec(content, [visitorFunc]);
     }
     
@@ -267,13 +275,17 @@
       return idPrefix + contentId;
     }
     
-    // This is called during creation.
+    /**
+     * This is called during creation.
+     */
     buildIdUniqueNew(content) {
       const paddedNumber = this.buildPaddedIdNumber(content);
       return this.buildIdPartial(content) + "-" + paddedNumber;
     }
 
-    // This allows to build the id of any other field (for example).    
+    /**
+     *  This allows to build the id of any other field (for example).   
+    */
     buildIdUniqueFromPair(contentId, contentIdNum) {
       const paddedNumber = this.buildPaddedIdNumberForIdNumber(String(contentIdNum));
       return this.buildIdPartialFromContentId(contentId) + "-" + paddedNumber;
@@ -292,6 +304,9 @@
       return document.getElementById(elementId);
     }
     
+    /**
+     * Applies the contentVistorFunctions in order to the content.
+     */
     visitContentRec(content, contentVisitorFuncs) {
       if (!content) {
         throw new Error("Invalid content");
@@ -302,10 +317,11 @@
       for (var contentVisitorFunc of contentVisitorFuncs) {
         contentVisitorFunc(content);
       }
+      // Is there more sub content?
       if (content.content && !content.editorExpanded) {
-	      // Visit sub items.
+	      // Visit sub items. Recursion.
 	      for (var contentSub of content.content) {
-	        this.visitContentRec(contentSub, contentVisitorFuncs); // Recursion on sub content.
+	        this.visitContentRec(contentSub, contentVisitorFuncs);
 	      }
 	    }
     }
@@ -314,8 +330,10 @@
       return this.findElementWithAttributeIdSchemes([idScheme]);
     }
     
+    /**
+     * Find the HTML elements having the idSchemes (search HTML element by attribute).
+     */
     findElementWithAttributeIdSchemes(idSchemes) {
-      // Find the HTML elements having the idScheme (search HTML element by attribute).
       const allFoundElements = [];
       for (var idScheme of idSchemes) {
         const selector = "[" + DATA_EDITOR_INSTANCE_ID_FIELD + '="' + idScheme + '"]';
@@ -347,10 +365,11 @@
         selectElem.value = selectedValue;
       }
     }
-    
-    populateIdRefSelectsAll() {
 
-      // Find all in use id schemes.
+    /**
+     * Find all in use id schemes.
+     */
+    populateIdRefSelectsAll() {
       const selector = "[" + DATA_EDITOR_ID_REFERENCE + "]";
       const selectElements = document.querySelectorAll(selector);
       const inUseIdSchemeSet = new Set();
@@ -361,7 +380,6 @@
           inUseIdSchemeSet.add(idScheme);
         }
       }
-
       // The id schemes are unique, for each find values and populate selects.
       for (var idScheme of inUseIdSchemeSet) {
         this.populateIdRefSelectsForIdScheme(idScheme);
@@ -371,7 +389,6 @@
     readContentRecur(parentElem, content, level, isForRepeat, elemToExpandOpt, siblingOpt) {
 	    const noticeId = this.noticeId;
 	  
-	    //console.debug("readContentRecur content.id=" + content.id + ", level=" + level + ", isForRepeat=" + isForRepeat);  
 	    const documentFragment = document.createDocumentFragment();
 	    content.editorLevel = level; // Enrich model for later.
 	    
@@ -587,7 +604,7 @@
 	    }
 	    
 	    if (isForRepeat) {
-	      this.handleValueLogic(content);
+	      this.handleValueSourceLogic(content);
 	    }
 	    
 	    // DO THIS AT THE VERY END.
@@ -636,6 +653,7 @@
 	      if (isHierarchical) {
 	        // TODO the data could be loaded in two steps (big category, then sub items).
 	        // Currently the editor demo does not suppose this feature.
+          console.log("Editor: hierarchical codelists are not handled yet, codelistId=" + codelistId);
 	      }
 	      
 	      const select = formElem;
@@ -655,7 +673,7 @@
 	      
 	      // Give this a larger timeout as some codelists could be quite big.
 	      // Ideally the JSON response should be cached for a while, you have to allow this server-side.
-	      jsonGet(urlToCodelistJson, 6000, afterCodelistLoad, jsonGetOnError);
+	      jsonGet(urlToCodelistJson, timeOutLargeMillis, afterCodelistLoad, jsonGetOnError);
 	      
 	    } else if (field.type === "indicator") {
 	      formElem = buildFormElem(content);
@@ -865,7 +883,7 @@
       return;
     }
     // XHR to load existing notice types of selected SDK version.
-    jsonGet("/sdk/" + sdkVersion + "/notice-types", 3000, afterSdkNoticeTypesLoaded, jsonGetOnError);
+    jsonGet("/sdk/" + sdkVersion + "/notice-types", timeOutDefaultMillis, afterSdkNoticeTypesLoaded, jsonGetOnError);
   }
   
   function afterSdkNoticeTypesLoaded(data) {
