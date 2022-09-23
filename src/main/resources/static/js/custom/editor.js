@@ -14,9 +14,10 @@
   // Avoids conflicts with other identifiers in the context of this browser tab.
   const idPrefix = "editor-id-";
 
-  const DATA_EDITOR_ID_REFERENCE = 'data-editor-id-reference';
-  const DATA_EDITOR_ID_REF_PREFIX = 'data-editor-id-ref-';
-  const DATA_EDITOR_INSTANCE_ID_FIELD = 'data-editor-instance-id-field';
+  const DATA_EDITOR_CONTENT_ID = "data-editor-content-id";
+  const DATA_EDITOR_ID_REFERENCE = "data-editor-id-reference";
+  const DATA_EDITOR_ID_REF_PREFIX = "data-editor-id-ref-";
+  const DATA_EDITOR_INSTANCE_ID_FIELD = "data-editor-instance-id-field";
 
   const displayTypeToElemInfo = {};
   displayTypeToElemInfo["CHECKBOX"] = {"tag": "input", "type" : "checkbox"};
@@ -25,37 +26,50 @@
   displayTypeToElemInfo["TEXTAREA"] = {"tag": "textarea"};
   displayTypeToElemInfo["TEXTBOX"] = {"tag": "input", "type": "text"};
   
-  const i18n = {};
+  // This could be covered by "auxiliary labels" or be something fully custom.
+  // The i18nOfEditor is loaded before other translations, thus it can be used to override them.
+  // This could be used to fix a typo while waiting for the next version of the SDK.
+  // This can also be used to define arbitrary translated texts for use in the editor.
+  const i18nOfEditor = {};
 
   // Some custom english translations for the editor itself.
-  i18n["en"] = {
+  i18nOfEditor["en"] = {
+    "editor.the.metadata": "Metadata",
+    "editor.the.root": "Content",
     "editor.add.more": "Add",
     "editor.remove": "Remove",
     "editor.select": "Select"
   };
   
   // Some custom french translations for the editor itself.
-  i18n["fr"] = {
+  i18nOfEditor["fr"] = {
+    "editor.the.metadata": "Méta données",
+    "editor.the.root": "Contenu",
     "editor.add.more": "Ajouter",
     "editor.remove": "Enlever",
     "editor.select": "Choisir"
   };
 
+  const lang2To3Map = {
+    "en" : "ENG",
+    "fr" : "FRA"
+  };
+
   /**
    * Gets label for given key and currently selected language.
    */
-  function getLabel(labelKey) {
-    getLabel(labelKey, getSelectedLanguage());
+  function getEditorLabel(labelKey) {
+    getEditorLabel(labelKey, getSelectedLanguage());
   }
 
   /**
    * Gets label for given key and language.
    */
-  function getLabel(labelKey, lang) {
+  function getEditorLabel(labelKey, lang) {
     // How you get and handle i18n label data is up to you.
-    var dataForLang = i18n[lang];
-    if (!dataForLang && i18n["en"] && lang !== "en") {
-      dataForLang = i18n["en"]; // Fallback to english.
+    var dataForLang = i18nOfEditor[lang];
+    if (!dataForLang && i18nOfEditor["en"] && lang !== "en") {
+      dataForLang = i18nOfEditor["en"]; // Fallback to english.
     }
     return dataForLang[labelKey];
   }
@@ -105,10 +119,10 @@
       
       this.dataI18n = dataI18n;
       
-      this.noticeMetadata = {"id" : "THE_METADATA", "_label" : null, "content" : dataNoticeType.metadata};
+      this.noticeMetadata = {"id" : "THE_METADATA", "_label" : "editor.the.metadata", "content" : dataNoticeType.metadata};
 
       // The root content is an array. Build a dummy element to hold the content.
-      this.noticeRootContent = {"id" : "THE_ROOT", "_label" : null, "content" : dataNoticeType.content};
+      this.noticeRootContent = {"id" : "THE_ROOT", "_label" : "editor.the.root", "content" : dataNoticeType.content};
       this.noticeId = dataNoticeType.noticeId;
       
       this.noticeFormElement = noticeFormElement;
@@ -124,11 +138,13 @@
     }
     
     getTranslationById(labelId) {
-      const label = this.dataI18n[labelId];
+      const customLabel = getEditorLabel(labelId);
+      const label = customLabel ? customLabel : this.dataI18n[labelId];
       if (!label) {
         console.log("Missing label for key='" + labelId + "'");
       }
-      return label ? label : labelId; // Showing the labelId instead helps debugging.
+      return label ? label : labelId; 
+      // Showing the labelId instead of null helps debugging.
       // return label ? label : null;
     }
 
@@ -175,7 +191,7 @@
         const domId = fieldElem.getAttribute("id");
         data["domId"] = domId;
 
-        const contentId = fieldElem.getAttribute("data-editor-content-id");
+        const contentId = fieldElem.getAttribute(DATA_EDITOR_CONTENT_ID);
         data["contentId"] = contentId;
 
 				const contentType = fieldElem.getAttribute("data-editor-type");        
@@ -193,12 +209,12 @@
 				//
         const contentParentId = fieldElem.getAttribute("data-editor-content-parent-id");
         data["contentParentId"] = contentParentId;
-        const parentSelector = "[data-editor-content-id='" + contentParentId + "']";
+        const parentSelector = "[" + DATA_EDITOR_CONTENT_ID + "='" + contentParentId + "']";
 
 			  // IMPORTANT: this is not the direct DOM parent, but the logical content container (group).
 				const containerParentElem = fieldElem.closest(parentSelector);
 				
-				// TODO tttt Need to find a way to group them by the parent same. probably via the DOM.
+				// TODO Need to find a way to group them by the parent same. probably via the DOM.
         const contentParentCount = containerParentElem.getAttribute("data-editor-count");        
 				data["contentParentCount"] = contentParentCount;
         
@@ -232,12 +248,11 @@
     buildForm() {
       const rootLevel = 1; // Top level, sub items will be on level 2, 3, 4 ...
 
+      // Load empty form.
+
       // This builds the initial empty form metadata section on top.
       // Most of these fields are either readonly and/or hidden.
-      //this.readContentRecur(this.noticeFormElement, this.noticeMetadata, rootLevel, false, null, null);
-
-      // tttt fill
-      // OPP-070-notice
+      this.readContentRecur(this.noticeFormElement, this.noticeMetadata, rootLevel, false, null, null);
             
       // This builds the initial empty form, the content part (non-metadata).
       this.readContentRecur(this.noticeFormElement, this.noticeRootContent, rootLevel, false, null, null);
@@ -344,27 +359,31 @@
 	    }
     }
 
-    findElementHavingAttribute(attributeName) {
+    findElementsHavingAttribute(attributeName) {
       const selector =  "[" + attributeName + "]";
       return document.querySelectorAll(selector);
     }
 
-    findElementWithAttribute(attributeName, attributeText) {
+    findElementsWithAttribute(attributeName, attributeText) {
       const selector =  '[' + attributeName + '="' + attributeText + '"]';
       return document.querySelectorAll(selector);
     }
     
-    findElementWithAttributeIdScheme(idScheme) {
-      return this.findElementWithAttributeIdSchemes([idScheme]);
+    findElementsWithAttributeIdScheme(idScheme) {
+      return this.findElementsWithAttributeIdSchemes([idScheme]);
+    }
+
+    findElementsWithContentId(contentId) {
+      return this.findElementsWithAttribute(DATA_EDITOR_CONTENT_ID, contentId);
     }
     
     /**
      * Find the HTML elements having the idSchemes (search HTML element by attribute).
      */
-    findElementWithAttributeIdSchemes(idSchemes) {
+    findElementsWithAttributeIdSchemes(idSchemes) {
       const allFoundElements = [];
       for (var idScheme of idSchemes) {
-        const foundElements = this.findElementWithAttribute(DATA_EDITOR_INSTANCE_ID_FIELD, idScheme);
+        const foundElements = this.findElementsWithAttribute(DATA_EDITOR_INSTANCE_ID_FIELD, idScheme);
         for (var element of foundElements) {
           allFoundElements.push(element);
         }
@@ -372,14 +391,14 @@
       return allFoundElements;
     }
     
-    findElementWithAttributeIdRef(idScheme) {
+    findElementsWithAttributeIdRef(idScheme) {
       // Find HTML elements that reference this kind of idScheme.
-      return this.findElementWithAttribute(DATA_EDITOR_ID_REF_PREFIX + idScheme.toLowerCase(), "true");
+      return this.findElementsWithAttribute(DATA_EDITOR_ID_REF_PREFIX + idScheme.toLowerCase(), "true");
     }
     
     populateIdRefSelectsForIdScheme(idScheme) {
-      const foundReferencedElements = this.findElementWithAttributeIdScheme(idScheme);
-      var foundReferencingElements = this.findElementWithAttributeIdRef(idScheme);
+      const foundReferencedElements = this.findElementsWithAttributeIdScheme(idScheme);
+      var foundReferencingElements = this.findElementsWithAttributeIdRef(idScheme);
 
       for (var selectElem of foundReferencingElements) {
          const selectedValue = selectElem.value;
@@ -396,7 +415,7 @@
      * Find all in use id schemes.
      */
     populateIdRefSelectsAll() {
-      const selectElements = this.findElementHavingAttribute(DATA_EDITOR_ID_REFERENCE);
+      const selectElements = this.findElementsHavingAttribute(DATA_EDITOR_ID_REFERENCE);
       const inUseIdSchemeSet = new Set();
       for (var selectElem of selectElements) {
         const inUseIdSchemes = selectElem.getAttribute(DATA_EDITOR_ID_REFERENCE);
@@ -446,8 +465,8 @@
 	    // This is the container and not the actual element that will contain the field value.
 	    containerElem.setAttribute("id", this.buildIdUniqueNew(content) + "-container-elem");
 	    
-	    containerElem.setAttribute("data-editor-content-id", content.id + "-container-elem");
-	    containerElem.setAttribute("data-editor-content-parent-id", parentElem.getAttribute("data-editor-content-id"));
+	    containerElem.setAttribute(DATA_EDITOR_CONTENT_ID, content.id + "-container-elem");
+	    containerElem.setAttribute("data-editor-content-parent-id", parentElem.getAttribute(DATA_EDITOR_CONTENT_ID));
 	     
 	    containerElem.setAttribute("data-editor-count", content.editorCount);
 	
@@ -513,9 +532,9 @@
 	        // Set the translation.
 	        // Get translations for group|name|...
           // There is an exception for the root dummy element.
-	        const i18n = content.id === "THE_ROOT" || content.id === "THE_METADATA" ? "" : this.getTranslationById(content._label);
+	        const i18nText = this.getTranslationById(content._label);
 	        
-	        const headerText = isContentRepeatable ? i18n + " (" + paddedEditorCount + ")" : i18n;
+	        const headerText = isContentRepeatable ? i18nText + " (" + paddedEditorCount + ")" : i18nText;
 	        if (headerText === undefined) {
 	          alert("header text is undefined: " + content.id);
 	        }
@@ -525,7 +544,7 @@
 	        header.appendChild(document.createTextNode(headerText));
 	        headerContainer.appendChild(header);
 	        containerElem.appendChild(headerContainer);
-	        containerElem.setAttribute("title", i18n); // Mouse over text on any section.
+	        containerElem.setAttribute("title", i18nText); // Mouse over text on any section.
 	      }
 	    }
 	    
@@ -554,7 +573,7 @@
 	      // REPEAT LOGIC SETUP.
 	      const elemButtonAddMore = document.createElement("button");
 	      elemButtonAddMore.setAttribute("type", "button");
-	      elemButtonAddMore.textContent = getLabel("editor.add.more");
+	      elemButtonAddMore.textContent = getEditorLabel("editor.add.more");
 	      elemButtonAddMore.classList.add("notice-content-button");
 	      elemButtonAddMore.classList.add("notice-content-button-add");
 	      
@@ -569,7 +588,7 @@
 	      // This element should have a remove button.
 	      const elemButtonRemove = document.createElement("button");
 	      elemButtonRemove.setAttribute("type", "button");
-	      elemButtonRemove.textContent = getLabel("editor.remove");
+	      elemButtonRemove.textContent = getEditorLabel("editor.remove");
 	      elemButtonRemove.classList.add("notice-content-button");
 	      elemButtonRemove.classList.add("notice-content-button-remove");
 	    
@@ -605,9 +624,9 @@
 	      formElem.setAttribute("id", formElemDomIdNew);
 
         // IMPORTANT: this links the form items with the NTD and thus in some cases with the field and node map.
-	      formElem.setAttribute("data-editor-content-id", content.id);
+	      formElem.setAttribute(DATA_EDITOR_CONTENT_ID, content.id);
 
-	      formElem.setAttribute("data-editor-content-parent-id", parentElem.getAttribute("data-editor-content-id")); 
+	      formElem.setAttribute("data-editor-content-parent-id", parentElem.getAttribute(DATA_EDITOR_CONTENT_ID)); 
 
 	      formElem.setAttribute("data-editor-count", content.editorCount);
 	      
@@ -615,18 +634,18 @@
 	      formElem.setAttribute("data-editor-value-field", "true");
 
         // Set the translation.
-        const i18n = this.getTranslationById(content._label);
-        if (i18n && labelElem) {
+        const i18nText = this.getTranslationById(content._label);
+        if (i18nText && labelElem) {
 
           // The placeholder attribute works for some types of inputs only, but will not work for radio, checkbox, ...
           // It can be used to reduce the size of the form.
           //formElem.setAttribute("placeholder", i18n);
 
-          labelElem.textContent = i18n;
+          labelElem.textContent = i18nText;
         }
 
         if (!formElem.getAttribute("title")) {
-          formElem.setAttribute("title", i18n + " (" + field.id + ")");
+          formElem.setAttribute("title", i18nText + " (" + field.id + ")");
         }
 	    }
 	    
@@ -686,16 +705,26 @@
 	      const select = formElem;
 	      const sdkVersion = getSdkVersion();
 	      
-	      var that = this;
-	      // TODO codelist language: get only label for desired language instead of /en
-	      var urlToCodelistJson = "sdk/" + sdkVersion + "/codelists/" + codelistId + "/lang/en";
-	      var afterCodelistLoad = function(data) {
+	      const that = this;
+        // TODO use getSelectedLanguage() after /lang, use "en" for now as translations are missing.
+	      const urlToCodelistJson = "sdk/" + sdkVersion + "/codelists/" + codelistId + "/lang/en";
+	      const afterCodelistLoad = function(data) {
 	        // Dynamically load the options.
-	         const i18n = that.getTranslationById(content._label);
-	         select.appendChild(createOption("", "")); // Empty option, has no value.
-	         for (var code of data.codes) {
-	           select.appendChild(createOption(code.codeValue, code.en));
-	         }
+	        // const i18nText = that.getTranslationById(content._label);
+	        select.appendChild(createOption("", "")); // Empty option, has no value.
+	        for (var code of data.codes) {
+	          select.appendChild(createOption(code.codeValue, code.en));
+	        }
+
+          // After the select options have been set, an option can be selected.
+          // Special case for some of the metadata fields.
+          if (codelistId === "notice-subtype") {
+            const value = getElemNoticeTypeSelector().value;
+            select.value = value;
+          } else if (codelistId === "language_eu-official-language" && "BT-702(a)-notice" === content.id) {
+            const value = getSelectedLanguage();
+            select.value = lang2To3Map[value];
+          }
 	      };
 	      
 	      // Give this a larger timeout as some codelists could be quite big.
@@ -716,7 +745,7 @@
 	      if (idSchemes && idSchemes.length > 0) {
 
 	        select.appendChild(createOption("", "")); // Empty option, has no value.
-		      //select.appendChild(createOption("", getLabel("editor.select") + " " + String(idSchemes))); // Empty option, has no value.
+		      //select.appendChild(createOption("", getEditorLabel("editor.select") + " " + String(idSchemes))); // Empty option, has no value.
 
 	        // Allows to find back select even if not knowing the idScheme, to find all in use idSchemes later on.
 	        select.setAttribute(DATA_EDITOR_ID_REFERENCE, JSON.stringify(idSchemes));
@@ -725,7 +754,7 @@
 	          select.setAttribute(DATA_EDITOR_ID_REF_PREFIX + idScheme, "true");
 	        }
 	
-	        const foundElements = this.findElementWithAttributeIdSchemes(idSchemes);
+	        const foundElements = this.findElementsWithAttributeIdSchemes(idSchemes);
 	        for (var foundElement of foundElements) {
 	          select.appendChild(createOption(foundElement.value, foundElement.value));
 	        }
@@ -795,7 +824,7 @@
 	      
 	          // NOTE: this will not work on the first pass during creation as elements are not yet in the DOM.
 	          // This will work during addition of extra elements 0002 and so on.
-	          var foundReferencingElements = this.findElementWithAttributeIdRef(idScheme);
+	          var foundReferencingElements = this.findElementsWithAttributeIdRef(idScheme);
 	          for (var selectElem of foundReferencingElements) {
 	            selectElem.appendChild(createOption(input.value, input.value));
 	          }
@@ -925,12 +954,12 @@
       elemNoticeTypeSelector.appendChild(createOption(noticeType, noticeType));
     } 
 
-    document.getElementById("notice-type-selector").onchange = function() {
+    document.getElementById("notice-sub-type-selector").onchange = function() {
       const noticeId = this.value;
       const selectedSdkVersion = getSdkVersion();
       createNoticeForm(selectedSdkVersion, noticeId, funcCallbackWhenLoadedDefinition);
     };
-    document.getElementById("notice-type-selector").onchange();
+    document.getElementById("notice-sub-type-selector").onchange();
   }
   
   function createNoticeForm(sdkVersion, noticeId) {
@@ -956,7 +985,7 @@
             throw new Error("Invalid sdkVersion: " + sdkVersion);
 	        }
 	        setText("notice-sdkVersion", sdkVersion);
-	        setText("notice-noticeId", dataNoticeType.noticeId);
+	        setText("notice-noticeId", dataNoticeType.noticeId); // Notice sub-type.
 	        
 	        const editor = new Editor(dataFieldsJson, dataNoticeType, dataI18n, noticeFormElem);
           
@@ -1015,11 +1044,15 @@
   }
   
   function getElemNoticeTypeSelector() {
-    return document.getElementById("notice-type-selector");
+    return document.getElementById("notice-sub-type-selector");
   }
 
   function getSelectedLanguage() {
-    return document.getElementById("notice-lang-selector").value;
+    const lang = document.getElementById("notice-lang-selector").value;
+    if (!lang) {
+      throw new Error("No language selected!");
+    }
+    return lang;
   }
    
   // Generic reusable helper functions.
