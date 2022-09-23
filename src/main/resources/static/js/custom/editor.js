@@ -25,18 +25,6 @@
   displayTypeToElemInfo["TEXTAREA"] = {"tag": "textarea"};
   displayTypeToElemInfo["TEXTBOX"] = {"tag": "input", "type": "text"};
   
-  function buildFormElem(content) {
-    var elemInfo = displayTypeToElemInfo[content.displayType];
-    if (!elemInfo) {
-      elemInfo = displayTypeToElemInfo["TEXTBOX"]; // Fallback.
-    }
-		const elem = document.createElement(elemInfo.tag);
-		if (elemInfo.type) {
-  		elem.setAttribute("type", elemInfo.type);
-		}
-		return elem;
-  }
-  
   const i18n = {};
 
   // Some custom english translations for the editor itself.
@@ -94,6 +82,9 @@
         throw new Error("Invalid sdkVersion");
       }
 
+      this.isProduction = false;
+      console.log("Editor, production=" + this.isProduction);
+
       // FIELDS BY ID.
       const fields = dataFieldsJson.fields;
       console.log("Loaded fields: " + fields.length);
@@ -114,6 +105,8 @@
       
       this.dataI18n = dataI18n;
       
+      this.noticeMetadata = {"id" : "THE_METADATA", "_label" : null, "content" : dataNoticeType.metadata};
+
       // The root content is an array. Build a dummy element to hold the content.
       this.noticeRootContent = {"id" : "THE_ROOT", "_label" : null, "content" : dataNoticeType.content};
       this.noticeId = dataNoticeType.noticeId;
@@ -137,6 +130,24 @@
       }
       return label ? label : labelId; // Showing the labelId instead helps debugging.
       // return label ? label : null;
+    }
+
+    buildFormElem(content) {
+      var elemInfo = displayTypeToElemInfo[content.displayType];
+      if (!elemInfo) {
+        elemInfo = displayTypeToElemInfo["TEXTBOX"]; // Fallback.
+      }
+      const elem = document.createElement(elemInfo.tag);
+      if (elemInfo.type) {
+        elem.setAttribute("type", elemInfo.type);
+      }
+      if (content.hidden || content.readOnly) {
+        elem.setAttribute("readonly", "readonly");
+      }
+      if (content.hidden && this.isProduction) {
+        elem.setAttribute("hidden", "hidden");
+      }
+      return elem;
     }
     
     /**
@@ -220,8 +231,15 @@
     
     buildForm() {
       const rootLevel = 1; // Top level, sub items will be on level 2, 3, 4 ...
-      
-      // This builds the initial empty form.
+
+      // This builds the initial empty form metadata section on top.
+      // Most of these fields are either readonly and/or hidden.
+      //this.readContentRecur(this.noticeFormElement, this.noticeMetadata, rootLevel, false, null, null);
+
+      // tttt fill
+      // OPP-070-notice
+            
+      // This builds the initial empty form, the content part (non-metadata).
       this.readContentRecur(this.noticeFormElement, this.noticeRootContent, rootLevel, false, null, null);
       
       // Post process: Fills selects that have id references.
@@ -325,6 +343,16 @@
 	      }
 	    }
     }
+
+    findElementHavingAttribute(attributeName) {
+      const selector =  "[" + attributeName + "]";
+      return document.querySelectorAll(selector);
+    }
+
+    findElementWithAttribute(attributeName, attributeText) {
+      const selector =  '[' + attributeName + '="' + attributeText + '"]';
+      return document.querySelectorAll(selector);
+    }
     
     findElementWithAttributeIdScheme(idScheme) {
       return this.findElementWithAttributeIdSchemes([idScheme]);
@@ -336,8 +364,7 @@
     findElementWithAttributeIdSchemes(idSchemes) {
       const allFoundElements = [];
       for (var idScheme of idSchemes) {
-        const selector = "[" + DATA_EDITOR_INSTANCE_ID_FIELD + '="' + idScheme + '"]';
-        const foundElements = document.querySelectorAll(selector);
+        const foundElements = this.findElementWithAttribute(DATA_EDITOR_INSTANCE_ID_FIELD, idScheme);
         for (var element of foundElements) {
           allFoundElements.push(element);
         }
@@ -347,8 +374,7 @@
     
     findElementWithAttributeIdRef(idScheme) {
       // Find HTML elements that reference this kind of idScheme.
-      const selector = '[' + DATA_EDITOR_ID_REF_PREFIX + idScheme.toLowerCase() + '="true"]';
-      return document.querySelectorAll(selector);
+      return this.findElementWithAttribute(DATA_EDITOR_ID_REF_PREFIX + idScheme.toLowerCase(), "true");
     }
     
     populateIdRefSelectsForIdScheme(idScheme) {
@@ -370,8 +396,7 @@
      * Find all in use id schemes.
      */
     populateIdRefSelectsAll() {
-      const selector = "[" + DATA_EDITOR_ID_REFERENCE + "]";
-      const selectElements = document.querySelectorAll(selector);
+      const selectElements = this.findElementHavingAttribute(DATA_EDITOR_ID_REFERENCE);
       const inUseIdSchemeSet = new Set();
       for (var selectElem of selectElements) {
         const inUseIdSchemes = selectElem.getAttribute(DATA_EDITOR_ID_REFERENCE);
@@ -443,7 +468,9 @@
 	    }
 	    
 	    if (content.hidden) {
-	      containerElem.classList.add("notice-content-hidden"); 
+        // Hide in production, but for development it is better to see what is going on.
+        const hiddenClass = this.isProduction ? "notice-content-hidden" : "notice-content-hidden-devel";
+	      containerElem.classList.add(hiddenClass); 
 	    }
 	
 	    if (content.readOnly) {
@@ -486,7 +513,7 @@
 	        // Set the translation.
 	        // Get translations for group|name|...
           // There is an exception for the root dummy element.
-	        const i18n = content.id === "THE_ROOT" ? "" : this.getTranslationById(content._label);
+	        const i18n = content.id === "THE_ROOT" || content.id === "THE_METADATA" ? "" : this.getTranslationById(content._label);
 	        
 	        const headerText = isContentRepeatable ? i18n + " (" + paddedEditorCount + ")" : i18n;
 	        if (headerText === undefined) {
@@ -636,7 +663,7 @@
 	    var formElem = null;
 	    if (field.type === "code") {
 	
-	      formElem = buildFormElem(content);
+	      formElem = this.buildFormElem(content);
 	      containerElem.appendChild(formElem);
 	      
 	      const fieldCodeListVal = field.codeList.value;
@@ -676,13 +703,13 @@
 	      jsonGet(urlToCodelistJson, timeOutLargeMillis, afterCodelistLoad, jsonGetOnError);
 	      
 	    } else if (field.type === "indicator") {
-	      formElem = buildFormElem(content);
+	      formElem = this.buildFormElem(content);
 	      const input = formElem;
 	      containerElem.appendChild(formElem);
 	      
 	    } else if (field.type === "id-ref") {
 	      // TODO in theory it should be only "id-ref"
-	      formElem = buildFormElem(content);
+	      formElem = this.buildFormElem(content);
 	      containerElem.appendChild(formElem);
 	      const select = formElem;
 	      const idSchemes = content._idSchemes;
@@ -710,8 +737,7 @@
 	
 	    } else {
 	      // Fallback.
-
-	      formElem = buildFormElem(content);
+	      formElem = this.buildFormElem(content);
 	      containerElem.appendChild(formElem);
         const input = formElem;
 	      
