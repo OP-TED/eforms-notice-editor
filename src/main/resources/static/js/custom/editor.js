@@ -737,7 +737,6 @@
 	      containerElem.appendChild(formElem);
 	      
 	    } else if (field.type === "id-ref") {
-	      // TODO in theory it should be only "id-ref"
 	      formElem = this.buildFormElem(content);
 	      containerElem.appendChild(formElem);
 	      const select = formElem;
@@ -770,7 +769,7 @@
 	      containerElem.appendChild(formElem);
         const input = formElem;
 	      
-	      // The provided pattern will be used instead.
+	      // The provided pattern is be used instead.
 	      //if (field.type === "email") {
 	      //  input.setAttribute("type", "email");
 	      //}
@@ -807,7 +806,7 @@
 	        input.setAttribute("pattern", field.pattern.value);
 	        
 	        // The browser will show: "Please match the requested format: _TITLE_HERE_"
-	        // TODO Maybe the fields json pattern should come with english text explaining the pattern for error messages. 
+	        // TODO the fields json pattern should come with english text explaining the pattern for error messages. 
 	        input.setAttribute("title", field.pattern.value);
 	      }
 	      
@@ -864,6 +863,7 @@
 	
 	    if (content.readOnly) {
 	      // TODO is there a default technical value to set or is readOnly only for edition?
+        // TODO there is another part of the code which sets readonly, see if this can be harmonized.
 	      formElem.setAttribute("readonly", "readonly");
 	    }
 	
