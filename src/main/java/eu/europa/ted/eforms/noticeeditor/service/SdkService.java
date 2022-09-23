@@ -124,6 +124,13 @@ public class SdkService {
             if (englishLabelOpt.isPresent()) {
               putCodeValueAndLangCode(langCode, jsonMapper, jsonRows, technicalCode,
                   englishLabelOpt);
+            } else {
+              // Just take the Name and assume it is in english.
+              final Optional<Value> nameLabelOpt = gcFindFirstColumnRef(gcRowValues, "Name");
+              if (nameLabelOpt.isPresent()) {
+                putCodeValueAndLangCode(langCode, jsonMapper, jsonRows, technicalCode,
+                    nameLabelOpt);
+              }
             }
           }
         }
