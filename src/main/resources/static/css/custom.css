@@ -105,6 +105,10 @@ body {
 }
 
 .notice-content-hidden {
+  display: none;
+}
+
+.notice-content-hidden-devel {
   background-color: #999;
 }
 
