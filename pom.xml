@@ -13,17 +13,47 @@
   <version>0.0.1-SNAPSHOT</version>
   <name>eForms notice editor demo</name>
   <description>Demo project for Spring Boot</description>
+  <packaging>jar</packaging>
+  <url>https://docs.ted.europa.eu/eforms/latest/</url>
+
+  <licenses>
+    <license>
+      <name>European Union Public Licence, Version 1.2</name>
+      <url>https://joinup.ec.europa.eu/sites/default/files/custom-page/attachment/2020-03/EUPL-1.2%20EN.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <name>TED and EU Public Procurement Unit</name>
+      <email>OP-TED-DEVOPS@publications.europa.eu</email>
+      <organization>Publications Office of the European Union</organization>
+      <organizationUrl>https://op.europa.eu/</organizationUrl>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:git://github.com/OP-TED/eforms-core-java.git</connection>
+    <url>https://github.com/OP-TED/eforms-notice-editor.git</url>
+  </scm>
 
   <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
     <!-- Java compiler -->
     <java.version>11</java.version>
 
-    <!-- Dependencies versions -->
+    <maven.compiler.source>${java.version}</maven.compiler.source>
+    <maven.compiler.target>${java.version}</maven.compiler.target>
+
+    <!-- Versions - Third-party libraries -->
     <version.spotbugs>4.4.1</version.spotbugs>
 
-    <!-- Maven plugins versions -->
+    <!-- Versions - Plugins -->
     <version.checkstyle.plugin>3.1.2</version.checkstyle.plugin>
     <version.build-helper.plugin>3.3.0</version.build-helper.plugin>
+    <version.install.plugin>2.5.2</version.install.plugin>
     <version.sb-contrib.plugin>7.4.7</version.sb-contrib.plugin>
     <version.spotbugs.plugin>4.3.0</version.spotbugs.plugin>
     <version.spring-boot>2.6.6</version.spring-boot>
@@ -105,6 +135,14 @@
               <spring.datasource.username>${datasource.username}</spring.datasource.username>
               <spring.datasource.password>${datasource.password}</spring.datasource.password>
             </systemPropertyVariables>
+          </configuration>
+        </plugin>
+
+        <plugin>
+          <artifactId>maven-install-plugin</artifactId>
+          <version>${version.install.plugin}</version>
+          <configuration>
+            <createChecksum>true</createChecksum>
           </configuration>
         </plugin>
 
@@ -297,4 +335,63 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <!-- Profile "release" caters to the requirements for releasing to Maven Central -->
+      <id>release</id>
+
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>3.2.1</version>
+            <executions>
+              <execution>
+                <id>attach-sources</id>
+                <goals>
+                  <goal>jar-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>3.4.0</version>
+            <executions>
+              <execution>
+                <id>attach-javadocs</id>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>1.5</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <!-- Prevent gpg from using pinentry programs -->
+              <gpgArguments>
+                <arg>--pinentry-mode</arg>
+                <arg>loopback</arg>
+              </gpgArguments>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
