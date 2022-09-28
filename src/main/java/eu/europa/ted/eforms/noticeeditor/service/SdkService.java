@@ -39,6 +39,7 @@ import com.helger.genericode.v10.Column;
 import com.helger.genericode.v10.Row;
 import com.helger.genericode.v10.Value;
 import eu.europa.ted.eforms.noticeeditor.EformsNoticeEditorApp;
+import eu.europa.ted.eforms.noticeeditor.NoticeEditorConstants;
 import eu.europa.ted.eforms.noticeeditor.domain.Language;
 import eu.europa.ted.eforms.noticeeditor.genericode.CustomGenericodeMarshaller;
 import eu.europa.ted.eforms.noticeeditor.genericode.GenericodeTools;
@@ -46,6 +47,9 @@ import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
 import eu.europa.ted.eforms.noticeeditor.util.IntuitiveStringComparator;
 import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
+import eu.europa.ted.eforms.sdk.SdkConstants.SdkResource;
+import eu.europa.ted.eforms.sdk.SdkVersion;
+import eu.europa.ted.eforms.sdk.resource.SdkResourceLoader;
 
 
 /**
@@ -56,8 +60,6 @@ import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 public class SdkService {
 
   private static final Logger logger = LoggerFactory.getLogger(SdkService.class);
-
-  private static final String EFORMS_SDKS_DIR = "eforms-sdks";
 
   /**
    * The number of seconds in one hour.
@@ -76,11 +78,11 @@ public class SdkService {
   private static final Pattern REGEX_SDK_VERSION =
       Pattern.compile("\\p{Digit}{1,2}\\.\\p{Digit}{1,2}\\.\\p{Digit}{1,2}");
 
-  public static String buildJsonFromCodelistGc(final String codeListId, final String pathStr,
+  public static String buildJsonFromCodelistGc(final String codeListId, final Path path,
       final String langCode) throws IOException {
     // Use GC Helger lib to load SDK .gc file.
     final CustomGenericodeMarshaller marshaller = GenericodeTools.getMarshaller();
-    try (InputStream is = Files.newInputStream(Path.of(pathStr))) {
+    try (InputStream is = Files.newInputStream(path)) {
 
       // Transform the XML to Java objects.
       final CodeListDocument gcDoc = GenericodeTools.parseGenericode(is, marshaller);
@@ -124,6 +126,13 @@ public class SdkService {
             if (englishLabelOpt.isPresent()) {
               putCodeValueAndLangCode(langCode, jsonMapper, jsonRows, technicalCode,
                   englishLabelOpt);
+            } else {
+              // Just take the Name and assume it is in english.
+              final Optional<Value> nameLabelOpt = gcFindFirstColumnRef(gcRowValues, "Name");
+              if (nameLabelOpt.isPresent()) {
+                putCodeValueAndLangCode(langCode, jsonMapper, jsonRows, technicalCode,
+                    nameLabelOpt);
+              }
             }
           }
         }
@@ -132,19 +141,6 @@ public class SdkService {
       // Generate JSON.
       return JsonUtils.marshall(jsonCodelist);
     }
-  }
-
-  /**
-   * @param sdkDir The directory where all SDKs reside
-   * @param sdkVersion The desired SDK version, this may come from the front end and will be
-   *        validated (security)
-   * @param sdkRelativePathStr A path relative to the sdkDir
-   * @return The path to the file
-   */
-  public static String buildPathToSdk(final String sdkDir, final String sdkVersion,
-      final String sdkRelativePathStr) {
-    securityValidateSdkVersionFormatThrows(sdkVersion);
-    return String.format("%s/%s/%s", sdkDir, sdkVersion, sdkRelativePathStr);
   }
 
   private static Optional<Value> gcFindFirstColumnRef(final Collection<Value> gcRowValues,
@@ -185,28 +181,21 @@ public class SdkService {
     }
   }
 
-  public static Map<String, Object> getHomePageInfo() {
+  public static Map<String, Object> getHomePageInfo() throws IOException {
     final Map<String, Object> map = new LinkedHashMap<>();
     final Instant now = Instant.now();
     final String instantNowIso8601Str = now.toString();
+
     logger.info("Fetching home info: {}", instantNowIso8601Str);
 
     // This will be used to display the version of the editor application so that users can include
     // this version when reporting a bug.
     map.put("appVersion", EformsNoticeEditorApp.APP_VERSION);
 
-    try {
-      // Look at existing SDK folders in order to list them in the UI.
-      // If a version should be excluded, this can be done here.
-      final List<String> availableSdkVersions = JavaTools.listFolders(EFORMS_SDKS_DIR);
-      availableSdkVersions.sort(new IntuitiveStringComparator<String>());
-      Collections.reverse(availableSdkVersions);
-      map.put("sdkVersions", availableSdkVersions);
-
-    } catch (final IOException e) {
-      logger.error(e.toString(), e);
-      throw new RuntimeException(e);
-    }
+    map.put("sdkVersions",
+        NoticeEditorConstants.SUPPORTED_SDKS.stream().map(SdkVersion::toStringWithoutPatch)
+            .sorted(new IntuitiveStringComparator<>()).sorted(Collections.reverseOrder())
+            .collect(Collectors.toList()));
 
     logger.info("Fetching home info: DONE");
     return map;
@@ -215,23 +204,21 @@ public class SdkService {
   /**
    * Dynamically get the available notice sub types from the given SDK.
    */
-  public static Map<String, Object> getNoticeSubTypes(final String sdkVersion) {
-    securityValidateSdkVersionFormatThrows(sdkVersion);
-
+  public static Map<String, Object> getNoticeSubTypes(final SdkVersion sdkVersion) {
     final Map<String, Object> map = new LinkedHashMap<>();
     map.put("sdkVersion", sdkVersion);
     try {
-      final List<String> availableNoticeTypes =
-          JavaTools.listFiles(EFORMS_SDKS_DIR + "/" + sdkVersion + "/notice-types/");
+      final List<String> availableNoticeTypes = JavaTools.listFiles(SdkResourceLoader
+          .getResourceAsPath(sdkVersion, SdkResource.NOTICE_TYPES, NoticeEditorConstants.EFORMS_SDKS_DIR));
 
       final List<String> noticeTypes = availableNoticeTypes.stream()//
           // Remove some files.
           .filter(filename -> filename.endsWith(".json") && !"notice-types.json".equals(filename))//
           // Remove extension.
           .map(filename -> filename.substring(0, filename.lastIndexOf('.')))//
+          .sorted(new IntuitiveStringComparator<>())//
           .collect(Collectors.toList());
 
-      noticeTypes.sort(new IntuitiveStringComparator<String>());
       map.put("noticeTypes", noticeTypes);
 
     } catch (final IOException e) {
@@ -244,15 +231,15 @@ public class SdkService {
   /**
    * Serve an SDK codelist information as JSON.
    */
-  public static String serveCodelistAsJson(final String sdkVersion, final String codeListId,
+  public static String serveCodelistAsJson(final SdkVersion sdkVersion, final String codeListId,
       final String langCode, final HttpServletResponse response) throws IOException {
-    final String pathStr = SdkService.buildPathToSdk(EFORMS_SDKS_DIR, sdkVersion,
-        String.format("codelists/%s.gc", codeListId));
+    final Path path = SdkResourceLoader.getResourceAsPath(sdkVersion, SdkResource.CODELISTS,
+        String.format("%s.gc", codeListId), NoticeEditorConstants.EFORMS_SDKS_DIR);
 
     // As the SDK and other details are inside the url this data can be cached for a while.
     SdkService.setResponseCacheControl(response, SdkService.CACHE_MAX_AGE_SECONDS);
 
-    return SdkService.buildJsonFromCodelistGc(codeListId, pathStr, langCode);
+    return SdkService.buildJsonFromCodelistGc(codeListId, path, langCode);
   }
 
   /**
@@ -264,15 +251,15 @@ public class SdkService {
    * @param isAsDownload Serve as attachement or not
    * @throws IOException If a problem occurs during flush buffer
    */
-  private static void serveJsonFile(final HttpServletResponse response, final String pathStr,
+  private static void serveJsonFile(final HttpServletResponse response, final Path path,
       final String filenameForDownload, final boolean isAsDownload) throws IOException {
     Validate.notBlank(filenameForDownload, "filenameForDownload is blank");
     // ---------------------------------
     // THE FILE IS SMALL, JUST COPY IT.
     // ---------------------------------
-    try (InputStream is = Files.newInputStream(Path.of(pathStr))) {
+    try (InputStream is = Files.newInputStream(path)) {
       if (is == null) {
-        throw new RuntimeException(String.format("InputStream is null for %s", pathStr));
+        throw new RuntimeException(String.format("InputStream is null for %s", path));
       }
       // Indicate the content type and encoding BEFORE writing to output.
       response.setContentType("application/json");
@@ -289,7 +276,7 @@ public class SdkService {
       response.flushBuffer();
 
     } catch (IOException ex) {
-      logger.info("Error responding with file '{}' for download.", pathStr, ex);
+      logger.info("Error responding with file '{}' for download.", path, ex);
       throw new RuntimeException("IOException writing file to output stream.", ex);
     }
   }
@@ -339,15 +326,18 @@ public class SdkService {
   /**
    * Common SDK folder logic for reading files.
    */
-  public static void serveSdkJsonFile(final HttpServletResponse response, final String sdkVersion,
-      final String sdkRelativePathStr, final String filenameForDownload) {
-    Validate.notBlank(sdkVersion, "sdkVersion is blank");
+  public static void serveSdkJsonFile(final HttpServletResponse response,
+      final SdkVersion sdkVersion, final SdkResource resourceType,
+      final String filenameForDownload) {
+    Validate.notNull(sdkVersion, "Undefined SDK version");
+
     try {
-      final String pathStr = buildPathToSdk(EFORMS_SDKS_DIR, sdkVersion, sdkRelativePathStr);
+      final Path path = SdkResourceLoader.getResourceAsPath(sdkVersion, resourceType,
+          filenameForDownload, NoticeEditorConstants.EFORMS_SDKS_DIR);
 
       // As the sdkVersion and other details are in the url this can be cached for a while.
       setResponseCacheControl(response, CACHE_MAX_AGE_SECONDS);
-      serveJsonFile(response, pathStr, filenameForDownload, false);
+      serveJsonFile(response, path, filenameForDownload, false);
 
     } catch (Exception ex) {
       logger.error(ex.toString(), ex);
@@ -381,7 +371,7 @@ public class SdkService {
    *
    * @return Map of the labels by id
    */
-  public static Map<String, String> getTranslations(final String sdkVersion,
+  public static Map<String, String> getTranslations(final SdkVersion sdkVersion,
       final String labelAssetType, final String langCode)
       throws ParserConfigurationException, SAXException, IOException {
     // SECURITY: Do not inject the passed language directly into a string that goes to the file
@@ -390,9 +380,8 @@ public class SdkService {
     final String filenameForDownload =
         String.format("%s_%s.xml", labelAssetType, lang.getLocale().getLanguage());
 
-    final String sdkRelativePathStr = String.format("translations/%s", filenameForDownload);
-    final String pathStr = buildPathToSdk(EFORMS_SDKS_DIR, sdkVersion, sdkRelativePathStr);
-    final Path path = Path.of(pathStr);
+    final Path path = SdkResourceLoader.getResourceAsPath(sdkVersion, SdkResource.TRANSLATIONS,
+        filenameForDownload, NoticeEditorConstants.EFORMS_SDKS_DIR);
 
     // Example:
     // <?xml version="1.0" encoding="UTF-8"?>
@@ -410,7 +399,7 @@ public class SdkService {
       // The best fallback is to respond as if the file was there but with empty values.
       // The keys (labelIds) are the same in english, we are only missing the values.
       // Take the english file to get the keys and leave the the translations empty.
-      logger.warn("File does not exist: " + file.getName());
+      logger.warn("File does not exist: {}", file.getName());
       final Map<String, String> fallbackMap = getTranslations(sdkVersion, labelAssetType, "en");
       for (final Entry<String, String> entry : fallbackMap.entrySet()) {
         entry.setValue("");
@@ -436,8 +425,8 @@ public class SdkService {
     return labelById;
   }
 
-  public static void serveTranslations(final HttpServletResponse response, final String sdkVersion,
-      final String langCode, String filenameForDownload)
+  public static void serveTranslations(final HttpServletResponse response,
+      final SdkVersion sdkVersion, final String langCode, String filenameForDownload)
       throws ParserConfigurationException, SAXException, IOException, JsonProcessingException {
     final Map<String, String> labelById = new LinkedHashMap<>();
 

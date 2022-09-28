@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.xml.sax.SAXException;
 import eu.europa.ted.eforms.noticeeditor.domain.Language;
 import eu.europa.ted.eforms.noticeeditor.service.SdkService;
+import eu.europa.ted.eforms.sdk.SdkConstants.SdkResource;
+import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
  * REST API implementation for download of SDK related resources.
@@ -25,10 +27,11 @@ public class SdkRestController implements AsyncConfigurer {
 
   /**
    * Get JSON containing basic home info.
+   * @throws IOException 
    */
   @RequestMapping(value = "/info", method = RequestMethod.GET,
       produces = MediaType.APPLICATION_JSON_VALUE)
-  public Map<String, Object> selectHomeInfo() {
+  public Map<String, Object> selectHomeInfo() throws IOException {
     return SdkService.getHomePageInfo();
   }
 
@@ -39,7 +42,7 @@ public class SdkRestController implements AsyncConfigurer {
       produces = MediaType.APPLICATION_JSON_VALUE)
   public Map<String, Object> selectNoticeTypesList(
       @PathVariable(value = "sdkVersion") String sdkVersion) {
-    return SdkService.getNoticeSubTypes(sdkVersion);
+    return SdkService.getNoticeSubTypes(new SdkVersion(sdkVersion));
   }
 
   /**
@@ -52,7 +55,8 @@ public class SdkRestController implements AsyncConfigurer {
       @PathVariable(value = "codeListId") final String codeListId,
       @PathVariable(value = "langCode") final String langCode, final HttpServletResponse response)
       throws IOException {
-    return SdkService.serveCodelistAsJson(sdkVersion, codeListId, langCode, response);
+    return SdkService.serveCodelistAsJson(new SdkVersion(sdkVersion), codeListId, langCode,
+        response);
   }
 
   /**
@@ -63,8 +67,8 @@ public class SdkRestController implements AsyncConfigurer {
   public void serveFieldsJson(final HttpServletResponse response,
       @PathVariable(value = "sdkVersion") String sdkVersion) {
     final String filenameForDownload = "fields.json";
-    final String sdkRelativePathStr = String.format("fields/%s", filenameForDownload);
-    SdkService.serveSdkJsonFile(response, sdkVersion, sdkRelativePathStr, filenameForDownload);
+    SdkService.serveSdkJsonFile(response, new SdkVersion(sdkVersion), SdkResource.FIELDS,
+        filenameForDownload);
   }
 
   /**
@@ -76,21 +80,23 @@ public class SdkRestController implements AsyncConfigurer {
       @PathVariable(value = "sdkVersion") String sdkVersion,
       @PathVariable(value = "noticeId") String noticeId) {
     final String filenameForDownload = String.format("%s.json", noticeId);
-    final String sdkRelativePathStr = String.format("notice-types/%s", filenameForDownload);
-    SdkService.serveSdkJsonFile(response, sdkVersion, sdkRelativePathStr, filenameForDownload);
+    SdkService.serveSdkJsonFile(response, new SdkVersion(sdkVersion), SdkResource.NOTICE_TYPES,
+        filenameForDownload);
   }
 
   /**
    * Get JSON containing data about translations for the given language.
    */
   @RequestMapping(value = "/{sdkVersion}/translations/{langCode}.json", method = RequestMethod.GET,
-      produces = MediaType.APPLICATION_JSON_VALUE)  public void serveTranslationsFields(final HttpServletResponse response,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public void serveTranslationsFields(final HttpServletResponse response,
       @PathVariable(value = "sdkVersion") String sdkVersion,
       @PathVariable(value = "langCode") String langCode)
       throws ParserConfigurationException, SAXException, IOException {
     final Language lang = Language.valueOfFromLocale(langCode);
     final String filenameForDownload = String.format("i18n_%s.xml", lang.getLocale().getLanguage());
-    SdkService.serveTranslations(response, sdkVersion, langCode, filenameForDownload);
+    SdkService.serveTranslations(response, new SdkVersion(sdkVersion), langCode,
+        filenameForDownload);
   }
 
 }
