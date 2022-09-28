@@ -1,6 +1,6 @@
-// The front-end editor script written in plain JavaScript and using plain HTML for demo purposes (tech agnostic).
-// Responsible for loading SDK data from the back-end for the front-end UI and creating the dynamic form (HTML DOM manipulation).
-// index.html <- document -> editor.js <- XHR -> back-end REST API
+// The front-end editor script written in plain JavaScript and using plain HTML for demo purposes.
+// The script is responsible for loading SDK data from the back-end for the front-end UI and creating the dynamic form (HTML DOM manipulation).
+// index.html <- document -> editor.js <- XHR ("ajax") -> back-end REST API
 // NOTE: For bigger scripts and maintenability you could also use something like TypeScript instead.
 (function() {
   console.log("Loading editor script.");
@@ -8,11 +8,13 @@
   const timeOutDefaultMillis = 3000;
   const timeOutLargeMillis = 6000;
 
-  // Init: loads initial editor home page data.
-  jsonGet("/sdk/info", timeOutDefaultMillis, afterInitDataLoaded, jsonGetOnError);
-
   // Avoids conflicts with other identifiers in the context of this browser tab.
-  const idPrefix = "editor-id-";
+  const ID_PREFIX = "editor-id-";
+
+  const FALLBACK_LANGUAGE = "en"; // English, recommended for now.
+
+  // Init: loads initial editor home page data, see afterInitDataLoaded.
+  jsonGet("/sdk/info", timeOutDefaultMillis, afterInitDataLoaded, jsonGetOnError);
 
   const DATA_EDITOR_CONTENT_ID = "data-editor-content-id";
   const DATA_EDITOR_ID_REFERENCE = "data-editor-id-reference";
@@ -36,7 +38,7 @@
   i18nOfEditor["en"] = {
     "editor.the.metadata": "Metadata",
     "editor.the.root": "Content",
-    "editor.add.more": "Add",
+    "editor.add.more": "Add one",
     "editor.remove": "Remove",
     "editor.select": "Select"
   };
@@ -45,7 +47,7 @@
   i18nOfEditor["fr"] = {
     "editor.the.metadata": "Méta données",
     "editor.the.root": "Contenu",
-    "editor.add.more": "Ajouter",
+    "editor.add.more": "En ajouter",
     "editor.remove": "Enlever",
     "editor.select": "Choisir"
   };
@@ -56,35 +58,32 @@
   };
 
   /**
-   * Gets label for given key and currently selected language.
+   * Gets editor specific label for given key and currently selected language.
    */
   function getEditorLabel(labelKey) {
     getEditorLabel(labelKey, getSelectedLanguage());
   }
 
   /**
-   * Gets label for given key and language.
+   * Gets editor specific label for given key and language.
    */
   function getEditorLabel(labelKey, lang) {
     // How you get and handle i18n label data is up to you.
     var dataForLang = i18nOfEditor[lang];
-    if (!dataForLang && i18nOfEditor["en"] && lang !== "en") {
-      dataForLang = i18nOfEditor["en"]; // Fallback to english.
+    if (!dataForLang && i18nOfEditor[FALLBACK_LANGUAGE] && lang !== FALLBACK_LANGUAGE) {
+      dataForLang = i18nOfEditor[FALLBACK_LANGUAGE]; // Fallback to english.
     }
     return dataForLang[labelKey];
   }
   
-  // --- i18n ---
   function downloadSdkTranslations(languageCode, callbackFunc) {
     const sdkVersion = getSdkVersion();
     if (!sdkVersion) {
       return;
     }
-    // XHR to load translations (i18n) for fields.
+    // XHR to load translations (i18n) for fields and more.
     jsonGet("/sdk/" + sdkVersion + "/translations/" + languageCode + ".json", 5000, callbackFunc, jsonGetOnError);
   }
-  
-  // --- EDITOR ---
   
   /**
   * Editor class: it stores SDK data like loaded fields, nodes, translations, ...
@@ -99,30 +98,32 @@
       this.isProduction = false;
       console.log("Editor, production=" + this.isProduction);
 
-      // FIELDS BY ID.
+      // MAP FIELDS BY ID.
       const fields = dataFieldsJson.fields;
       console.log("Loaded fields: " + fields.length);
       const fieldMap = {};
-      for (var field of fields) {
+      for (const field of fields) {
         fieldMap[field.id] = field;
       }
       this.fieldMap = fieldMap;
       
-      // NODES BY ID.
+      // MAP NODES BY ID.
       const nodes = dataFieldsJson.xmlStructure;
       console.log("Loaded nodes: " + nodes.length);
       const nodeMap = {};
-      for (var node of nodes) {
+      for (const node of nodes) {
         nodeMap[node.id] = node;
       }
       this.nodeMap = nodeMap;
-      
+
       this.dataI18n = dataI18n;
-      
+
+      // The top section containing the metadata, most of these fields are hidden or read only.
       this.noticeMetadata = {"id" : "THE_METADATA", "_label" : "editor.the.metadata", "content" : dataNoticeType.metadata};
 
       // The root content is an array. Build a dummy element to hold the content.
       this.noticeRootContent = {"id" : "THE_ROOT", "_label" : "editor.the.root", "content" : dataNoticeType.content};
+
       this.noticeId = dataNoticeType.noticeId;
       
       this.noticeFormElement = noticeFormElement;
@@ -170,7 +171,7 @@
      * Reads from the Form and populates a model object.
      */
     toModel() {
-      console.info("toModel");
+      console.log("toModel");
       const textArea = document.getElementById("id-editor-log-json-area");
       textArea.value = '';
 
@@ -185,7 +186,7 @@
       
       const dataModel = {};
       const fieldElems = document.querySelectorAll("[data-editor-value-field='true']");
-      for (var fieldElem of fieldElems) {
+      for (const fieldElem of fieldElems) {
         const data = {};
         
         const domId = fieldElem.getAttribute("id");
@@ -305,7 +306,7 @@
     }
 
     buildIdPartialFromContentId(contentId) {
-      return idPrefix + contentId;
+      return ID_PREFIX + contentId;
     }
     
     /**
@@ -347,13 +348,13 @@
       if (!contentVisitorFuncs) {
         throw new Error("Invalid contentVisitorFuncs");
       }
-      for (var contentVisitorFunc of contentVisitorFuncs) {
+      for (const contentVisitorFunc of contentVisitorFuncs) {
         contentVisitorFunc(content);
       }
       // Is there more sub content?
       if (content.content && !content.editorExpanded) {
 	      // Visit sub items. Recursion.
-	      for (var contentSub of content.content) {
+	      for (const contentSub of content.content) {
 	        this.visitContentRec(contentSub, contentVisitorFuncs);
 	      }
 	    }
@@ -382,9 +383,9 @@
      */
     findElementsWithAttributeIdSchemes(idSchemes) {
       const allFoundElements = [];
-      for (var idScheme of idSchemes) {
+      for (const idScheme of idSchemes) {
         const foundElements = this.findElementsWithAttribute(DATA_EDITOR_INSTANCE_ID_FIELD, idScheme);
-        for (var element of foundElements) {
+        for (const element of foundElements) {
           allFoundElements.push(element);
         }
       }
@@ -398,12 +399,12 @@
     
     populateIdRefSelectsForIdScheme(idScheme) {
       const foundReferencedElements = this.findElementsWithAttributeIdScheme(idScheme);
-      var foundReferencingElements = this.findElementsWithAttributeIdRef(idScheme);
+      const foundReferencingElements = this.findElementsWithAttributeIdRef(idScheme);
 
-      for (var selectElem of foundReferencingElements) {
+      for (const selectElem of foundReferencingElements) {
          const selectedValue = selectElem.value;
         selectElem.innerHtml = "";
-        for (var inputElem of foundReferencedElements) {
+        for (const inputElem of foundReferencedElements) {
           selectElem.appendChild(createOption(inputElem.value, inputElem.value));
         }
         // TODO what happens if the value is not there anymore?
@@ -417,15 +418,15 @@
     populateIdRefSelectsAll() {
       const selectElements = this.findElementsHavingAttribute(DATA_EDITOR_ID_REFERENCE);
       const inUseIdSchemeSet = new Set();
-      for (var selectElem of selectElements) {
+      for (const selectElem of selectElements) {
         const inUseIdSchemes = selectElem.getAttribute(DATA_EDITOR_ID_REFERENCE);
         const idSchemes = JSON.parse(inUseIdSchemes);
-        for (var idScheme of idSchemes) {
+        for (const idScheme of idSchemes) {
           inUseIdSchemeSet.add(idScheme);
         }
       }
       // The id schemes are unique, for each find values and populate selects.
-      for (var idScheme of inUseIdSchemeSet) {
+      for (const idScheme of inUseIdSchemeSet) {
         this.populateIdRefSelectsForIdScheme(idScheme);
       }
     }
@@ -441,13 +442,11 @@
 	
 	    const isField =  content.contentType === "field" // !content.content;
 	    const isSection = content.section;
-	    
 	    const isCollapsed = content.collapsed ? true : false;
-
-	    var isContentRepeatable = content._repeatable ? true : false; // Can be reassigned if field...
+	    const isContentRepeatable = content._repeatable ? true : false; // Can be reassigned if field...
 	     
 	    // The container element may already exist in the case of uncollapsing (expand).
-	    var containerElem = elemToExpandOpt ? elemToExpandOpt : document.createElement("div");
+	    const containerElem = elemToExpandOpt ? elemToExpandOpt : document.createElement("div");
 	
 	    var field; // Can remain undefined or null.
 	    var formElem;
@@ -562,7 +561,7 @@
 	      // The content should have sub content and not have been expanded yet.
 	      if (content.content && !content.editorExpanded) {
 	        // Load sub items.
-	        for (var contentSub of content.content) {
+	        for (const contentSub of content.content) {
 	          this.readContentRecur(containerElem, contentSub, level + 1, false, null, null); // Recursion on sub content.
 	        }
 	      }
@@ -707,12 +706,12 @@
 	      
 	      const that = this;
         // TODO use getSelectedLanguage() after /lang, use "en" for now as translations are missing.
-	      const urlToCodelistJson = "sdk/" + sdkVersion + "/codelists/" + codelistId + "/lang/en";
+	      const urlToCodelistJson = "sdk/" + sdkVersion + "/codelists/" + codelistId + "/lang/" + FALLBACK_LANGUAGE;
 	      const afterCodelistLoad = function(data) {
 	        // Dynamically load the options.
 	        // const i18nText = that.getTranslationById(content._label);
 	        select.appendChild(createOption("", "")); // Empty option, has no value.
-	        for (var code of data.codes) {
+	        for (const code of data.codes) {
 	          select.appendChild(createOption(code.codeValue, code.en));
 	        }
 
@@ -748,13 +747,13 @@
 
 	        // Allows to find back select even if not knowing the idScheme, to find all in use idSchemes later on.
 	        select.setAttribute(DATA_EDITOR_ID_REFERENCE, JSON.stringify(idSchemes));
-	        for (var idScheme of idSchemes) {
+	        for (const idScheme of idSchemes) {
 	          // Allows to find back select by idScheme later on.
 	          select.setAttribute(DATA_EDITOR_ID_REF_PREFIX + idScheme, "true");
 	        }
 	
 	        const foundElements = this.findElementsWithAttributeIdSchemes(idSchemes);
-	        for (var foundElement of foundElements) {
+	        for (const foundElement of foundElements) {
 	          select.appendChild(createOption(foundElement.value, foundElement.value));
 	        }
 	      } else {
@@ -823,8 +822,8 @@
 	      
 	          // NOTE: this will not work on the first pass during creation as elements are not yet in the DOM.
 	          // This will work during addition of extra elements 0002 and so on.
-	          var foundReferencingElements = this.findElementsWithAttributeIdRef(idScheme);
-	          for (var selectElem of foundReferencingElements) {
+	          const foundReferencingElements = this.findElementsWithAttributeIdRef(idScheme);
+	          for (const selectElem of foundReferencingElements) {
 	            selectElem.appendChild(createOption(input.value, input.value));
 	          }
 	        }
@@ -922,7 +921,7 @@
     elemSdkSelector.innerHtml = "";
     
      // Dynamically load the options.   
-    for (var sdkVersion of sdkVersions) {
+    for (const sdkVersion of sdkVersions) {
       elemSdkSelector.appendChild(createOption(sdkVersion, sdkVersion));
     }
     elemSdkSelector.onchange = function() {
@@ -937,7 +936,7 @@
     if (!sdkVersion) {
       return;
     }
-    // XHR to load existing notice types of selected SDK version.
+    // XHR to load existing notice types of selected SDK version. See afterSdkNoticeTypesLoaded.
     jsonGet("/sdk/" + sdkVersion + "/notice-types", timeOutDefaultMillis, afterSdkNoticeTypesLoaded, jsonGetOnError);
   }
   
@@ -949,7 +948,7 @@
     elemNoticeTypeSelector.value = ""; // Reset the value.
     
     // Dynamically load the options.   
-    for (var noticeType of noticeTypes) {
+    for (const noticeType of noticeTypes) {
       elemNoticeTypeSelector.innerHtml = "";
       elemNoticeTypeSelector.appendChild(createOption(noticeType, noticeType));
     } 
@@ -971,13 +970,13 @@
     }
     
     // GET the translations for the default language.
-    // Note that here the string "en" stands for english.
     downloadSdkTranslations(getSelectedLanguage(), function(dataI18n) {
       
 	    const jsonOkFieldsFunc = function(dataFieldsJson) {
         if (!dataFieldsJson.sdkVersion) {
 	        throw new Error("Invalid sdkVersion");
 	      }
+        console.log("fields.json data has been loaded");
 
 	      const jsonOkNoticeTypeFunc = function(dataNoticeType) {
           const sdkVersion = dataNoticeType.sdkVersion;
@@ -987,8 +986,8 @@
 	        setText("notice-sdkVersion", sdkVersion);
 	        setText("notice-noticeId", dataNoticeType.noticeId); // Notice sub-type.
 	        
+          // Use the Editor class.
 	        const editor = new Editor(dataFieldsJson, dataNoticeType, dataI18n, noticeFormElem);
-          
 	        editor.buildForm(); // Build the form. Initialize.
 	        
 	        funcCallbackWhenLoadedDefinition();
@@ -1020,7 +1019,7 @@
     const mandatory = field.mandatory;
     if (mandatory && mandatory.severity === "ERROR") {
       const constraints = mandatory.constraints;
-      for (var constraint of constraints) {
+      for (const constraint of constraints) {
         const noticeTypes = constraint.noticeTypes;
         if (constraint.severity === "ERROR" && noticeTypes) {
           if (noticeTypes.includes(noticeId)) {
