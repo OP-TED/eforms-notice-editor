@@ -19,11 +19,18 @@ Login credentials and security: Spring Security could be used.
 
 ## Important files
 
-Configuration related: application.properties
-Front-end home page HTML: index.html
-Editor.js: JavaScript (dynamic creation of HTML elements, XHR API calls)
-Back-end Java REST API: SdkRestController.java (Handles the XHR API calls)
-Back-end Java business logic: SdkService.java (Business logic)
+### Back-end
+
+* Configuration related: application.properties
+* Java at server start: EformsNoticeEditorApp.java (runs before the UI is available)
+* Java REST API: SdkRestController.java (Handles the XHR API calls)
+* Java business logic: SdkService.java (Business logic once it runs)
+
+### Front-end
+
+* Home page HTML: index.html
+* JavaScript: editor.js (dynamic creation of HTML elements, XHR API calls)
+* CSS: editor.css (styling)
 
 ## Running checkstyle
 

@@ -184,8 +184,8 @@ public class SdkService {
   public static Map<String, Object> getHomePageInfo() {
     final Map<String, Object> map = new LinkedHashMap<>();
     final Instant now = Instant.now();
-    final String instantNowIso8601Str = now.toString();
 
+    final String instantNowIso8601Str = now.toString();
     logger.info("Fetching home info: {}", instantNowIso8601Str);
 
     // This will be used to display the version of the editor application so that users can include

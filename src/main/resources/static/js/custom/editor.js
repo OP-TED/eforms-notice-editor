@@ -12,6 +12,7 @@
   const ID_PREFIX = "editor-id-";
 
   const FALLBACK_LANGUAGE = "en"; // English, recommended for now.
+  const KEY_NTD_LABEL = "_label";
 
   // Init: loads initial editor home page data, see afterInitDataLoaded.
   jsonGet("/sdk/info", timeOutDefaultMillis, afterInitDataLoaded, jsonGetOnError);
@@ -24,7 +25,7 @@
   const displayTypeToElemInfo = {};
   displayTypeToElemInfo["CHECKBOX"] = {"tag": "input", "type" : "checkbox"};
   displayTypeToElemInfo["COMBOBOX"] = {"tag": "select", "type" : "select"};
-  displayTypeToElemInfo["RADIO"] = {"tag": "input", "type" : "radio"};
+  displayTypeToElemInfo["RADIO"] = {"tag": "input", "type" : "checkbox"}; // TODO fully support radio.
   displayTypeToElemInfo["TEXTAREA"] = {"tag": "textarea"};
   displayTypeToElemInfo["TEXTBOX"] = {"tag": "input", "type": "text"};
   
@@ -95,8 +96,8 @@
         throw new Error("Invalid sdkVersion");
       }
 
-      this.isProduction = false;
-      console.log("Editor, production=" + this.isProduction);
+      this.isDebug = true;
+      console.log("Editor, isDebug=" + this.isDebug);
 
       this.dataI18n = dataI18n;
 
@@ -119,10 +120,12 @@
       this.nodeMap = nodeMap;
 
       // The top section containing the metadata, most of these fields are hidden or read only.
-      this.noticeMetadata = {"id" : "THE_METADATA", "_label" : "editor.the.metadata", "content" : dataNoticeType.metadata};
+      this.noticeMetadata = {"id" : "THE_METADATA", "content" : dataNoticeType.metadata};
+      this.noticeMetadata[KEY_NTD_LABEL] = "editor.the.metadata";
 
       // The root content is an array. Build a dummy element to hold the content.
-      this.noticeRootContent = {"id" : "THE_ROOT", "_label" : "editor.the.root", "content" : dataNoticeType.content};
+      this.noticeRootContent = {"id" : "THE_ROOT", "content" : dataNoticeType.content};
+      this.noticeRootContent[KEY_NTD_LABEL] = "editor.the.root";
 
       this.noticeId = dataNoticeType.noticeId;
       this.noticeFormElement = noticeFormElement;
@@ -153,6 +156,9 @@
       if (!elemInfo) {
         elemInfo = displayTypeToElemInfo["TEXTBOX"]; // Fallback.
       }
+      // This works well for a single input or textarea.
+      // But for radio multiple inputs are needed.
+      // For now the editor will not support radio for this reason.
       const elem = document.createElement(elemInfo.tag);
       if (elemInfo.type) {
         elem.setAttribute("type", elemInfo.type);
@@ -160,7 +166,7 @@
       if (content.hidden || content.readOnly) {
         elem.setAttribute("readonly", "readonly");
       }
-      if (content.hidden && this.isProduction) {
+      if (content.hidden && !this.isDebug) {
         elem.setAttribute("hidden", "hidden");
       }
       return elem;
@@ -486,7 +492,7 @@
 	    
 	    if (content.hidden) {
         // Hide in production, but for development it is better to see what is going on.
-        const hiddenClass = this.isProduction ? "notice-content-hidden" : "notice-content-hidden-devel";
+        const hiddenClass = this.isDebug ? "notice-content-hidden-devel" : "notice-content-hidden";
 	      containerElem.classList.add(hiddenClass); 
 	    }
 	
@@ -505,8 +511,9 @@
 	    if (isField) {
 	      // The content is a field.
 	      if (formElem) {
-	        formElem.classList.add("notice-content-field");
-	         
+          if (formElem.getAttribute("type") != "checkbox") {
+            formElem.classList.add("notice-content-field");
+          }
 	        if (field.type === "id") {
 	          formElem.classList.add("notice-content-idRef");
 	        }
@@ -530,7 +537,7 @@
 	        // Set the translation.
 	        // Get translations for group|name|...
           // There is an exception for the root dummy element.
-	        const i18nText = this.getTranslationById(content._label);
+	        const i18nText = this.getTranslationById(content[KEY_NTD_LABEL]);
 	        
 	        const headerText = isContentRepeatable ? i18nText + " (" + paddedEditorCount + ")" : i18nText;
 	        if (headerText === undefined) {
@@ -638,6 +645,7 @@
           // The placeholder attribute works for some types of inputs only, but will not work for radio, checkbox, ...
           // It can be used to reduce the size of the form.
           //formElem.setAttribute("placeholder", i18n);
+          // A label tag is used instead.
 
           labelElem.textContent = i18nText;
         }
