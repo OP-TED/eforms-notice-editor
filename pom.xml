@@ -47,6 +47,9 @@
     <maven.compiler.source>${java.version}</maven.compiler.source>
     <maven.compiler.target>${java.version}</maven.compiler.target>
 
+    <!-- Versions - eForms -->
+    <version.eforms-core>0.1.0-SNAPSHOT</version.eforms-core>
+
     <!-- Versions - Third-party libraries -->
     <version.spotbugs>4.4.1</version.spotbugs>
 
@@ -60,7 +63,25 @@
     <version.surefire.plugin>3.0.0-M7</version.surefire.plugin> <!-- Versions prior to 3.0.x do not pick up Junit 5 tests correctly. -->
   </properties>
 
+  <dependencyManagement>
+    <dependencies>
+      <!-- eForms -->
+      <dependency>
+        <groupId>eu.europa.ted.eforms</groupId>
+        <artifactId>eforms-core-java</artifactId>
+        <version>${version.eforms-core}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <dependencies>
+    <!-- eForms -->
+    <dependency>
+      <groupId>eu.europa.ted.eforms</groupId>
+      <artifactId>eforms-core-java</artifactId>
+    </dependency>
+    <!-- Spring Boot -->
+
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-thymeleaf</artifactId>
