@@ -98,6 +98,8 @@
       this.isProduction = false;
       console.log("Editor, production=" + this.isProduction);
 
+      this.dataI18n = dataI18n;
+
       // MAP FIELDS BY ID.
       const fields = dataFieldsJson.fields;
       console.log("Loaded fields: " + fields.length);
@@ -116,8 +118,6 @@
       }
       this.nodeMap = nodeMap;
 
-      this.dataI18n = dataI18n;
-
       // The top section containing the metadata, most of these fields are hidden or read only.
       this.noticeMetadata = {"id" : "THE_METADATA", "_label" : "editor.the.metadata", "content" : dataNoticeType.metadata};
 
@@ -125,7 +125,6 @@
       this.noticeRootContent = {"id" : "THE_ROOT", "_label" : "editor.the.root", "content" : dataNoticeType.content};
 
       this.noticeId = dataNoticeType.noticeId;
-      
       this.noticeFormElement = noticeFormElement;
       
       const serializeBtnElem = document.getElementById("id-editor-log-json");
@@ -996,7 +995,7 @@
         
         // GET available notice types.
         const urlToGetNoticeTypeJsonData = "/sdk/" + sdkVersion + "/notice-types/" + noticeId;
-	      jsonGet(urlToGetNoticeTypeJsonData, 4000, jsonOkNoticeTypeFunc, jsonGetOnError);
+	      jsonGet(urlToGetNoticeTypeJsonData, timeOutLargeMillis, jsonOkNoticeTypeFunc, jsonGetOnError);
 	    };
       
       // GET the fields.json data.
@@ -1004,7 +1003,7 @@
       // You could also dynamically load data only when it is needed, but this would create many requests which may be slow.
       // This is a URL to the back-end REST API.
       const urlToGetFieldJsonData = "/sdk/" + sdkVersion + "/fields";
-	    jsonGet(urlToGetFieldJsonData, 4000, jsonOkFieldsFunc, jsonGetOnError);
+	    jsonGet(urlToGetFieldJsonData, timeOutLargeMillis, jsonOkFieldsFunc, jsonGetOnError);
     });
   }
   
