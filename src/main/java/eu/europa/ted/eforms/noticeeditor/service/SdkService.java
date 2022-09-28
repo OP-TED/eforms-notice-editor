@@ -49,7 +49,6 @@ import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.sdk.SdkConstants.SdkResource;
 import eu.europa.ted.eforms.sdk.SdkVersion;
-import eu.europa.ted.eforms.sdk.resource.SdkDownloader;
 import eu.europa.ted.eforms.sdk.resource.SdkResourceLoader;
 
 
@@ -61,8 +60,6 @@ import eu.europa.ted.eforms.sdk.resource.SdkResourceLoader;
 public class SdkService {
 
   private static final Logger logger = LoggerFactory.getLogger(SdkService.class);
-
-  private static final Path EFORMS_SDKS_DIR = Path.of("eforms-sdks");
 
   /**
    * The number of seconds in one hour.
@@ -189,10 +186,6 @@ public class SdkService {
     final Instant now = Instant.now();
     final String instantNowIso8601Str = now.toString();
 
-    for(SdkVersion sdkVersion:NoticeEditorConstants.SUPPORTED_SDKS) {
-        SdkDownloader.downloadSdk(sdkVersion,EFORMS_SDKS_DIR);
-    }
-
     logger.info("Fetching home info: {}", instantNowIso8601Str);
 
     // This will be used to display the version of the editor application so that users can include
@@ -216,7 +209,7 @@ public class SdkService {
     map.put("sdkVersion", sdkVersion);
     try {
       final List<String> availableNoticeTypes = JavaTools.listFiles(SdkResourceLoader
-          .getResourceAsPath(sdkVersion, SdkResource.NOTICE_TYPES, EFORMS_SDKS_DIR));
+          .getResourceAsPath(sdkVersion, SdkResource.NOTICE_TYPES, NoticeEditorConstants.EFORMS_SDKS_DIR));
 
       final List<String> noticeTypes = availableNoticeTypes.stream()//
           // Remove some files.
@@ -241,7 +234,7 @@ public class SdkService {
   public static String serveCodelistAsJson(final SdkVersion sdkVersion, final String codeListId,
       final String langCode, final HttpServletResponse response) throws IOException {
     final Path path = SdkResourceLoader.getResourceAsPath(sdkVersion, SdkResource.CODELISTS,
-        String.format("%s.gc", codeListId), EFORMS_SDKS_DIR);
+        String.format("%s.gc", codeListId), NoticeEditorConstants.EFORMS_SDKS_DIR);
 
     // As the SDK and other details are inside the url this data can be cached for a while.
     SdkService.setResponseCacheControl(response, SdkService.CACHE_MAX_AGE_SECONDS);
@@ -339,8 +332,8 @@ public class SdkService {
     Validate.notNull(sdkVersion, "Undefined SDK version");
 
     try {
-      final Path path =
-          SdkResourceLoader.getResourceAsPath(sdkVersion, resourceType, filenameForDownload, EFORMS_SDKS_DIR);
+      final Path path = SdkResourceLoader.getResourceAsPath(sdkVersion, resourceType,
+          filenameForDownload, NoticeEditorConstants.EFORMS_SDKS_DIR);
 
       // As the sdkVersion and other details are in the url this can be cached for a while.
       setResponseCacheControl(response, CACHE_MAX_AGE_SECONDS);
@@ -388,7 +381,7 @@ public class SdkService {
         String.format("%s_%s.xml", labelAssetType, lang.getLocale().getLanguage());
 
     final Path path = SdkResourceLoader.getResourceAsPath(sdkVersion, SdkResource.TRANSLATIONS,
-        filenameForDownload, EFORMS_SDKS_DIR);
+        filenameForDownload, NoticeEditorConstants.EFORMS_SDKS_DIR);
 
     // Example:
     // <?xml version="1.0" encoding="UTF-8"?>
@@ -432,8 +425,8 @@ public class SdkService {
     return labelById;
   }
 
-  public static void serveTranslations(final HttpServletResponse response, final SdkVersion sdkVersion,
-      final String langCode, String filenameForDownload)
+  public static void serveTranslations(final HttpServletResponse response,
+      final SdkVersion sdkVersion, final String langCode, String filenameForDownload)
       throws ParserConfigurationException, SAXException, IOException, JsonProcessingException {
     final Map<String, String> labelById = new LinkedHashMap<>();
 

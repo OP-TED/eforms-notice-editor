@@ -67,7 +67,6 @@ public class SdkRestController implements AsyncConfigurer {
   public void serveFieldsJson(final HttpServletResponse response,
       @PathVariable(value = "sdkVersion") String sdkVersion) {
     final String filenameForDownload = "fields.json";
-    final String sdkRelativePathStr = String.format("fields/%s", filenameForDownload);
     SdkService.serveSdkJsonFile(response, new SdkVersion(sdkVersion), SdkResource.FIELDS,
         filenameForDownload);
   }
