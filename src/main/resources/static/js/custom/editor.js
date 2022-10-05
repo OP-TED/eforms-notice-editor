@@ -96,6 +96,8 @@
         throw new Error("Invalid sdkVersion");
       }
 
+      this.ublVersion = dataFieldsJson.ublVersion;
+      this.sdkVersion = dataFieldsJson.sdkVersion;
       this.isDebug = true;
       console.log("Editor, isDebug=" + this.isDebug);
 
@@ -259,7 +261,13 @@
       // This builds the initial empty form metadata section on top.
       // Most of these fields are either readonly and/or hidden.
       this.readContentRecur(this.noticeFormElement, this.noticeMetadata, rootLevel, false, null, null);
-            
+
+      // Set UBL version in the form.
+      this.getContentElemByIdUnique("OPT-001-notice").value = this.ublVersion;
+
+      // Set SDK version in the form.
+      this.getContentElemByIdUnique("OPT-002-notice").value = "eforms-sdk-" + this.sdkVersion;
+      
       // This builds the initial empty form, the content part (non-metadata).
       this.readContentRecur(this.noticeFormElement, this.noticeRootContent, rootLevel, false, null, null);
       
@@ -340,6 +348,11 @@
     
     getContentElemByIdPair(contentId, contentIdNum) {
       const elementId = this.buildIdUniqueFromPair(contentId, contentIdNum);
+      return document.getElementById(elementId);
+    }
+
+    getContentElemByIdUnique(contentId) {
+      const elementId = this.buildIdUniqueFromPair(contentId, 1);
       return document.getElementById(elementId);
     }
     
