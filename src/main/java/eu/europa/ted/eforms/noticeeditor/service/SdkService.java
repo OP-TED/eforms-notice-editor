@@ -31,6 +31,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -444,6 +445,17 @@ public class SdkService {
     serveSdkJsonString(response, jsonStr, filenameForDownload);
   }
 
+  public static void saveNode(final HttpServletResponse response, final String noticeJson) {
+    final ObjectMapper mapper = new ObjectMapper();
+    final JsonNode root = mapper.valueToTree(noticeJson);
+
+    // final String eFormsSdkVersion = root.get("OPT-002-notice-1").get("value").asText(null);
+
+    final String jsonStr = "{}";
+    final String filenameForDownload = "notice.xml";
+    serveSdkJsonString(response, jsonStr, filenameForDownload);
+  }
+
 
   /**
    * HTTP header, cache related.
@@ -465,4 +477,5 @@ public class SdkService {
     // https://stackoverflow.com/questions/21410317/using-gzip-compression-with-spring-boot-mvc-javaconfig-with-restful
     response.setHeader("Content-Encoding", "gzip");
   }
+
 }

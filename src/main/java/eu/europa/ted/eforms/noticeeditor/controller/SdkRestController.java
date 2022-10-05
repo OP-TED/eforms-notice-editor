@@ -7,6 +7,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -27,7 +28,8 @@ public class SdkRestController implements AsyncConfigurer {
 
   /**
    * Get JSON containing basic home info.
-   * @throws IOException 
+   *
+   * @throws IOException
    */
   @RequestMapping(value = "/info", method = RequestMethod.GET,
       produces = MediaType.APPLICATION_JSON_VALUE)
@@ -97,6 +99,15 @@ public class SdkRestController implements AsyncConfigurer {
     final String filenameForDownload = String.format("i18n_%s.xml", lang.getLocale().getLanguage());
     SdkService.serveTranslations(response, new SdkVersion(sdkVersion), langCode,
         filenameForDownload);
+  }
+
+  /**
+   * Save: Takes notice as JSON and builds notice XML. The SDK version is in the notice metadata.
+   */
+  @RequestMapping(value = "/notice/save", method = RequestMethod.POST,
+      produces = MediaType.APPLICATION_XML_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+  public void saveNotice(final HttpServletResponse response, @RequestBody String notice) {
+    SdkService.saveNode(response, notice);
   }
 
 }

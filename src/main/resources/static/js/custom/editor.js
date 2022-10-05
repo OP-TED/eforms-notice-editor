@@ -137,7 +137,22 @@
       const serializeToJsonFunc = function(event) {
         console.debug("Attempting to serialize form to JSON.");
         event.preventDefault();
-        that.toModel();
+        
+        const textArea = document.getElementById("id-editor-log-json-area");
+        textArea.value = '';
+
+        const dataModel = that.toModel();
+        //console.dir(dataModel);
+        const jsonText = JSON.stringify(dataModel, null, 2);
+        textArea.value = jsonText;
+        textArea.style.display = 'block';
+
+        const afterModelPost = function(data) {
+          console.log("After model post:" + data);
+        };
+        const url = "sdk/notice/save";
+        const body = jsonText;
+	      jsonPost(url, timeOutLargeMillis, afterModelPost, jsonPostOnError, body);
       };
       serializeBtnElem.addEventListener("click", serializeToJsonFunc, false);
     }
@@ -179,8 +194,6 @@
      */
     toModel() {
       console.log("toModel");
-      const textArea = document.getElementById("id-editor-log-json-area");
-      textArea.value = '';
 
       // TODO idScheme id increment and handling of repeat, should be done after adding to page.
 
@@ -241,10 +254,7 @@
         }
         dataModel[uniqueId] = data;
       }
-      
-      //console.dir(dataModel);
-      textArea.value = JSON.stringify(dataModel, null, 2);
-      textArea.style.display = 'block';
+      return dataModel;
     }
     
     fromModel() {
@@ -266,7 +276,7 @@
       this.getContentElemByIdUnique("OPT-001-notice").value = this.ublVersion;
 
       // Set SDK version in the form.
-      this.getContentElemByIdUnique("OPT-002-notice").value = "eforms-sdk-" + this.sdkVersion;
+      this.getContentElemByIdUnique("OPT-002-notice").value = this.sdkVersion;
 
       // Set the version id
       this.getContentElemByIdUnique("BT-757-notice").value = "01";
@@ -1108,7 +1118,7 @@
   }
   
   /**
-   * Generic error handling, provided as a demo.
+   * Generic GET error handling, provided as a demo.
    */
   function jsonGetOnError(xhr) {
     const msg = "Error loading data, error=" + xhr.responseText;
@@ -1119,23 +1129,41 @@
     }
     alert(msg);
   }
-    
-  function jsonGet(urlGet, timeoutMillis, fnOk, fnErr) {
-    buildJsonGet(urlGet, timeoutMillis, fnOk, fnErr).send();
+
+  /**
+   * Generic POST error handling, provided as a demo.
+   */
+  function jsonPostOnError(xhr) {
+    const msg = "Error posting data, error=" + xhr.responseText;
+    if (console.error) {
+      console.error(msg);
+    } else {
+      console.log(msg);
+    }
+    alert(msg);
   }
-  
+    
+  function jsonGet(url, timeoutMillis, fnOk, fnErr) {
+    buildXhr("GET", url, timeoutMillis, fnOk, fnErr).send();
+  }
+
+  function jsonPost(url, timeoutMillis, fnOk, fnErr, body) {
+    buildXhr("POST", url, timeoutMillis, fnOk, fnErr).send(body);
+  }
+
   /**
    * Helper to perform HTTP GET XHR for JSON (XHR = Xml Http Request, for AJAX).
    * In general the back-end REST API is called from here.
    */
-  function buildJsonGet(urlGet, timeoutMillis, fnOk, fnErr) {
+  function buildXhr(method, url, timeoutMillis, fnOk, fnErr) {
     const xhr = new XMLHttpRequest();
-    xhr.open("GET", urlGet, true);  // Asnyc HTTP GET request by default.
+    xhr.open(method, url, true);  // Asnyc HTTP by default.
     xhr.setRequestHeader("Content-Type", "application/json");
     xhr.timeout = timeoutMillis;
+    const params = "";
     // For proxy settings: check your browser configuration.
     xhr.onload = function() {
-      if (xhr.status === 200) {
+      if (xhr.readyState == 4 && xhr.status === 200) {
         const jsonData = JSON.parse(xhr.responseText);
          fnOk(jsonData);
       } else {
