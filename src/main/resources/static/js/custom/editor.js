@@ -267,7 +267,13 @@
 
       // Set SDK version in the form.
       this.getContentElemByIdUnique("OPT-002-notice").value = "eforms-sdk-" + this.sdkVersion;
-      
+
+      // Set the version id
+      this.getContentElemByIdUnique("BT-757-notice").value = "01";
+
+      // Set the notice id.
+      this.getContentElemByIdUnique("BT-701-notice").value = buildUuidv4();
+
       // This builds the initial empty form, the content part (non-metadata).
       this.readContentRecur(this.noticeFormElement, this.noticeRootContent, rootLevel, false, null, null);
       
@@ -277,7 +283,7 @@
       // Handle valueSource related logic.
       this.handleValueSourceLogic(this.noticeRootContent);
     }
-    
+
     /**
      * Handles content "valueSource" starting from the passed content.
      */
@@ -1148,5 +1154,14 @@
     }
     return textToPad;
   }
+
+  function buildUuidv4() {
+    // This is for demo purposes, you could also generate this UUID on the server-side.
+    // https://stackoverflow.com/questions/105034/how-do-i-create-a-guid-uuid/2117523#2117523
+    return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+      (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+    );
+  }
+  
   
 })();
