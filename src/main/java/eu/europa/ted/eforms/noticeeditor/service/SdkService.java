@@ -1,5 +1,6 @@
 package eu.europa.ted.eforms.noticeeditor.service;
 
+import static eu.europa.ted.eforms.noticeeditor.util.JsonUtils.getTextStrict;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerFactory;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
@@ -31,6 +33,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -45,6 +48,8 @@ import eu.europa.ted.eforms.noticeeditor.domain.Language;
 import eu.europa.ted.eforms.noticeeditor.genericode.CustomGenericodeMarshaller;
 import eu.europa.ted.eforms.noticeeditor.genericode.GenericodeTools;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
+import eu.europa.ted.eforms.noticeeditor.helper.notice.ConceptNode;
+import eu.europa.ted.eforms.noticeeditor.helper.notice.NoticeSaver;
 import eu.europa.ted.eforms.noticeeditor.util.IntuitiveStringComparator;
 import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
@@ -393,7 +398,7 @@ public class SdkService {
     // ...
 
     // Parse the XML, build a map of text by id.
-    final DocumentBuilder db = SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype();
+    final DocumentBuilder db = SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype(true);
     final File file = path.toFile();
 
     // NOTE: the file may not exist if there are no translations yet.
@@ -445,17 +450,55 @@ public class SdkService {
     serveSdkJsonString(response, jsonStr, filenameForDownload);
   }
 
-  public static void saveNode(final HttpServletResponse response, final String noticeJson) {
-    final ObjectMapper mapper = new ObjectMapper();
-    final JsonNode root = mapper.valueToTree(noticeJson);
+  public static void saveNoticeAsXml(final Optional<HttpServletResponse> responseOpt,
+      final String noticeJson)
+      throws JsonMappingException, JsonProcessingException, ParserConfigurationException {
+    Validate.notBlank(noticeJson);
+    logger.info("Attempting to save notice as XML.");
 
-    // final String eFormsSdkVersion = root.get("OPT-002-notice-1").get("value").asText(null);
+    final ObjectMapper mapper = new ObjectMapper();
+    final JsonNode visualRoot = mapper.readTree(noticeJson);
+
+    // Find the SDK version.
+    final String eFormsSdkVersion;
+    {
+      final JsonNode visualField = visualRoot.get("OPT-002-notice-1");
+      eFormsSdkVersion = getTextStrict(visualField, "value");
+      logger.info("Found SDK version: {}", eFormsSdkVersion);
+    }
+
+    // Find the notice id ("notice-id").
+    final String noticeUuid;
+    {
+      final JsonNode visualItem = visualRoot.get("BT-701-notice-1");
+      noticeUuid = getTextStrict(visualItem, "value");
+    }
+
+    // TODO load fields json depending on SDK version.
+    final ObjectNode fields = mapper.createObjectNode();
+    final ObjectNode nodes = mapper.createObjectNode();
+
+    final Map<String, ConceptNode> buildConceptualModel =
+        NoticeSaver.buildConceptualModel(fields, nodes, visualRoot);
+
+    final ConceptNode conceptRoot = buildConceptualModel.get("ND-Root");
+    final Document doc = NoticeSaver.buildPhysicalModel(fields, nodes, conceptRoot);
+
+    final TransformerFactory transformerFactory = TransformerFactory.newInstance();
+    // final Transformer transformer = transformerFactory.newTransformer();
+    // final DOMSource source = new DOMSource(doc);
+    // TODO create XML
+    // StreamResult result = new StreamResult(output);
+    // transformer.transform(source, result);
 
     final String jsonStr = "{}";
-    final String filenameForDownload = "notice.xml";
-    serveSdkJsonString(response, jsonStr, filenameForDownload);
-  }
 
+    // TODO find a better filename.
+    final String filenameForDownload = String.format("notice-%s.xml", noticeUuid);
+    if (responseOpt.isPresent()) {
+      serveSdkJsonString(responseOpt.get(), jsonStr, filenameForDownload);
+    }
+  }
 
   /**
    * HTTP header, cache related.

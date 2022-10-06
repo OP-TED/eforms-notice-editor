@@ -2,6 +2,7 @@ package eu.europa.ted.eforms.noticeeditor.controller;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.parsers.ParserConfigurationException;
 import org.springframework.http.MediaType;
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.xml.sax.SAXException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import eu.europa.ted.eforms.noticeeditor.domain.Language;
 import eu.europa.ted.eforms.noticeeditor.service.SdkService;
 import eu.europa.ted.eforms.sdk.SdkConstants.SdkResource;
@@ -106,8 +109,9 @@ public class SdkRestController implements AsyncConfigurer {
    */
   @RequestMapping(value = "/notice/save", method = RequestMethod.POST,
       produces = MediaType.APPLICATION_XML_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
-  public void saveNotice(final HttpServletResponse response, @RequestBody String notice) {
-    SdkService.saveNode(response, notice);
+  public void saveNotice(final HttpServletResponse response, @RequestBody String notice)
+      throws JsonMappingException, JsonProcessingException, ParserConfigurationException {
+    SdkService.saveNoticeAsXml(Optional.of(response), notice);
   }
 
 }

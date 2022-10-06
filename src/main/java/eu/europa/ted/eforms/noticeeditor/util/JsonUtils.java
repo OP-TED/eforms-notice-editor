@@ -1,7 +1,10 @@
 package eu.europa.ted.eforms.noticeeditor.util;
 
+import java.util.Optional;
+import org.apache.commons.lang3.Validate;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
@@ -33,4 +36,25 @@ public class JsonUtils {
     return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
   }
 
+  public static String getTextStrict(final JsonNode json, final String key) {
+    Validate.notNull(json, "Elem is null for key=%s", key);
+    final JsonNode jsonElem = json.get(key);
+    Validate.notNull(jsonElem, "Not found for key=%s", key);
+    final String text = jsonElem.asText(null);
+    Validate.notBlank(text, "Text is blank for key=%s", key);
+    return text;
+  }
+
+  public static Optional<String> getTextOpt(final JsonNode json, final String key) {
+    Validate.notNull(json, "Elem is null for key=%s", key);
+    final JsonNode jsonElem = json.get(key);
+    if (jsonElem == null) {
+      return Optional.empty();
+    }
+    final String text = jsonElem.asText(null);
+    if (text == null) {
+      return Optional.empty();
+    }
+    return Optional.of(text);
+  }
 }

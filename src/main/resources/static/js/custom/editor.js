@@ -490,8 +490,14 @@
         labelElem = resultMap["labelElem"];
 	      formElem = resultMap["formElem"];
 	      field = resultMap["field"];
-	    }
-	    
+      }
+
+      if (isField) {
+        formElem.setAttribute("data-editor-type", "field");
+      } else {
+        containerElem.setAttribute("data-editor-type", "non-field");
+      }
+       
 	    // Prefix the ids to avoid conflict with various other identifiers existing in the same page.
 	    // For repeatable fields the content editorCount ensures the ids are unique.
 	    
@@ -502,9 +508,6 @@
 	    containerElem.setAttribute("data-editor-content-parent-id", parentElem.getAttribute(DATA_EDITOR_CONTENT_ID));
 	     
 	    containerElem.setAttribute("data-editor-count", content.editorCount);
-	
-	    // The id will vary if the element is repeatable but the editor type will not.
-	    containerElem.setAttribute("data-editor-type",  this.buildIdPartial(content));
 
 	    // 
 	    // Style: CSS classes and more.
