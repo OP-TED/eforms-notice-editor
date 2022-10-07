@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +50,8 @@ import eu.europa.ted.eforms.noticeeditor.genericode.CustomGenericodeMarshaller;
 import eu.europa.ted.eforms.noticeeditor.genericode.GenericodeTools;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.ConceptNode;
+import eu.europa.ted.eforms.noticeeditor.helper.notice.ConceptualModel;
+import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.NoticeSaver;
 import eu.europa.ted.eforms.noticeeditor.util.IntuitiveStringComparator;
 import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
@@ -64,6 +67,8 @@ import eu.europa.ted.eforms.sdk.resource.SdkResourceLoader;
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
     value = "EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS", justification = "Checked to Runtime OK here")
 public class SdkService {
+
+  private static final String NOTICE_TYPES_JSON = "notice-types.json";
 
   private static final Logger logger = LoggerFactory.getLogger(SdkService.class);
 
@@ -83,6 +88,8 @@ public class SdkService {
    */
   private static final Pattern REGEX_SDK_VERSION =
       Pattern.compile("\\p{Digit}{1,2}\\.\\p{Digit}{1,2}\\.\\p{Digit}{1,2}");
+
+  public static final String FIELDS_JSON = "fields.json";
 
   public static String buildJsonFromCodelistGc(final String codeListId, final Path path,
       final String langCode) throws IOException {
@@ -220,7 +227,7 @@ public class SdkService {
 
       final List<String> noticeTypes = availableNoticeTypes.stream()//
           // Remove some files.
-          .filter(filename -> filename.endsWith(".json") && !"notice-types.json".equals(filename))//
+          .filter(filename -> filename.endsWith(".json") && !NOTICE_TYPES_JSON.equals(filename))//
           // Remove extension.
           .map(filename -> filename.substring(0, filename.lastIndexOf('.')))//
           .sorted(new IntuitiveStringComparator<>())//
@@ -354,6 +361,25 @@ public class SdkService {
   }
 
   /**
+   * Reads SDK json file into a JsonNode to be used in the Java code.
+   */
+  public static JsonNode readSdkJsonFile(final SdkVersion sdkVersion,
+      final SdkResource resourceType, final String filenameForDownload) {
+    Validate.notNull(sdkVersion, "Undefined SDK version");
+    try {
+      final Path path = SdkResourceLoader.getResourceAsPath(sdkVersion, resourceType,
+          filenameForDownload, NoticeEditorConstants.EFORMS_SDKS_DIR);
+      final ObjectMapper mapper = new ObjectMapper();
+      final JsonNode jsonRootNode = mapper.readTree(path.toFile());
+      return jsonRootNode;
+    } catch (IOException ex) {
+      logger.error(ex.toString(), ex);
+      throw new RuntimeException(
+          String.format("Exception reading JSON file %s", filenameForDownload), ex);
+    }
+  }
+
+  /**
    * Common SDK JSON string logic.
    */
   public static void serveSdkJsonString(final HttpServletResponse response, final String jsonStr,
@@ -474,17 +500,37 @@ public class SdkService {
       noticeUuid = getTextStrict(visualItem, "value");
     }
 
-    // TODO load fields json depending on SDK version.
-    final ObjectNode fields = mapper.createObjectNode();
-    final ObjectNode nodes = mapper.createObjectNode();
-
+    // Load fields json depending of the correct SDK version.
+    final SdkVersion sdkVersion = new SdkVersion(eFormsSdkVersion);
+    final JsonNode fieldsJson = readSdkJsonFile(sdkVersion, SdkResource.FIELDS, FIELDS_JSON);
+    final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldsJson);
     final Map<String, ConceptNode> buildConceptualModel =
-        NoticeSaver.buildConceptualModel(fields, nodes, visualRoot);
+        NoticeSaver.buildConceptualModel(fieldsAndNodes, visualRoot);
+
+    final Map<String, JsonNode> noticeInfoBySubtype = new HashMap<>();
+    final Map<String, JsonNode> documentInfoByType = new HashMap<>();
+    {
+      final JsonNode noticeTypesJson =
+          readSdkJsonFile(sdkVersion, SdkResource.NOTICE_TYPES, NOTICE_TYPES_JSON);
+      final JsonNode noticeSubTypes = noticeTypesJson.get("noticeSubTypes");
+      for (JsonNode item : noticeSubTypes) {
+        final String subTypeId = JsonUtils.getTextStrict(item, "subTypeId");
+        noticeInfoBySubtype.put(subTypeId, item);
+      }
+      final JsonNode documentTypes = noticeTypesJson.get("documentTypes");
+      for (JsonNode item : documentTypes) {
+        final String id = JsonUtils.getTextStrict(item, "id");
+        noticeInfoBySubtype.put(id, item);
+      }
+    }
 
     final ConceptNode conceptRoot = buildConceptualModel.get("ND-Root");
-    final Document doc = NoticeSaver.buildPhysicalModel(fields, nodes, conceptRoot);
+    final ConceptualModel concept = new ConceptualModel(conceptRoot);
+    final Document doc = NoticeSaver.buildPhysicalModel(fieldsAndNodes, noticeInfoBySubtype,
+        documentInfoByType, concept);
 
     final TransformerFactory transformerFactory = TransformerFactory.newInstance();
+
     // final Transformer transformer = transformerFactory.newTransformer();
     // final DOMSource source = new DOMSource(doc);
     // TODO create XML
