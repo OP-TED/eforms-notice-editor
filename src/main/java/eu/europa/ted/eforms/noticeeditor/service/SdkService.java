@@ -526,7 +526,7 @@ public class SdkService {
 
     final ConceptNode conceptRoot = buildConceptualModel.get("ND-Root");
     final ConceptualModel concept = new ConceptualModel(conceptRoot);
-    final Document doc = NoticeSaver.buildPhysicalModel(fieldsAndNodes, noticeInfoBySubtype,
+    final Document doc = NoticeSaver.buildPhysicalModelXml(fieldsAndNodes, noticeInfoBySubtype,
         documentInfoByType, concept);
 
     final TransformerFactory transformerFactory = TransformerFactory.newInstance();

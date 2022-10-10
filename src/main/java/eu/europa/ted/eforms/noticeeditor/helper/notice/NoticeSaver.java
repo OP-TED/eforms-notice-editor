@@ -14,9 +14,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
 import eu.europa.ted.eforms.noticeeditor.util.EditorXmlUtils;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
@@ -47,9 +47,11 @@ public class NoticeSaver {
         final ConceptNode conceptNode =
             buildAncestryRec(conceptNodeById, parentNodeId, fieldsAndNodes);
         conceptNode.addConceptField(conceptField);
+
+      } else {
+        // TODO node??
+        System.out.println("TODO type" + type);
       }
-      // else
-      // TODO node?
     }
     return conceptNodeById;
   }
@@ -78,7 +80,7 @@ public class NoticeSaver {
     return conceptNode;
   }
 
-  public static Document buildPhysicalModel(final FieldsAndNodes fieldsAndNodes,
+  public static Document buildPhysicalModelXml(final FieldsAndNodes fieldsAndNodes,
       final Map<String, JsonNode> noticeInfoBySubtype,
       final Map<String, JsonNode> documentInfoByType, final ConceptualModel concept)
       throws ParserConfigurationException {
@@ -89,46 +91,69 @@ public class NoticeSaver {
     final Document doc = safeDocBuilder.newDocument();
     doc.setXmlStandalone(true);
 
-    // XML Namespaces.
-    // doc.createAttributeNS("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
-    // doc.createAttributeNS("xmlns:cbc",
-    // "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2");
-    // doc.createAttributeNS("xmlns:cac",
-    // "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2");
-    // doc.createAttributeNS("xmlns:efext", "http://data.europa.eu/p27/eforms-ubl-extensions/1");
-    // doc.createAttributeNS("xmlns:efac",
-    // "http://data.europa.eu/p27/eforms-ubl-extension-aggregate-components/1");
-    // doc.createAttributeNS("xmlns:efbc",
-    // "http://data.europa.eu/p27/eforms-ubl-extension-basic-components/1");
-    // doc.createAttributeNS("xmlns:ext",
-    // "urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2");
-
-    // TODO get this from notice-types.json
-
+    // Get the namespace and the document type from the SDK data.
     final String noticeSubType = concept.getNoticeSubType();
     final JsonNode noticeInfo = noticeInfoBySubtype.get(noticeSubType);
     final String documentType = JsonUtils.getTextStrict(noticeInfo, "documentType");
     final JsonNode documentTypeInfo = documentInfoByType.get(documentType);
     final String namespaceUri = JsonUtils.getTextStrict(documentTypeInfo, "namespace");
-    // doc.createAttributeNS(namespaceUri, "xmlns");
 
     final String rootElementType = JsonUtils.getTextStrict(documentTypeInfo, "rootElement");
     final Element rootElement = doc.createElement(rootElementType);
     doc.appendChild(rootElement);
 
-    buildPhysicalModelRec(fieldsAndNodes, concept.getRoot(), doc, rootElement);
+    setXmlNamespaces(namespaceUri, rootElement);
+    buildPhysicalModelXmlRec(fieldsAndNodes, concept.getRoot(), doc, rootElement);
 
     return doc;
   }
 
-  private static void buildPhysicalModelRec(final FieldsAndNodes fieldsAndNodes,
-      final ConceptNode conceptElem, final Document doc, final Element xmlElem) {
+  /**
+   * Set XML namespaces.
+   *
+   * @param namespaceUri This depends on the notice sub type
+   * @param rootElement The root element of the XML
+   */
+  private static void setXmlNamespaces(final String namespaceUri, final Element rootElement) {
+    rootElement.setAttribute("xmlns", namespaceUri);
+
+    final String xmlnsUri = "http://www.w3.org/2000/xmlns/";
+    rootElement.setAttributeNS(xmlnsUri, "xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+
+    rootElement.setAttributeNS(xmlnsUri, "xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+
+    rootElement.setAttributeNS(xmlnsUri, "xmlns:cbc",
+        "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2");
+
+    rootElement.setAttributeNS(xmlnsUri, "xmlns:cac",
+        "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2");
+
+    rootElement.setAttributeNS(xmlnsUri, "xmlns:efext",
+        "http://data.europa.eu/p27/eforms-ubl-extensions/1");
+
+    rootElement.setAttributeNS(xmlnsUri, "xmlns:efac",
+        "http://data.europa.eu/p27/eforms-ubl-extension-aggregate-components/1");
+
+    rootElement.setAttributeNS(xmlnsUri, "xmlns:efbc",
+        "http://data.europa.eu/p27/eforms-ubl-extension-basic-components/1");
+
+    rootElement.setAttributeNS(xmlnsUri, "xmlns:ext",
+        "urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2");
+  }
+
+  private static void buildPhysicalModelXmlRec(final FieldsAndNodes fieldsAndNodes,
+      final ConceptNode conceptElem, final Document doc, final Element xmlNodeElem) {
+    Validate.notNull(xmlNodeElem, "xmlElem is null");
 
     // NODES.
     final List<ConceptNode> conceptNodes = conceptElem.getConceptNodes();
     for (final ConceptNode conceptElemChild : conceptNodes) {
-      final JsonNode nodeMeta = fieldsAndNodes.getNodeById(conceptElemChild.getId());
-      final String xpath = getTextStrict(nodeMeta, "xpathAbsolute");
+
+      final String nodeId = conceptElemChild.getId();
+
+      // Get the node meta-data from the SDK.
+      final JsonNode nodeMeta = fieldsAndNodes.getNodeById(nodeId);
+      String xpath = getTextStrict(nodeMeta, "xpathAbsolute");
 
       Element firstElem = null;
       Element previousElem = null;
@@ -140,198 +165,178 @@ public class NoticeSaver {
       // data.
       // doc.find using xpath
 
+      final PhysicalXpath xpathInfo = handleXpath(xpath);
+      xpath = xpathInfo.getXpath();
+      final Optional<String> schemeNameOpt = xpathInfo.getSchemeNameOpt();
       final String[] partsArr = xpath.split("/");
       final List<String> parts = new ArrayList<>(Arrays.asList(partsArr));
       parts.remove(0);
       parts.remove(0);
       System.out.println("PARTS NODE: " + parts);
-      int i = 0;
-      for (String part : parts) {
+      for (final String part : parts) {
         System.out.println(part);
-        partElem = doc.createElement(part);
+
+        // TODO tttt if the element is not repeatable, reuse it.
+        // Find existing elements in the context of the previous element (or doc).
+        final NodeList elementsByTagName =
+            previousElem != null ? previousElem.getElementsByTagName(part)
+                : doc.getElementsByTagName(part);
+
+        if (elementsByTagName.getLength() == 1) {
+          final Node xmlNode = elementsByTagName.item(0);
+          if (xmlNode.getNodeType() == Node.ELEMENT_NODE) {
+            // An existing element was found, reuse it.
+            partElem = (Element) xmlNode;
+          } else {
+            throw new RuntimeException(String.format("NodeType=%s not an Element", xmlNode));
+          }
+        } else {
+          partElem = doc.createElement(part);
+        }
+
         if (previousElem != null) {
           previousElem.appendChild(partElem);
         }
-        if (i == 0) {
+
+        if (firstElem == null && elementsByTagName.getLength() == 0) {
+          // This is the newest parent closest to the root.
           firstElem = partElem;
         }
-        previousElem = partElem;
-        i++;
-      }
-      Validate.notNull(firstElem);
-      Validate.notNull(partElem);
-      xmlElem.appendChild(firstElem);
 
-      buildPhysicalModelRec(fieldsAndNodes, conceptElemChild, doc, partElem);
+        previousElem = partElem;
+      }
+
+      if (firstElem != null) {
+        Validate.notNull(partElem);
+        xmlNodeElem.appendChild(firstElem);
+      }
+
+      buildPhysicalModelXmlRec(fieldsAndNodes, conceptElemChild, doc, partElem);
     }
 
     //
     // FIELDS.
     //
+    System.out.println("---");
     final List<ConceptField> conceptFields = conceptElem.getConceptFields();
     for (final ConceptField conceptField : conceptFields) {
       final String value = conceptField.getValue();
-      final JsonNode fieldMeta = fieldsAndNodes.getFieldById(conceptField.getId());
-      final String xpath = getTextStrict(fieldMeta, "xpathRelative");
+      final String fieldId = conceptField.getId();
 
+      System.out.println("");
+      System.out.println("fieldId=" + fieldId);
+
+      // Get the field meta-data from the SDK.
+      final JsonNode fieldMeta = fieldsAndNodes.getFieldById(fieldId);
+      String xpathRel = getTextStrict(fieldMeta, "xpathRelative");
+
+      final String xpathAbs = getTextStrict(fieldMeta, "xpathAbsolute");
+      // TODO tttt compare hierarchy.
+      System.out.println("xpathRel=" + xpathRel);
+      System.out.println("xpathAsb=" + xpathAbs);
+      System.out.println("xmlEleme=" + EditorXmlUtils.getNodePath(xmlNodeElem));
+
+      // xpathAb=/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName = 'EU']
+      // xmlElem=/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName = 'EU']
+
+      final PhysicalXpath xpathInfo = handleXpath(xpathRel);
+      xpathRel = xpathInfo.getXpath();
+      final Optional<String> schemeNameOpt = xpathInfo.getSchemeNameOpt();
+
+      Element firstElem = null;
       Element previousElem = null;
       Element partElem = null;
+
       // TODO Use ANTLR xpath grammar later.
-      final String[] partsArr = xpath.split("/");
+      final String[] partsArr = xpathRel.split("/");
       final List<String> parts = new ArrayList<>(Arrays.asList(partsArr));
       System.out.println("PARTS FIELD: " + parts);
-      for (String part : parts) {
-        partElem = doc.createElement(part);
+      for (final String part : parts) {
+
+        final NodeList elementsByTagName =
+            previousElem != null ? previousElem.getElementsByTagName(part)
+                : xmlNodeElem.getElementsByTagName(part);
+        System.out.println("length=" + elementsByTagName.getLength() + " for part=" + part);
+
+        if (elementsByTagName.getLength() > 0) {
+          final Node xmlNode;
+          if (elementsByTagName.getLength() > 1) {
+            xmlNode = elementsByTagName.item(0); // Which? 0, 1, ... todo use xpath selector?
+          } else {
+            xmlNode = elementsByTagName.item(0);
+          }
+          if (xmlNode.getNodeType() == Node.ELEMENT_NODE) {
+            // An existing element was found, reuse it.
+            partElem = (Element) xmlNode;
+          } else {
+            throw new RuntimeException(String.format("NodeType=%s not an Element", xmlNode));
+          }
+        } else {
+          partElem = doc.createElement(part);
+        }
+
         if (previousElem != null) {
           previousElem.appendChild(partElem);
         }
+
+        if (firstElem == null) {
+          // This is the newest parent closest to the xmlElem.
+          firstElem = partElem;
+        }
+
         previousElem = partElem;
       }
-      Validate.notNull(partElem);
+
+
+      // The last element is a leaf, so it is a field in this case.F
+      Validate.notNull(partElem, "partElem is null for %s", fieldId);
       partElem.setTextContent(value);
-      xmlElem.appendChild(partElem);
+      if (schemeNameOpt.isPresent()) {
+        partElem.setAttribute("schemeName", schemeNameOpt.get());
+      }
+      if (schemeNameOpt.isEmpty() && xpathAbs.contains("cbc:CompanyID[not(@schemeName = 'EU')")) {
+        // TODO tttt How to get schemeName 'national'?
+        // Temporarily hardcode it here so that other things be figured out.
+        partElem.setAttribute("schemeName", "national");
+      }
+      partElem.setAttribute("debugId", fieldId);
+
+      if (firstElem != null) {
+        xmlNodeElem.appendChild(firstElem);
+      } else {
+        xmlNodeElem.appendChild(firstElem);
+      }
     }
   }
 
-  public static void main(String[] args) throws ParserConfigurationException {
-    final ObjectMapper mapper = new ObjectMapper();
-
-    final ObjectNode root = mapper.createObjectNode();
-    {
-      final ObjectNode visual = mapper.createObjectNode();
-      root.set("OPT-002-notice-1", visual);
-      visual.put("domId", "editor-id-OPT-002-notice-0001");
-      visual.put("contentId", "OPT-002-notice");
-      visual.put("type", "field");
-      visual.put("contentCount", "1");
-      visual.put("value", "eforms-sdk-1.1.0");
-      visual.put("contentParentId", "THE_METADATA-container-elem");
-      visual.put("contentParentCount", "1");
-      visual.put("contentNodeId", "ND-Root");
+  private static PhysicalXpath handleXpath(final String xpathParam) {
+    String xpath = xpathParam;
+    if (xpath.contains("[not(")) {
+      // TEMPORARY FIX.
+      // Ignore predicate with negation as it is not useful for XML generation.
+      // Example:
+      // "xpathAbsolute" :
+      // "/*/cac:BusinessParty/cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName =
+      // 'EU')]/cbc:RegistrationName",
+      xpath = xpath.substring(0, xpath.indexOf('['));
     }
-    {
-      final ObjectNode visual = mapper.createObjectNode();
-      root.set("OPP-070-notice-1", visual);
-      visual.put("domId", "editor-id-OPP-070-notice-0001");
-      visual.put("contentId", "OPP-070-notice");
-      visual.put("type", "field");
-      visual.put("contentCount", "1");
-      visual.put("value", "X02");
-      visual.put("contentParentId", "THE_METADATA-container-elem");
-      visual.put("contentParentCount", "1");
-      visual.put("contentNodeId", "ND-RootExtension");
+    final Optional<String> schemeNameOpt;
+    if (xpath.contains("[@schemeName = '")) {
+      // Example:
+      // "xpathAbsolute" : "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName =
+      // 'EU']",
+      // Here we want to extract EU text.
+      final int indexOfSchemeName = xpath.indexOf("[@schemeName = '");
+      String schemeName = xpath.substring(indexOfSchemeName + "[@schemeName = '".length());
+      // Remove the ']
+      schemeName = schemeName.substring(0, schemeName.length() - "']".length());
+      Validate.notBlank(schemeName);
+      xpath = xpath.substring(0, indexOfSchemeName);
+      schemeNameOpt = Optional.of(schemeName);
+    } else {
+      schemeNameOpt = Optional.empty();
     }
-
-    // {
-    // final ObjectNode visual = mapper.createObjectNode();
-    // root.set("BT-500-Business-1", visual);
-    // visual.put("domId", "editor-id-BT-500-Business-0001");
-    // visual.put("contentId", "BT-500-Business");
-    // visual.put("type", "field");
-    // visual.put("contentCount", "1");
-    // visual.put("value", "The official name XYZ");
-    // visual.put("contentParentId", "GR-Business-Party-container-elem");
-    // visual.put("contentParentCount", "1");
-    // visual.put("contentNodeId", "ND-LocalEntity");
-    // }
-
-    // NODES.
-    final Map<String, JsonNode> nodeById = new HashMap<>();
-    {
-      final ObjectNode node = mapper.createObjectNode();
-      nodeById.put("ND-Root", node);
-      node.put("xpathAbsolute", "/*");
-      node.put("xpathRelative", "/*");
-      node.put("repeatable", "false");
-    }
-    {
-      final ObjectNode node = mapper.createObjectNode();
-      nodeById.put("ND-RootExtension", node);
-      node.put("parentId", "ND-Root");
-      node.put("xpathAbsolute",
-          "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension");
-      node.put("xpathRelative",
-          "ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension");
-      node.put("repeatable", "false");
-    }
-    {
-      final ObjectNode node = mapper.createObjectNode();
-      nodeById.put("ND-BusinessParty", node);
-      node.put("parentId", "ND-Root");
-      node.put("xpathAbsolute", "/*/cac:BusinessParty");
-      node.put("xpathRelative", "cac:BusinessParty");
-      node.put("repeatable", "false");
-    }
-    {
-      final ObjectNode node = mapper.createObjectNode();
-      nodeById.put("ND-LocalEntity", node);
-      node.put("parentId", "ND-BusinessParty");
-      node.put("xpathAbsolute",
-          "/*/cac:BusinessParty/cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName = 'EU')]");
-      node.put("xpathRelative", "cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName = 'EU')]");
-      node.put("repeatable", "false");
-    }
-
-    // FIELDS.
-    final Map<String, JsonNode> fieldById = new HashMap<>();
-    {
-      final ObjectNode field = mapper.createObjectNode();
-      fieldById.put("OPT-002-notice", field);
-      field.put("parentNodeId", "ND-Root");
-      field.put("xpathAbsolute", "/*/cbc:CustomizationID");
-      field.put("xpathRelative", "cbc:CustomizationID");
-      field.put("type", "id");
-      // field.put("repeatable", "false");
-    }
-    {
-      final ObjectNode field = mapper.createObjectNode();
-      fieldById.put("OPP-070-notice", field);
-      field.put("parentNodeId", "ND-RootExtension");
-      field.put("xpathAbsolute",
-          "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension/efac:NoticeSubType/cbc:SubTypeCode");
-      field.put("xpathRelative", "efac:NoticeSubType/cbc:SubTypeCode");
-      field.put("type", "code");
-      // field.put("repeatable", "false");
-    }
-    {
-      final ObjectNode field = mapper.createObjectNode();
-      fieldById.put("BT-500-Business", field);
-      field.put("parentNodeId", "ND-LocalEntity");
-      field.put("xpathAbsolute",
-          "/*/cac:BusinessParty/cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName = 'EU')]/cbc:RegistrationName");
-      field.put("xpathRelative", "cbc:RegistrationName");
-      field.put("type", "text");
-      // field.put("repeatable", "false");
-    }
-
-    final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldById, nodeById);
-    final Map<String, ConceptNode> conceptNodeById =
-        NoticeSaver.buildConceptualModel(fieldsAndNodes, root);
-
-    final ConceptNode conceptRoot = conceptNodeById.get("ND-Root");
-    final ConceptualModel conceptualModel = new ConceptualModel(conceptRoot);
-
-    final Map<String, JsonNode> noticeInfoBySubtype = new HashMap<>();
-    {
-      final ObjectNode info = mapper.createObjectNode();
-      info.put("documentType", "BRIN");
-      noticeInfoBySubtype.put("X02", info);
-    }
-
-    final Map<String, JsonNode> documentInfoByType = new HashMap<>();
-    {
-      final ObjectNode info = mapper.createObjectNode();
-      info.put("namespace",
-          "http://data.europa.eu/p27/eforms-business-registration-information-notice/1");
-      info.put("rootElement", "BusinessRegistrationInformationNotice");
-      documentInfoByType.put("BRIN", info);
-    }
-
-    final Document doc = NoticeSaver.buildPhysicalModel(fieldsAndNodes, noticeInfoBySubtype,
-        documentInfoByType, conceptualModel);
-    System.out.println(EditorXmlUtils.asText(doc));
-
-    // saveNotice(Optional.empty(), root.toString(), fields, nodes);
+    return new PhysicalXpath(xpath, schemeNameOpt);
   }
 
 }
