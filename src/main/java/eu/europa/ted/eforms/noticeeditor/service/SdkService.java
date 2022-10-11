@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.TransformerFactory;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
@@ -53,6 +52,7 @@ import eu.europa.ted.eforms.noticeeditor.helper.notice.ConceptNode;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.ConceptualModel;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.NoticeSaver;
+import eu.europa.ted.eforms.noticeeditor.helper.notice.PhysicalModel;
 import eu.europa.ted.eforms.noticeeditor.util.IntuitiveStringComparator;
 import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
@@ -67,6 +67,8 @@ import eu.europa.ted.eforms.sdk.resource.SdkResourceLoader;
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
     value = "EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS", justification = "Checked to Runtime OK here")
 public class SdkService {
+
+  private static final String EFORMS_SDK = "eforms-sdk-";
 
   private static final String NOTICE_TYPES_JSON = "notice-types.json";
 
@@ -503,7 +505,10 @@ public class SdkService {
     }
 
     // Load fields json depending of the correct SDK version.
-    final SdkVersion sdkVersion = new SdkVersion(eFormsSdkVersion);
+    // I would like to load a precise version of the SDK.
+    final String sdkVersionStr = eFormsSdkVersion.substring(EFORMS_SDK.length());
+    final SdkVersion sdkVersion = new SdkVersion(sdkVersionStr);
+
     final JsonNode fieldsJson = readSdkJsonFile(sdkVersion, SdkResource.FIELDS, FIELDS_JSON);
     final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldsJson);
     final Map<String, ConceptNode> buildConceptualModel =
@@ -528,11 +533,14 @@ public class SdkService {
 
     final ConceptNode conceptRoot = buildConceptualModel.get(ND_ROOT);
     final ConceptualModel concept = new ConceptualModel(conceptRoot);
-    final Document doc = NoticeSaver.buildPhysicalModelXml(fieldsAndNodes, noticeInfoBySubtype,
-        documentInfoByType, concept);
 
-    final TransformerFactory transformerFactory = TransformerFactory.newInstance();
+    final PhysicalModel physicalModel = NoticeSaver.buildPhysicalModelXml(fieldsAndNodes,
+        noticeInfoBySubtype, documentInfoByType, concept);
 
+    final Document doc = physicalModel.getDomDocument();
+    final String xmlAsText = physicalModel.getXmlAsText(false);
+
+    // final TransformerFactory transformerFactory = TransformerFactory.newInstance();
     // final Transformer transformer = transformerFactory.newTransformer();
     // final DOMSource source = new DOMSource(doc);
     // TODO create XML

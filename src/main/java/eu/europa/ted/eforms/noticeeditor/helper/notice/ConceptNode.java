@@ -6,8 +6,8 @@ import org.apache.commons.lang3.Validate;
 
 public class ConceptNode {
   private final String id;
-  private List<ConceptField> conceptFields = new ArrayList<>();
-  private List<ConceptNode> conceptNodes = new ArrayList<>();
+  private final List<ConceptField> conceptFields = new ArrayList<>();
+  private final List<ConceptNode> conceptNodes = new ArrayList<>();
 
   public ConceptNode(final String id) {
     this.id = id;
@@ -37,6 +37,7 @@ public class ConceptNode {
 
   @Override
   public String toString() {
-    return "ConceptNode [id=" + id + ", conceptFields=" + conceptFields + "]";
+    return "ConceptNode [id=" + id + ", conceptFields=" + conceptFields + ", conceptNodes="
+        + conceptNodes + "]";
   }
 }

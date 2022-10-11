@@ -38,10 +38,13 @@ public class JsonUtils {
 
   public static String getTextStrict(final JsonNode json, final String key) {
     Validate.notNull(json, "Elem is null for key=%s", key);
+
     final JsonNode jsonElem = json.get(key);
     Validate.notNull(jsonElem, "Not found for key=%s", key);
+
     final String text = jsonElem.asText(null);
     Validate.notBlank(text, "Text is blank for key=%s", key);
+
     return text;
   }
 

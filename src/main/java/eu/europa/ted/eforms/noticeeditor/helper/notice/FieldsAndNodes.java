@@ -1,29 +1,34 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.commons.lang3.Validate;
 import com.fasterxml.jackson.databind.JsonNode;
 
+/**
+ * Equivalent to SDK "fields.json".
+ */
 public class FieldsAndNodes {
-  private Map<String, JsonNode> fieldById;
-  private Map<String, JsonNode> nodeById;
+  private final Map<String, JsonNode> fieldById;
+  private final Map<String, JsonNode> nodeById;
 
   public FieldsAndNodes(final JsonNode fieldsJsonRoot) {
     {
+      final JsonNode nodes = fieldsJsonRoot.get("xmlStructure");
+      final Map<String, JsonNode> nodesMap = new LinkedHashMap<>();
+      for (final JsonNode node : nodes) {
+        nodesMap.put(node.get("id").asText(), node);
+      }
+      this.nodeById = nodesMap;
+    }
+    {
       final JsonNode fields = fieldsJsonRoot.get("fields");
-      final Map<String, JsonNode> fieldsMap = new HashMap<>();
+      final Map<String, JsonNode> fieldsMap = new LinkedHashMap<>();
       for (final JsonNode field : fields) {
         fieldsMap.put(field.get("id").asText(), field);
       }
       this.fieldById = fieldsMap;
     }
-    final JsonNode nodes = fieldsJsonRoot.get("xmlStructure");
-    final Map<String, JsonNode> nodesMap = new HashMap<>();
-    for (final JsonNode node : nodes) {
-      nodesMap.put(node.get("id").asText(), node);
-    }
-    this.nodeById = nodesMap;
   }
 
   public FieldsAndNodes(Map<String, JsonNode> fields, Map<String, JsonNode> nodes) {

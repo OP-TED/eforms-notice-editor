@@ -19,7 +19,6 @@ public class ConceptField {
 
   @Override
   public String toString() {
-    return "ConceptField [id=" + id + "]";
+    return "ConceptField [id=" + id + ", value=" + value + "]";
   }
-
 }

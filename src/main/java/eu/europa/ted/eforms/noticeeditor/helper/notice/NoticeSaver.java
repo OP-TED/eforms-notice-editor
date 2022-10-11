@@ -10,6 +10,8 @@ import java.util.Optional;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
@@ -20,11 +22,11 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import com.fasterxml.jackson.databind.JsonNode;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
-import eu.europa.ted.eforms.noticeeditor.util.EditorXmlUtils;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 
 public class NoticeSaver {
 
+  private static final String REPLACEMENT = "~~~";
   private static final Logger logger = LoggerFactory.getLogger(NoticeSaver.class);
 
   public static Map<String, ConceptNode> buildConceptualModel(final FieldsAndNodes fieldsAndNodes,
@@ -34,25 +36,30 @@ public class NoticeSaver {
     logger.info("Attempting to build conceptual model.");
     final Map<String, ConceptNode> conceptNodeById = new HashMap<>();
 
-    for (JsonNode visualItem : visualRoot) {
+    for (final JsonNode visualItem : visualRoot) {
       final String type = getTextStrict(visualItem, "type");
       if ("field".equals(type)) {
 
+        // Here we mostly care about the value and the field id.
+
         // If the type is field then the contentId is a field id.
-        final String contentId = getTextStrict(visualItem, "contentId");
-        final JsonNode fieldMeta = fieldsAndNodes.getFieldById(contentId);
+        final String fieldId = getTextStrict(visualItem, "contentId");
+        final JsonNode fieldMeta = fieldsAndNodes.getFieldById(fieldId);
+        Validate.notNull(fieldMeta, "fieldMeta is null for fieldId=%s", fieldId);
 
         final String value = getTextStrict(visualItem, "value");
-        final ConceptField conceptField = new ConceptField(contentId, value);
+        final ConceptField conceptField = new ConceptField(fieldId, value);
 
+        // Build the parent hierarchy.
         final String parentNodeId = getTextStrict(fieldMeta, "parentNodeId");
         final ConceptNode conceptNode =
             buildAncestryRec(conceptNodeById, parentNodeId, fieldsAndNodes);
+
         conceptNode.addConceptField(conceptField);
 
       } else {
-        // TODO node??
-        System.out.println("TODO type" + type);
+        // TODO 'group' later for repeatability of groups ??
+        System.out.println("TODO type=" + type);
       }
     }
     return conceptNodeById;
@@ -61,7 +68,7 @@ public class NoticeSaver {
   /**
    * Builds the node and the parents until the root is reached.
    *
-   * @param conceptNodeById is populated as a side effect.
+   * @param conceptNodeById is populated as a side effect
    *
    * @return The concept node.
    */
@@ -70,19 +77,22 @@ public class NoticeSaver {
     final JsonNode nodeMeta = fieldsAndNodes.getNodeById(nodeId);
     ConceptNode conceptNode = conceptNodeById.get(nodeId);
     if (conceptNode == null) {
+      // It does not exist, create it.
       conceptNode = new ConceptNode(nodeId);
       conceptNodeById.put(nodeId, conceptNode);
       final Optional<String> parentNodeIdOpt = JsonUtils.getTextOpt(nodeMeta, "parentId");
       if (parentNodeIdOpt.isPresent()) {
-        final ConceptNode pcn =
+        // This node has a parent. Build the parent until the root is reached.
+        final ConceptNode parentConceptNode =
             buildAncestryRec(conceptNodeById, parentNodeIdOpt.get(), fieldsAndNodes);
-        pcn.addConceptNode(conceptNode);
+        // Add it to the parent.
+        parentConceptNode.addConceptNode(conceptNode);
       }
     }
     return conceptNode;
   }
 
-  public static Document buildPhysicalModelXml(final FieldsAndNodes fieldsAndNodes,
+  public static PhysicalModel buildPhysicalModelXml(final FieldsAndNodes fieldsAndNodes,
       final Map<String, JsonNode> noticeInfoBySubtype,
       final Map<String, JsonNode> documentInfoByType, final ConceptualModel concept)
       throws ParserConfigurationException {
@@ -105,9 +115,9 @@ public class NoticeSaver {
     doc.appendChild(rootElement);
 
     setXmlNamespaces(namespaceUri, rootElement);
-    buildPhysicalModelXmlRec(fieldsAndNodes, concept.getRoot(), doc, rootElement);
+    buildPhysicalModelXmlRec(fieldsAndNodes, doc, concept.getRoot(), rootElement, 0);
 
-    return doc;
+    return new PhysicalModel(doc);
   }
 
   /**
@@ -142,20 +152,22 @@ public class NoticeSaver {
   }
 
   private static void buildPhysicalModelXmlRec(final FieldsAndNodes fieldsAndNodes,
-      final ConceptNode conceptElem, final Document doc, final Element xmlNodeElem) {
+      final Document doc, final ConceptNode conceptElem, final Element xmlNodeElem,
+      final int depth) {
     Validate.notNull(xmlNodeElem, "xmlElem is null");
 
-    XPath xPath = XPathFactory.newInstance().newXPath();
+    System.out
+        .println("--- " + depth + " " + xmlNodeElem.getTagName() + ", id=" + conceptElem.getId());
+    final XPath xPath = XPathFactory.newInstance().newXPath();
 
     // NODES.
     final List<ConceptNode> conceptNodes = conceptElem.getConceptNodes();
     for (final ConceptNode conceptElemChild : conceptNodes) {
-
       final String nodeId = conceptElemChild.getId();
 
       // Get the node meta-data from the SDK.
       final JsonNode nodeMeta = fieldsAndNodes.getNodeById(nodeId);
-      String xpath = getTextStrict(nodeMeta, "xpathAbsolute");
+      final String xpathAbs = getTextStrict(nodeMeta, "xpathAbsolute");
 
       Element firstElem = null;
       Element previousElem = null;
@@ -166,33 +178,27 @@ public class NoticeSaver {
       // TODO maybe use xpath to locate the tag in the doc ? What xpath finds is where to add the
       // data.
 
-      // doc.find using xpath
-      // try {
-      // xPath.compile("").evaluate(doc, XPathConstants.NODESET);
-      // } catch (XPathExpressionException e) {
-      // // TODO Auto-generated catch block
-      // e.printStackTrace();
-      // }
-
-      final PhysicalXpath xpathInfo = handleXpath(xpath);
-      xpath = xpathInfo.getXpath();
-      final Optional<String> schemeNameOpt = xpathInfo.getSchemeNameOpt();
-      final String[] partsArr = xpath.split("/");
+      final String[] partsArr = getXpathPartsArr(xpathAbs);
       final List<String> parts = new ArrayList<>(Arrays.asList(partsArr));
       parts.remove(0);
       parts.remove(0);
-      System.out.println("PARTS NODE: " + parts);
-      for (final String part : parts) {
-        System.out.println(part);
+      System.out.println("  PARTS NODE: " + parts);
+      for (final String partXpath : parts) {
+
+        final PhysicalXpath px = handleXpathPart(partXpath);
+        final Optional<String> schemeNameOpt = px.getSchemeNameOpt();
+        final String xpathExpr = px.getXpathExpr();
+        final String tag = px.getTag();
+        System.out.println("  tag=" + tag);
 
         // TODO tttt if the element is not repeatable, reuse it.
         // Find existing elements in the context of the previous element (or doc).
-        final NodeList elementsByTagName =
-            previousElem != null ? previousElem.getElementsByTagName(part)
-                : doc.getElementsByTagName(part);
+        final Object xpathTarget = previousElem != null ? previousElem : doc;
+        final NodeList foundElements = evaluateXpath(xpathTarget, xPath, xpathExpr);
 
-        if (elementsByTagName.getLength() == 1) {
-          final Node xmlNode = elementsByTagName.item(0);
+        if (foundElements.getLength() > 0) {
+          assert foundElements.getLength() == 1;
+          final Node xmlNode = foundElements.item(0);
           if (xmlNode.getNodeType() == Node.ELEMENT_NODE) {
             // An existing element was found, reuse it.
             partElem = (Element) xmlNode;
@@ -200,33 +206,40 @@ public class NoticeSaver {
             throw new RuntimeException(String.format("NodeType=%s not an Element", xmlNode));
           }
         } else {
-          partElem = doc.createElement(part);
+          System.out.println("  creating " + tag);
+          partElem = doc.createElement(tag);
         }
 
         if (previousElem != null) {
           previousElem.appendChild(partElem);
         }
 
-        if (firstElem == null && elementsByTagName.getLength() == 0) {
+        if (firstElem == null && foundElements.getLength() == 0) {
           // This is the newest parent closest to the root.
           firstElem = partElem;
         }
 
         previousElem = partElem;
-      }
+
+      } // End of for loop on parts.
 
       if (firstElem != null) {
         Validate.notNull(partElem);
         xmlNodeElem.appendChild(firstElem);
       }
 
-      buildPhysicalModelXmlRec(fieldsAndNodes, conceptElemChild, doc, partElem);
+      buildPhysicalModelXmlRec(fieldsAndNodes, doc, conceptElemChild, partElem, depth + 1);
     }
 
     //
     // FIELDS.
     //
-    System.out.println("---");
+    handleFields(fieldsAndNodes, conceptElem, doc, xPath, xmlNodeElem);
+  }
+
+  private static void handleFields(final FieldsAndNodes fieldsAndNodes,
+      final ConceptNode conceptElem, final Document doc, final XPath xPath,
+      final Element xmlNodeElem) {
     final List<ConceptField> conceptFields = conceptElem.getConceptFields();
     for (final ConceptField conceptField : conceptFields) {
       final String value = conceptField.getValue();
@@ -237,42 +250,46 @@ public class NoticeSaver {
 
       // Get the field meta-data from the SDK.
       final JsonNode fieldMeta = fieldsAndNodes.getFieldById(fieldId);
-      String xpathRel = getTextStrict(fieldMeta, "xpathRelative");
+      Validate.notNull(fieldMeta, "fieldMeta null for fieldId=%s", fieldId);
 
+      final String xpathRel = getTextStrict(fieldMeta, "xpathRelative");
       final String xpathAbs = getTextStrict(fieldMeta, "xpathAbsolute");
+
       // TODO tttt compare hierarchy.
-      System.out.println("xmlEleme=" + EditorXmlUtils.getNodePath(xmlNodeElem));
-      System.out.println("xpathAsb=" + xpathAbs);
-      System.out.println("xpathRel=" + xpathRel);
+      // System.out.println("xmlEleme=" + EditorXmlUtils.getNodePath(xmlNodeElem));
+      // System.out.println("xpathAsb=" + xpathAbs);
+      // System.out.println("xpathRel=" + xpathRel);
 
       // xpathAb=/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName = 'EU']
       // xmlElem=/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName = 'EU']
-
-      final PhysicalXpath xpathInfo = handleXpath(xpathRel);
-      xpathRel = xpathInfo.getXpath();
-      final Optional<String> schemeNameOpt = xpathInfo.getSchemeNameOpt();
 
       Element firstElem = null;
       Element previousElem = null;
       Element partElem = null;
 
       // TODO Use ANTLR xpath grammar later.
-      final String[] partsArr = xpathRel.split("/");
+      final String[] partsArr = getXpathPartsArr(xpathRel);
       final List<String> parts = new ArrayList<>(Arrays.asList(partsArr));
       System.out.println("PARTS FIELD: " + parts);
-      for (final String part : parts) {
+      for (final String partXpath : parts) {
 
-        final NodeList elementsByTagName =
-            previousElem != null ? previousElem.getElementsByTagName(part)
-                : xmlNodeElem.getElementsByTagName(part);
-        System.out.println("length=" + elementsByTagName.getLength() + " for part=" + part);
+        final PhysicalXpath px = handleXpathPart(partXpath);
+        final Optional<String> schemeNameOpt = px.getSchemeNameOpt();
+        final String xpathExpr = px.getXpathExpr();
+        final String tag = px.getTag();
 
-        if (elementsByTagName.getLength() > 0) {
+        final Object xpathTarget = previousElem != null ? previousElem : xmlNodeElem;
+        final NodeList foundElements = evaluateXpath(xpathTarget, xPath, xpathExpr);
+
+        // System.out.println(" length=" + foundElements.getLength() + " for tag=" + tag);
+        if (foundElements.getLength() > 0) {
+          assert foundElements.getLength() == 1;
           final Node xmlNode;
-          if (elementsByTagName.getLength() > 1) {
-            xmlNode = elementsByTagName.item(0); // Which? 0, 1, ... todo use xpath selector?
+          if (foundElements.getLength() > 1) {
+            xmlNode = foundElements.item(0); // Which? 0, 1, ...???
+            System.out.println("  FOUND MULTIPLE ELEMENTS");
           } else {
-            xmlNode = elementsByTagName.item(0);
+            xmlNode = foundElements.item(0);
           }
           if (xmlNode.getNodeType() == Node.ELEMENT_NODE) {
             // An existing element was found, reuse it.
@@ -281,7 +298,8 @@ public class NoticeSaver {
             throw new RuntimeException(String.format("NodeType=%s not an Element", xmlNode));
           }
         } else {
-          partElem = doc.createElement(part);
+          System.out.println("  creating " + tag);
+          partElem = doc.createElement(tag);
         }
 
         if (previousElem != null) {
@@ -293,67 +311,100 @@ public class NoticeSaver {
           firstElem = partElem;
         }
 
+        if (schemeNameOpt.isPresent()) {
+          partElem.setAttribute("schemeName", schemeNameOpt.get());
+        }
+
         previousElem = partElem;
-      }
+
+      } // End of for loop on parts.
 
       // The last element is a leaf, so it is a field in this case.F
       Validate.notNull(partElem, "partElem is null for %s", fieldId);
       partElem.setTextContent(value);
-      if (schemeNameOpt.isPresent()) {
-        partElem.setAttribute("schemeName", schemeNameOpt.get());
+
+      final String fieldType = JsonUtils.getTextStrict(fieldMeta, "type");
+      if (fieldType == "code") {
+        // Convention: in the XML the codelist is set in the listName attribute.
+        String listName = JsonUtils.getTextStrict(fieldMeta, "codeListId");
+        if ("OPP-105-Business".equals(fieldId)) {
+          // TODO tttt sector, temporary fix here, should be provided in the SDK.
+          // Maybe via a special key/value.
+          listName = "sector";
+        }
+        partElem.setAttribute("listName", listName);
       }
-      if (schemeNameOpt.isEmpty() && xpathAbs.contains("cbc:CompanyID[not(@schemeName = 'EU')")) {
-        // TODO tttt How to get schemeName 'national'?
-        // Temporarily hardcode it here so that other things be figured out.
-        partElem.setAttribute("schemeName", "national");
-      }
+
       partElem.setAttribute("debugId", fieldId);
 
       if (firstElem != null) {
-        xmlNodeElem.appendChild(firstElem);
-      } else {
         xmlNodeElem.appendChild(firstElem);
       }
     }
   }
 
-  private static PhysicalXpath handleXpath(final String xpathParam) {
-    String xpath = xpathParam;
-    if (xpath.contains("[not(")) {
-      // TEMPORARY FIX.
-      // Ignore predicate with negation as it is not useful for XML generation.
-      // Example:
-      // "xpathAbsolute" :
-      // "/*/cac:BusinessParty/cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName =
-      // 'EU')]/cbc:RegistrationName",
-      xpath = xpath.substring(0, xpath.indexOf('['));
+  private static NodeList evaluateXpath(final Object node, XPath xPath, final String xpathExpr) {
+    Validate.notBlank(xpathExpr);
+    try {
+      final NodeList nodeList =
+          (NodeList) xPath.compile(xpathExpr).evaluate(node, XPathConstants.NODESET);
+      return nodeList;
+    } catch (XPathExpressionException e) {
+      throw new RuntimeException(e);
     }
-    if (xpath.contains("[not(")) {
-      // TEMPORARY FIX.
-      // Ignore predicate with negation as it is not useful for XML generation.
-      // Example:
-      // "xpathAbsolute" :
-      // "/*/cac:BusinessParty/cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName =
-      // 'EU')]/cbc:RegistrationName",
-      xpath = xpath.substring(0, xpath.indexOf('['));
-    }
+  }
+
+  private static String[] getXpathPartsArr(final String xpathAbs) {
+    // TODO this fixes a few problems with this naive implementation.
+    return xpathAbs.replace("/@", REPLACEMENT + "@").split("/");
+  }
+
+  private static PhysicalXpath handleXpathPart(final String partParam) {
+
+    String tag = partParam;
     final Optional<String> schemeNameOpt;
-    if (xpath.contains("[@schemeName = '")) {
+
+    if (tag.contains("[not(@schemeName = 'EU')]")) {
+      // TEMPORARY FIX until we have a proper solution inside of the SDK.
+      tag = tag.replace("[not(@schemeName = 'EU')]", "[@schemeName = 'national']");
+    }
+
+    // if (part.contains("[not(cbc:CompanyID~~~@schemeName = 'EU')]")) {
+    // // TEMPORARY FIX until we have a proper solution inside of the SDK.
+    // part = part.replace("[not(cbc:CompanyID~~~@schemeName = 'EU')]",
+    // "[cbc:CompanyID/@schemeName = 'national']");
+    // }
+
+    if (tag.contains("[not(")) {
+      // TEMPORARY FIX.
+      // Ignore predicate with negation as it is not useful for XML generation.
+      // Example:
+      // "xpathAbsolute" :
+      // "/*/cac:BusinessParty/cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName =
+      // 'EU')]/cbc:RegistrationName",
+      tag = tag.substring(0, tag.indexOf('['));
+    }
+
+    if (tag.contains("[@schemeName = '")) {
       // Example:
       // "xpathAbsolute" : "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName =
       // 'EU']",
       // Here we want to extract EU text.
-      final int indexOfSchemeName = xpath.indexOf("[@schemeName = '");
-      String schemeName = xpath.substring(indexOfSchemeName + "[@schemeName = '".length());
+      final int indexOfSchemeName = tag.indexOf("[@schemeName = '");
+      String schemeName = tag.substring(indexOfSchemeName + "[@schemeName = '".length());
       // Remove the ']
       schemeName = schemeName.substring(0, schemeName.length() - "']".length());
       Validate.notBlank(schemeName);
-      xpath = xpath.substring(0, indexOfSchemeName);
+      tag = tag.substring(0, indexOfSchemeName);
       schemeNameOpt = Optional.of(schemeName);
     } else {
       schemeNameOpt = Optional.empty();
     }
-    return new PhysicalXpath(xpath, schemeNameOpt);
+
+    // For the xpath expression keep the original.
+    final String xpathExpr = partParam.replaceAll(REPLACEMENT, "/");
+
+    return new PhysicalXpath(xpathExpr, tag, schemeNameOpt);
   }
 
 }

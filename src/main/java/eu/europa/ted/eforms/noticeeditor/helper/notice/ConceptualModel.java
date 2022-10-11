@@ -1,7 +1,7 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 public class ConceptualModel {
-  private ConceptNode rootNode;
+  private final ConceptNode rootNode;
 
   public ConceptualModel(final ConceptNode rootNode) {
     this.rootNode = rootNode;
@@ -16,5 +16,10 @@ public class ConceptualModel {
         .filter(item -> item.getId().equals("ND-RootExtension")).findFirst().get();
     return rootExtension.getConceptFields().stream()
         .filter(item -> item.getId().equals("OPP-070-notice")).findFirst().get().getValue();
+  }
+
+  @Override
+  public String toString() {
+    return "ConceptualModel [rootNode=" + rootNode + "]";
   }
 }
