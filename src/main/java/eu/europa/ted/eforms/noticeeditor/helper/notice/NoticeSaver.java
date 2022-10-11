@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Optional;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathFactory;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,8 +122,6 @@ public class NoticeSaver {
     final String xmlnsUri = "http://www.w3.org/2000/xmlns/";
     rootElement.setAttributeNS(xmlnsUri, "xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
 
-    rootElement.setAttributeNS(xmlnsUri, "xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
-
     rootElement.setAttributeNS(xmlnsUri, "xmlns:cbc",
         "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2");
 
@@ -145,6 +145,8 @@ public class NoticeSaver {
       final ConceptNode conceptElem, final Document doc, final Element xmlNodeElem) {
     Validate.notNull(xmlNodeElem, "xmlElem is null");
 
+    XPath xPath = XPathFactory.newInstance().newXPath();
+
     // NODES.
     final List<ConceptNode> conceptNodes = conceptElem.getConceptNodes();
     for (final ConceptNode conceptElemChild : conceptNodes) {
@@ -163,7 +165,14 @@ public class NoticeSaver {
       // TODO Use ANTLR xpath grammar later.
       // TODO maybe use xpath to locate the tag in the doc ? What xpath finds is where to add the
       // data.
+
       // doc.find using xpath
+      // try {
+      // xPath.compile("").evaluate(doc, XPathConstants.NODESET);
+      // } catch (XPathExpressionException e) {
+      // // TODO Auto-generated catch block
+      // e.printStackTrace();
+      // }
 
       final PhysicalXpath xpathInfo = handleXpath(xpath);
       xpath = xpathInfo.getXpath();
@@ -232,9 +241,9 @@ public class NoticeSaver {
 
       final String xpathAbs = getTextStrict(fieldMeta, "xpathAbsolute");
       // TODO tttt compare hierarchy.
-      System.out.println("xpathRel=" + xpathRel);
-      System.out.println("xpathAsb=" + xpathAbs);
       System.out.println("xmlEleme=" + EditorXmlUtils.getNodePath(xmlNodeElem));
+      System.out.println("xpathAsb=" + xpathAbs);
+      System.out.println("xpathRel=" + xpathRel);
 
       // xpathAb=/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName = 'EU']
       // xmlElem=/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName = 'EU']
@@ -287,7 +296,6 @@ public class NoticeSaver {
         previousElem = partElem;
       }
 
-
       // The last element is a leaf, so it is a field in this case.F
       Validate.notNull(partElem, "partElem is null for %s", fieldId);
       partElem.setTextContent(value);
@@ -311,6 +319,15 @@ public class NoticeSaver {
 
   private static PhysicalXpath handleXpath(final String xpathParam) {
     String xpath = xpathParam;
+    if (xpath.contains("[not(")) {
+      // TEMPORARY FIX.
+      // Ignore predicate with negation as it is not useful for XML generation.
+      // Example:
+      // "xpathAbsolute" :
+      // "/*/cac:BusinessParty/cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName =
+      // 'EU')]/cbc:RegistrationName",
+      xpath = xpath.substring(0, xpath.indexOf('['));
+    }
     if (xpath.contains("[not(")) {
       // TEMPORARY FIX.
       // Ignore predicate with negation as it is not useful for XML generation.

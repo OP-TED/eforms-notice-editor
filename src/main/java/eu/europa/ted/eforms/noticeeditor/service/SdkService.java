@@ -70,6 +70,8 @@ public class SdkService {
 
   private static final String NOTICE_TYPES_JSON = "notice-types.json";
 
+  public static final String ND_ROOT = "ND-Root";
+
   private static final Logger logger = LoggerFactory.getLogger(SdkService.class);
 
   /**
@@ -524,7 +526,7 @@ public class SdkService {
       }
     }
 
-    final ConceptNode conceptRoot = buildConceptualModel.get("ND-Root");
+    final ConceptNode conceptRoot = buildConceptualModel.get(ND_ROOT);
     final ConceptualModel concept = new ConceptualModel(conceptRoot);
     final Document doc = NoticeSaver.buildPhysicalModelXml(fieldsAndNodes, noticeInfoBySubtype,
         documentInfoByType, concept);

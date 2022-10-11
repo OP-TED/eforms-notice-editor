@@ -9,6 +9,7 @@ import org.w3c.dom.Document;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import eu.europa.ted.eforms.noticeeditor.service.SdkService;
 import eu.europa.ted.eforms.noticeeditor.util.EditorXmlUtils;
 
 public class NoticeSaverTest {
@@ -176,37 +177,27 @@ public class NoticeSaverTest {
   public void test() throws ParserConfigurationException {
     final ObjectMapper mapper = new ObjectMapper();
 
-    final String fakeSdkForTest = "eforms-sdk-1.1.0";
-    final String noticeSubTypeForTest = "X02";
+    final String prefixedSdkVersion = "eforms-sdk-1.1.0";
+    final String noticeSubType = "X02";
 
-    final ObjectNode root = setupVisualModel(mapper, fakeSdkForTest, noticeSubTypeForTest);
+    final ObjectNode root = setupVisualModel(mapper, prefixedSdkVersion, noticeSubType);
 
-    // NODES.
+    // fields.json NODES.
     final Map<String, JsonNode> nodeById = new HashMap<>();
     setupFieldsJsonXmlStructureNodes(mapper, nodeById);
 
-    // FIELDS.
+    // fields.json FIELDS.
     final Map<String, JsonNode> fieldById = new HashMap<>();
     setupFieldsJsonFields(mapper, fieldById);
 
-    //
-    // BUILD CONCEPTUAL MODEL.
-    //
-    final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldById, nodeById);
-    final Map<String, ConceptNode> conceptNodeById =
-        NoticeSaver.buildConceptualModel(fieldsAndNodes, root);
-
-    final ConceptNode conceptRoot = conceptNodeById.get("ND-Root");
-    final ConceptualModel conceptualModel = new ConceptualModel(conceptRoot);
-
+    // notice-types.json
     // Setup dummy notice-types.json info that we need for the XML generation.
     final Map<String, JsonNode> noticeInfoBySubtype = new HashMap<>();
     {
       final ObjectNode info = mapper.createObjectNode();
       info.put("documentType", "BRIN");
-      noticeInfoBySubtype.put(noticeSubTypeForTest, info);
+      noticeInfoBySubtype.put(noticeSubType, info);
     }
-
     final Map<String, JsonNode> documentInfoByType = new HashMap<>();
     {
       final ObjectNode info = mapper.createObjectNode();
@@ -215,6 +206,15 @@ public class NoticeSaverTest {
       info.put("rootElement", "BusinessRegistrationInformationNotice");
       documentInfoByType.put("BRIN", info);
     }
+
+    //
+    // BUILD CONCEPTUAL MODEL.
+    //
+    final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldById, nodeById);
+    final Map<String, ConceptNode> conceptNodeById =
+        NoticeSaver.buildConceptualModel(fieldsAndNodes, root);
+    final ConceptNode conceptRoot = conceptNodeById.get(SdkService.ND_ROOT);
+    final ConceptualModel conceptualModel = new ConceptualModel(conceptRoot);
 
     //
     // BUILD PHYSICAL MODEL.
@@ -226,8 +226,8 @@ public class NoticeSaverTest {
     final String xmlText = EditorXmlUtils.asText(doc, true);
     System.out.println(xmlText);
 
-    assertTrue(xmlText.contains(noticeSubTypeForTest));
-    assertTrue(xmlText.contains(fakeSdkForTest));
+    assertTrue(xmlText.contains(noticeSubType));
+    assertTrue(xmlText.contains(prefixedSdkVersion));
     assertTrue(xmlText.contains("OPP-070-notice\""));
     assertTrue(xmlText.contains("BT-500-Business\""));
     assertTrue(xmlText.contains("BT-501-Business-National\""));
