@@ -1,5 +1,6 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
+import static eu.europa.ted.eforms.noticeeditor.util.JsonUtils.getIntStrict;
 import static eu.europa.ted.eforms.noticeeditor.util.JsonUtils.getTextStrict;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,6 +23,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import com.fasterxml.jackson.databind.JsonNode;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
+import eu.europa.ted.eforms.noticeeditor.util.EditorXmlUtils;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 
 public class NoticeSaver {
@@ -48,7 +50,9 @@ public class NoticeSaver {
         Validate.notNull(fieldMeta, "fieldMeta is null for fieldId=%s", fieldId);
 
         final String value = getTextStrict(visualItem, "value");
-        final ConceptField conceptField = new ConceptField(fieldId, value);
+        final int counter = getIntStrict(visualItem, "contentCount");
+        final int parentCounter = getIntStrict(visualItem, "contentParentCount");
+        final ConceptField conceptField = new ConceptField(fieldId, value, counter, parentCounter);
 
         // Build the parent hierarchy.
         final String parentNodeId = getTextStrict(fieldMeta, "parentNodeId");
@@ -59,7 +63,7 @@ public class NoticeSaver {
 
       } else {
         // TODO 'group' later for repeatability of groups ??
-        System.out.println("TODO type=" + type);
+        logger.warn("TODO type=" + type);
       }
     }
     return conceptNodeById;
@@ -92,10 +96,18 @@ public class NoticeSaver {
     return conceptNode;
   }
 
+  /**
+   * Builds the physical model.
+   *
+   * @param debug Adds special debug info to the XML, useful for humans and unit tests
+   * @param buildFields Allows to disable field building, for debugging purposes
+   *
+   * @return The physical model as an object containing the XML with a few extras
+   */
   public static PhysicalModel buildPhysicalModelXml(final FieldsAndNodes fieldsAndNodes,
       final Map<String, JsonNode> noticeInfoBySubtype,
-      final Map<String, JsonNode> documentInfoByType, final ConceptualModel concept)
-      throws ParserConfigurationException {
+      final Map<String, JsonNode> documentInfoByType, final ConceptualModel concept,
+      final boolean debug, final boolean buildFields) throws ParserConfigurationException {
     logger.info("Attempting to build physical model.");
 
     final DocumentBuilder safeDocBuilder =
@@ -115,7 +127,8 @@ public class NoticeSaver {
     doc.appendChild(rootElement);
 
     setXmlNamespaces(namespaceUri, rootElement);
-    buildPhysicalModelXmlRec(fieldsAndNodes, doc, concept.getRoot(), rootElement, 0);
+    buildPhysicalModelXmlRec(fieldsAndNodes, doc, concept.getRoot(), rootElement, debug,
+        buildFields, 0);
 
     return new PhysicalModel(doc);
   }
@@ -151,16 +164,54 @@ public class NoticeSaver {
         "urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2");
   }
 
+  /**
+   * @param fieldsAndNodes Field and node meta information (no form values)
+   * @param doc The XML document
+   * @param conceptElem The current conceptual element
+   * @param xmlNodeElem The current xml node element
+   * @param debug Adds extra debugging info in the XML if true
+   * @param buildFields True if fields have to be built, false otherwise
+   * @param depth Passed for debugging and logging purposes
+   */
   private static void buildPhysicalModelXmlRec(final FieldsAndNodes fieldsAndNodes,
       final Document doc, final ConceptNode conceptElem, final Element xmlNodeElem,
-      final int depth) {
-    Validate.notNull(xmlNodeElem, "xmlElem is null");
+      final boolean debug, final boolean buildFields, final int depth) {
+    Validate.notNull(conceptElem, "conceptElem is null");
+    Validate.notNull(xmlNodeElem, "xmlElem is null, conceptElem=%s", conceptElem.getId());
 
     System.out
         .println("--- " + depth + " " + xmlNodeElem.getTagName() + ", id=" + conceptElem.getId());
-    final XPath xPath = XPathFactory.newInstance().newXPath();
+
+    final XPath xPathInst = XPathFactory.newInstance().newXPath();
 
     // NODES.
+    buildNodesAndFields(fieldsAndNodes, doc, conceptElem, xmlNodeElem, debug, buildFields, depth,
+        xPathInst);
+
+    System.out.println(EditorXmlUtils.asText(doc, true));
+    // FIELDS.
+    if (buildFields) {
+      buildFields(fieldsAndNodes, conceptElem, doc, xPathInst, xmlNodeElem, debug, true);
+      buildFields(fieldsAndNodes, conceptElem, doc, xPathInst, xmlNodeElem, debug, false);
+      System.out.println(EditorXmlUtils.asText(doc, true));
+    }
+  }
+
+  /**
+   * Build the nodes.
+   *
+   * @param fieldsAndNodes Field and node meta information (no form values)
+   * @param doc The XML document
+   * @param conceptElem The current conceptual element
+   * @param xmlNodeElem The current xml node element
+   * @param debug Adds extra debugging info in the XML if true
+   * @param buildFields True if fields have to be built, false otherwise
+   * @param depth Passed for debugging and logging purposes
+   * @param xPathInst Allows to evaluate xpath expressions
+   */
+  private static void buildNodesAndFields(final FieldsAndNodes fieldsAndNodes, final Document doc,
+      final ConceptNode conceptElem, final Element xmlNodeElem, final boolean debug,
+      final boolean buildFields, final int depth, final XPath xPathInst) {
     final List<ConceptNode> conceptNodes = conceptElem.getConceptNodes();
     for (final ConceptNode conceptElemChild : conceptNodes) {
       final String nodeId = conceptElemChild.getId();
@@ -170,18 +221,18 @@ public class NoticeSaver {
       final String xpathAbs = getTextStrict(nodeMeta, "xpathAbsolute");
 
       Element firstElem = null;
-      Element previousElem = null;
+      Element previousElem = xmlNodeElem;
       Element partElem = null;
 
       // xpathRelative can contain many xml elements. We must build the hierarchy.
-      // TODO Use ANTLR xpath grammar later.
+      // TODO Use ANTLR xpath grammar later??
       // TODO maybe use xpath to locate the tag in the doc ? What xpath finds is where to add the
       // data.
 
       final String[] partsArr = getXpathPartsArr(xpathAbs);
       final List<String> parts = new ArrayList<>(Arrays.asList(partsArr));
-      parts.remove(0);
-      parts.remove(0);
+      parts.remove(0); // If absolute.
+      parts.remove(0); // If absolute.
       System.out.println("  PARTS NODE: " + parts);
       for (final String partXpath : parts) {
 
@@ -190,11 +241,22 @@ public class NoticeSaver {
         final String xpathExpr = px.getXpathExpr();
         final String tag = px.getTag();
         System.out.println("  tag=" + tag);
+        System.out.println("  xmlTag=" + xmlNodeElem.getTagName());
 
         // TODO tttt if the element is not repeatable, reuse it.
-        // Find existing elements in the context of the previous element (or doc).
-        final Object xpathTarget = previousElem != null ? previousElem : doc;
-        final NodeList foundElements = evaluateXpath(xpathTarget, xPath, xpathExpr);
+
+        // Find existing elements in the context of the previous element.
+        final NodeList foundElements;
+
+        if (previousElem.getTagName().equals(tag) && xpathExpr.equals(tag)) {
+          // Sometimes the xpath absolute part already matches the previous element.
+          // If there is no special xpath expression, just skip the part.
+          // This avoids nesting of the same .../tag/tag/...
+          continue; // Skip this tag.
+        }
+
+        // if (xmlNodeElem.getTagName().equals(tag)) {
+        foundElements = evaluateXpath(previousElem, xPathInst, xpathExpr);
 
         if (foundElements.getLength() > 0) {
           assert foundElements.getLength() == 1;
@@ -206,17 +268,21 @@ public class NoticeSaver {
             throw new RuntimeException(String.format("NodeType=%s not an Element", xmlNode));
           }
         } else {
-          System.out.println("  creating " + tag);
+          // Create an XML element for the node.
+          System.out.println("  creating node " + tag);
+          logger.debug("Creating nodeId={}, tag={}", nodeId, tag);
           partElem = doc.createElement(tag);
         }
 
-        if (previousElem != null) {
-          previousElem.appendChild(partElem);
-        }
+        previousElem.appendChild(partElem);
 
         if (firstElem == null && foundElements.getLength() == 0) {
           // This is the newest parent closest to the root.
           firstElem = partElem;
+        }
+
+        if (schemeNameOpt.isPresent()) {
+          partElem.setAttribute("schemeName", schemeNameOpt.get());
         }
 
         previousElem = partElem;
@@ -228,49 +294,46 @@ public class NoticeSaver {
         xmlNodeElem.appendChild(firstElem);
       }
 
-      buildPhysicalModelXmlRec(fieldsAndNodes, doc, conceptElemChild, partElem, depth + 1);
-    }
+      // Build child nodes recursively.
+      buildPhysicalModelXmlRec(fieldsAndNodes, doc, conceptElemChild, partElem, debug, buildFields,
+          depth + 1);
 
-    //
-    // FIELDS.
-    //
-    handleFields(fieldsAndNodes, conceptElem, doc, xPath, xmlNodeElem);
+    } // End of for loop on concept nodes.
   }
 
-  private static void handleFields(final FieldsAndNodes fieldsAndNodes,
-      final ConceptNode conceptElem, final Document doc, final XPath xPath,
-      final Element xmlNodeElem) {
+  /**
+   * Builds the fields, some fields have nodes in their xpath, those will also be built. As a
+   * side-effect the doc and the passed xml element will be modified.
+   */
+  private static void buildFields(final FieldsAndNodes fieldsAndNodes,
+      final ConceptNode conceptElem, final Document doc, final XPath xPathInst,
+      final Element xmlNodeElem, final boolean debug, final boolean onlyIfPriority) {
+
+    // logger.debug("xmlEleme=" + EditorXmlUtils.getNodePath(xmlNodeElem));
     final List<ConceptField> conceptFields = conceptElem.getConceptFields();
+    System.out.println("  conceptFields" + conceptFields);
     for (final ConceptField conceptField : conceptFields) {
       final String value = conceptField.getValue();
       final String fieldId = conceptField.getId();
 
       System.out.println("");
-      System.out.println("fieldId=" + fieldId);
+      System.out.println("  fieldId=" + fieldId);
 
       // Get the field meta-data from the SDK.
       final JsonNode fieldMeta = fieldsAndNodes.getFieldById(fieldId);
       Validate.notNull(fieldMeta, "fieldMeta null for fieldId=%s", fieldId);
 
       final String xpathRel = getTextStrict(fieldMeta, "xpathRelative");
-      final String xpathAbs = getTextStrict(fieldMeta, "xpathAbsolute");
-
-      // TODO tttt compare hierarchy.
-      // System.out.println("xmlEleme=" + EditorXmlUtils.getNodePath(xmlNodeElem));
-      // System.out.println("xpathAsb=" + xpathAbs);
-      // System.out.println("xpathRel=" + xpathRel);
-
-      // xpathAb=/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName = 'EU']
-      // xmlElem=/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName = 'EU']
+      // final String xpathAbs = getTextStrict(fieldMeta, "xpathAbsolute");
 
       Element firstElem = null;
-      Element previousElem = null;
+      Element previousElem = xmlNodeElem;
       Element partElem = null;
 
       // TODO Use ANTLR xpath grammar later.
       final String[] partsArr = getXpathPartsArr(xpathRel);
       final List<String> parts = new ArrayList<>(Arrays.asList(partsArr));
-      System.out.println("PARTS FIELD: " + parts);
+      System.out.println("  PARTS FIELD: " + parts);
       for (final String partXpath : parts) {
 
         final PhysicalXpath px = handleXpathPart(partXpath);
@@ -278,16 +341,14 @@ public class NoticeSaver {
         final String xpathExpr = px.getXpathExpr();
         final String tag = px.getTag();
 
-        final Object xpathTarget = previousElem != null ? previousElem : xmlNodeElem;
-        final NodeList foundElements = evaluateXpath(xpathTarget, xPath, xpathExpr);
+        final NodeList foundElements = evaluateXpath(previousElem, xPathInst, xpathExpr);
 
-        // System.out.println(" length=" + foundElements.getLength() + " for tag=" + tag);
         if (foundElements.getLength() > 0) {
           assert foundElements.getLength() == 1;
           final Node xmlNode;
           if (foundElements.getLength() > 1) {
             xmlNode = foundElements.item(0); // Which? 0, 1, ...???
-            System.out.println("  FOUND MULTIPLE ELEMENTS");
+            logger.warn("  FOUND MULTIPLE ELEMENTS for: {}", fieldId);
           } else {
             xmlNode = foundElements.item(0);
           }
@@ -298,11 +359,16 @@ public class NoticeSaver {
             throw new RuntimeException(String.format("NodeType=%s not an Element", xmlNode));
           }
         } else {
-          System.out.println("  creating " + tag);
+          // Create an XML element for the field.
+          logger.debug("Creating fieldId={}, tag={}", fieldId, tag);
+          System.out.println("  creating field " + tag);
           partElem = doc.createElement(tag);
         }
 
         if (previousElem != null) {
+          if (onlyIfPriority && !schemeNameOpt.isPresent()) {
+            return; // Skip.
+          }
           previousElem.appendChild(partElem);
         }
 
@@ -335,7 +401,9 @@ public class NoticeSaver {
         partElem.setAttribute("listName", listName);
       }
 
-      partElem.setAttribute("debugId", fieldId);
+      if (debug) {
+        partElem.setAttribute("debugId", fieldId);
+      }
 
       if (firstElem != null) {
         xmlNodeElem.appendChild(firstElem);
@@ -343,11 +411,12 @@ public class NoticeSaver {
     }
   }
 
-  private static NodeList evaluateXpath(final Object node, XPath xPath, final String xpathExpr) {
+  private static NodeList evaluateXpath(final Object node, final XPath xPathInst,
+      final String xpathExpr) {
     Validate.notBlank(xpathExpr);
     try {
       final NodeList nodeList =
-          (NodeList) xPath.compile(xpathExpr).evaluate(node, XPathConstants.NODESET);
+          (NodeList) xPathInst.compile(xpathExpr).evaluate(node, XPathConstants.NODESET);
       return nodeList;
     } catch (XPathExpressionException e) {
       throw new RuntimeException(e);
@@ -375,16 +444,6 @@ public class NoticeSaver {
     // "[cbc:CompanyID/@schemeName = 'national']");
     // }
 
-    if (tag.contains("[not(")) {
-      // TEMPORARY FIX.
-      // Ignore predicate with negation as it is not useful for XML generation.
-      // Example:
-      // "xpathAbsolute" :
-      // "/*/cac:BusinessParty/cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName =
-      // 'EU')]/cbc:RegistrationName",
-      tag = tag.substring(0, tag.indexOf('['));
-    }
-
     if (tag.contains("[@schemeName = '")) {
       // Example:
       // "xpathAbsolute" : "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName =
@@ -399,6 +458,17 @@ public class NoticeSaver {
       schemeNameOpt = Optional.of(schemeName);
     } else {
       schemeNameOpt = Optional.empty();
+    }
+
+    // We want to remove the predicate from the tag.
+    if (tag.contains("[")) {
+      // TEMPORARY FIX.
+      // Ignore predicate with negation as it is not useful for XML generation.
+      // Example:
+      // "xpathAbsolute" :
+      // "/*/cac:BusinessParty/cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName =
+      // 'EU')]/cbc:RegistrationName",
+      tag = tag.substring(0, tag.indexOf('['));
     }
 
     // For the xpath expression keep the original.

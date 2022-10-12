@@ -535,7 +535,7 @@ public class SdkService {
     final ConceptualModel concept = new ConceptualModel(conceptRoot);
 
     final PhysicalModel physicalModel = NoticeSaver.buildPhysicalModelXml(fieldsAndNodes,
-        noticeInfoBySubtype, documentInfoByType, concept);
+        noticeInfoBySubtype, documentInfoByType, concept, false, true);
 
     final Document doc = physicalModel.getDomDocument();
     final String xmlAsText = physicalModel.getXmlAsText(false);

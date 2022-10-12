@@ -1,10 +1,12 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.xml.parsers.ParserConfigurationException;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -51,19 +53,28 @@ public class NoticeSaverTest {
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
-      root.set("BT-500-Business-1", vis);
-      vis.put("contentId", "BT-500-Business");
+      root.set("BT-501-Business-European-1", vis);
+      vis.put("contentId", "BT-501-Business-European");
       vis.put("type", "field");
-      vis.put("value", "The official name XYZ");
+      vis.put("value", "The EU registration number");
       vis.put("contentCount", "1");
       vis.put("contentParentCount", "1");
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
-      root.set("BT-501-Business-European-1", vis);
-      vis.put("contentId", "BT-501-Business-European");
+      root.set("OPP-113-Business-European-1", vis);
+      vis.put("contentId", "OPP-113-Business-European");
       vis.put("type", "field");
-      vis.put("value", "The EU registration number");
+      vis.put("value", "2020-11-14+01:00");
+      vis.put("contentCount", "1");
+      vis.put("contentParentCount", "1");
+    }
+    {
+      final ObjectNode vis = mapper.createObjectNode();
+      root.set("BT-500-Business-1", vis);
+      vis.put("contentId", "BT-500-Business");
+      vis.put("type", "field");
+      vis.put("value", "ACME Solution");
       vis.put("contentCount", "1");
       vis.put("contentParentCount", "1");
     }
@@ -91,9 +102,9 @@ public class NoticeSaverTest {
       final ObjectNode vis = mapper.createObjectNode();
       root.set("OPP-105-Business-2", vis);
       vis.put("contentId", "OPP-105-Business");
-      vis.put("type", "field");
       vis.put("value", "health");
       vis.put("contentCount", "2");
+      vis.put("type", "field");
       vis.put("contentParentCount", "1");
     }
 
@@ -191,6 +202,16 @@ public class NoticeSaverTest {
       field.put("repeatable", false);
       field.put("codeListId", "notice-purpose");
     }
+    {
+      final ObjectNode field = mapper.createObjectNode();
+      fieldById.put("OPP-113-Business-European", field);
+      field.put("parentNodeId", "ND-EuEntity");
+      field.put("xpathAbsolute",
+          "/*/cac:BusinessParty/cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']/cbc:RegistrationDate");
+      field.put("xpathRelative", "cbc:RegistrationDate");
+      field.put("type", "date");
+      field.put("repeatable", false);
+    }
   }
 
   private static void setupFieldsJsonXmlStructureNodes(final ObjectMapper mapper,
@@ -235,6 +256,15 @@ public class NoticeSaverTest {
       node.put("parentId", "ND-Root");
       node.put("xpathAbsolute", "/*/efac:NoticePurpose");
       node.put("xpathRelative", "efac:NoticePurpose");
+      node.put("repeatable", false);
+    }
+    {
+      final ObjectNode node = mapper.createObjectNode();
+      nodeById.put("ND-EuEntity", node);
+      node.put("parentId", "ND-BusinessParty");
+      node.put("xpathAbsolute",
+          "/*/cac:BusinessParty/cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']");
+      node.put("xpathRelative", "cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']");
       node.put("repeatable", false);
     }
   }
@@ -286,8 +316,10 @@ public class NoticeSaverTest {
     //
     // BUILD PHYSICAL MODEL.
     //
+    final boolean debug = true; // Very useful for the testing.
+    final boolean buildFields = true;
     final PhysicalModel pm = NoticeSaver.buildPhysicalModelXml(fieldsAndNodes, noticeInfoBySubtype,
-        documentInfoByType, conceptualModel);
+        documentInfoByType, conceptualModel, debug, buildFields);
 
     System.out.println("XML output");
     final String xmlText = pm.getXmlAsText(true);
@@ -300,6 +332,15 @@ public class NoticeSaverTest {
     // Check some metadata.
     assertTrue(xmlText.contains(noticeSubType));
     assertTrue(xmlText.contains(prefixedSdkVersion));
+    assertEquals(1, StringUtils.countMatches(xmlText, "<cbc:CustomizationID"));
+    assertEquals(1, StringUtils.countMatches(xmlText, "<cbc:SubTypeCode"));
+
+    // Check nodes.
+    assertEquals(1, StringUtils.countMatches(xmlText, "<BusinessRegistrationInformationNotice"));
+    assertEquals(1, StringUtils.countMatches(xmlText, "<ext:UBLExtensions>"));
+    assertEquals(1, StringUtils.countMatches(xmlText, "<cac:BusinessParty>"));
+    assertEquals(1, StringUtils.countMatches(xmlText, "<efac:NoticePurpose>"));
+    // assertEquals(2, StringUtils.countMatches(xmlText, "<cac:PartyLegalEntity>"));
 
     // Check fields.
     assertTrue(xmlText.contains("OPP-070-notice\""));
@@ -318,7 +359,5 @@ public class NoticeSaverTest {
     assertTrue(xmlText.contains(">health<"));
 
     assertTrue(xmlText.contains("listName=\"sector\">health<"));
-
-    // saveNotice(Optional.empty(), root.toString(), fields, nodes);
   }
 }
