@@ -5,15 +5,21 @@ import static eu.europa.ted.eforms.noticeeditor.util.JsonUtils.getTextStrict;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
+import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -123,12 +129,30 @@ public class NoticeSaver {
     final String namespaceUri = JsonUtils.getTextStrict(documentTypeInfo, "namespace");
 
     final String rootElementType = JsonUtils.getTextStrict(documentTypeInfo, "rootElement");
-    final Element rootElement = doc.createElement(rootElementType);
-    doc.appendChild(rootElement);
+    final Element rootElem = doc.createElement(rootElementType);
+    doc.appendChild(rootElem);
 
-    setXmlNamespaces(namespaceUri, rootElement);
-    buildPhysicalModelXmlRec(fieldsAndNodes, doc, concept.getRoot(), rootElement, debug,
-        buildFields, 0);
+    final XPath xPathInst = XPathFactory.newInstance().newXPath();
+    setXmlNamespaces(namespaceUri, rootElem, xPathInst);
+    buildPhysicalModelXmlRec(fieldsAndNodes, doc, concept.getRoot(), rootElem, debug, buildFields,
+        0, false, xPathInst); // tttt
+
+    // Sort order.
+    // TODO tttt use proper order depending on the notice sub type ...
+    final List<String> setupCbcOrder = setupCbcOrder();
+    for (final String tag : setupCbcOrder) {
+
+      // TODO tttt
+      // xpathInst should be prefix and namespace URI aware but it is not ...
+      final String tagNoNamespace = tag.substring(tag.indexOf(":") + 1);
+
+      final NodeList elementsFound = evaluateXpath(xPathInst, rootElem, tagNoNamespace);
+      for (int i = 0; i < elementsFound.getLength(); i++) {
+        final Node elem = elementsFound.item(i);
+        rootElem.removeChild(elem);
+        rootElem.appendChild(elem);
+      }
+    }
 
     return new PhysicalModel(doc);
   }
@@ -136,32 +160,50 @@ public class NoticeSaver {
   /**
    * Set XML namespaces.
    *
-   * @param namespaceUri This depends on the notice sub type
+   * @param namespaceUriRoot This depends on the notice sub type
    * @param rootElement The root element of the XML
    */
-  private static void setXmlNamespaces(final String namespaceUri, final Element rootElement) {
-    rootElement.setAttribute("xmlns", namespaceUri);
+  private static void setXmlNamespaces(final String namespaceUriRoot, final Element rootElement,
+      final XPath xPathInst) {
 
+    final Map<String, String> map = new LinkedHashMap<>();
+    map.put("xsi", "http://www.w3.org/2001/XMLSchema-instance");
+    map.put("cbc", "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2");
+    map.put("cac", "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2");
+    map.put("efext", "http://data.europa.eu/p27/eforms-ubl-extensions/1");
+    map.put("efac", "http://data.europa.eu/p27/eforms-ubl-extension-aggregate-components/1");
+    map.put("efbc", "http://data.europa.eu/p27/eforms-ubl-extension-basic-components/1");
+    map.put("ext", "urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2");
+
+    // On the XML document root.
+    final String xmlns = "xmlns";
+    rootElement.setAttribute(xmlns, namespaceUriRoot);
     final String xmlnsUri = "http://www.w3.org/2000/xmlns/";
-    rootElement.setAttributeNS(xmlnsUri, "xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+    final Set<Entry<String, String>> entrySet = map.entrySet();
+    for (Entry<String, String> entry : entrySet) {
+      rootElement.setAttributeNS(xmlnsUri, xmlns + ":" + entry.getKey(), entry.getValue());
+    }
 
-    rootElement.setAttributeNS(xmlnsUri, "xmlns:cbc",
-        "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2");
+    // FOR XPATH.
+    final NamespaceContext namespaceCtx = new NamespaceContext() {
+      @Override
+      public String getNamespaceURI(String prefix) {
+        final String namespaceUri = map.get(prefix);
+        Validate.notBlank(namespaceUri, "namespace is blank for prefix=%s", prefix);
+        return namespaceUri;
+      }
 
-    rootElement.setAttributeNS(xmlnsUri, "xmlns:cac",
-        "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2");
+      @Override
+      public String getPrefix(String uri) {
+        return null;
+      }
 
-    rootElement.setAttributeNS(xmlnsUri, "xmlns:efext",
-        "http://data.europa.eu/p27/eforms-ubl-extensions/1");
-
-    rootElement.setAttributeNS(xmlnsUri, "xmlns:efac",
-        "http://data.europa.eu/p27/eforms-ubl-extension-aggregate-components/1");
-
-    rootElement.setAttributeNS(xmlnsUri, "xmlns:efbc",
-        "http://data.europa.eu/p27/eforms-ubl-extension-basic-components/1");
-
-    rootElement.setAttributeNS(xmlnsUri, "xmlns:ext",
-        "urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2");
+      @Override
+      public Iterator<String> getPrefixes(String namespaceURI) {
+        return null;
+      }
+    };
+    xPathInst.setNamespaceContext(namespaceCtx);
   }
 
   /**
@@ -175,26 +217,27 @@ public class NoticeSaver {
    */
   private static void buildPhysicalModelXmlRec(final FieldsAndNodes fieldsAndNodes,
       final Document doc, final ConceptNode conceptElem, final Element xmlNodeElem,
-      final boolean debug, final boolean buildFields, final int depth) {
+      final boolean debug, final boolean buildFields, final int depth, final boolean onlyIfPriority,
+      final XPath xPathInst) {
     Validate.notNull(conceptElem, "conceptElem is null");
     Validate.notNull(xmlNodeElem, "xmlElem is null, conceptElem=%s", conceptElem.getId());
 
-    System.out
-        .println("--- " + depth + " " + xmlNodeElem.getTagName() + ", id=" + conceptElem.getId());
-
-    final XPath xPathInst = XPathFactory.newInstance().newXPath();
+    logger.debug("--- " + depth + " " + xmlNodeElem.getTagName() + ", id=" + conceptElem.getId());
 
     // NODES.
     buildNodesAndFields(fieldsAndNodes, doc, conceptElem, xmlNodeElem, debug, buildFields, depth,
-        xPathInst);
+        xPathInst, onlyIfPriority);
 
-    System.out.println(EditorXmlUtils.asText(doc, true));
     // FIELDS.
     if (buildFields) {
-      buildFields(fieldsAndNodes, conceptElem, doc, xPathInst, xmlNodeElem, debug, true);
-      buildFields(fieldsAndNodes, conceptElem, doc, xPathInst, xmlNodeElem, debug, false);
+      buildFields(fieldsAndNodes, conceptElem, doc, xPathInst, xmlNodeElem, debug, onlyIfPriority);
+      System.out.println("");
       System.out.println(EditorXmlUtils.asText(doc, true));
     }
+
+    // System.out.println("");
+    // System.out.println(EditorXmlUtils.asText(doc, true));
+
   }
 
   /**
@@ -211,7 +254,8 @@ public class NoticeSaver {
    */
   private static void buildNodesAndFields(final FieldsAndNodes fieldsAndNodes, final Document doc,
       final ConceptNode conceptElem, final Element xmlNodeElem, final boolean debug,
-      final boolean buildFields, final int depth, final XPath xPathInst) {
+      final boolean buildFields, final int depth, final XPath xPathInst,
+      final boolean onlyIfPriority) {
     final List<ConceptNode> conceptNodes = conceptElem.getConceptNodes();
     for (final ConceptNode conceptElemChild : conceptNodes) {
       final String nodeId = conceptElemChild.getId();
@@ -220,7 +264,6 @@ public class NoticeSaver {
       final JsonNode nodeMeta = fieldsAndNodes.getNodeById(nodeId);
       final String xpathAbs = getTextStrict(nodeMeta, "xpathAbsolute");
 
-      Element firstElem = null;
       Element previousElem = xmlNodeElem;
       Element partElem = null;
 
@@ -255,8 +298,7 @@ public class NoticeSaver {
           continue; // Skip this tag.
         }
 
-        // if (xmlNodeElem.getTagName().equals(tag)) {
-        foundElements = evaluateXpath(previousElem, xPathInst, xpathExpr);
+        foundElements = evaluateXpath(xPathInst, previousElem, xpathExpr);
 
         if (foundElements.getLength() > 0) {
           assert foundElements.getLength() == 1;
@@ -276,10 +318,6 @@ public class NoticeSaver {
 
         previousElem.appendChild(partElem);
 
-        if (firstElem == null && foundElements.getLength() == 0) {
-          // This is the newest parent closest to the root.
-          firstElem = partElem;
-        }
 
         if (schemeNameOpt.isPresent()) {
           partElem.setAttribute("schemeName", schemeNameOpt.get());
@@ -289,14 +327,9 @@ public class NoticeSaver {
 
       } // End of for loop on parts.
 
-      if (firstElem != null) {
-        Validate.notNull(partElem);
-        xmlNodeElem.appendChild(firstElem);
-      }
-
       // Build child nodes recursively.
       buildPhysicalModelXmlRec(fieldsAndNodes, doc, conceptElemChild, partElem, debug, buildFields,
-          depth + 1);
+          depth + 1, onlyIfPriority, xPathInst);
 
     } // End of for loop on concept nodes.
   }
@@ -326,7 +359,6 @@ public class NoticeSaver {
       final String xpathRel = getTextStrict(fieldMeta, "xpathRelative");
       // final String xpathAbs = getTextStrict(fieldMeta, "xpathAbsolute");
 
-      Element firstElem = null;
       Element previousElem = xmlNodeElem;
       Element partElem = null;
 
@@ -341,10 +373,14 @@ public class NoticeSaver {
         final String xpathExpr = px.getXpathExpr();
         final String tag = px.getTag();
 
-        final NodeList foundElements = evaluateXpath(previousElem, xPathInst, xpathExpr);
+        final NodeList foundElements = evaluateXpath(xPathInst, previousElem, xpathExpr);
+        System.out.println("previousElem=" + EditorXmlUtils.getNodePath(previousElem));
+        System.out.println("xpathExpr=" + xpathExpr);
+        System.out.println("foundElements=" + foundElements.getLength());
 
         if (foundElements.getLength() > 0) {
           assert foundElements.getLength() == 1;
+
           final Node xmlNode;
           if (foundElements.getLength() > 1) {
             xmlNode = foundElements.item(0); // Which? 0, 1, ...???
@@ -352,30 +388,22 @@ public class NoticeSaver {
           } else {
             xmlNode = foundElements.item(0);
           }
+
           if (xmlNode.getNodeType() == Node.ELEMENT_NODE) {
             // An existing element was found, reuse it.
             partElem = (Element) xmlNode;
           } else {
             throw new RuntimeException(String.format("NodeType=%s not an Element", xmlNode));
           }
+
         } else {
           // Create an XML element for the field.
-          logger.debug("Creating fieldId={}, tag={}", fieldId, tag);
-          System.out.println("  creating field " + tag);
+          logger.debug("Creating tag={}", tag);
           partElem = doc.createElement(tag);
+          partElem.setAttribute("temp", "temp");
         }
 
-        if (previousElem != null) {
-          if (onlyIfPriority && !schemeNameOpt.isPresent()) {
-            return; // Skip.
-          }
-          previousElem.appendChild(partElem);
-        }
-
-        if (firstElem == null) {
-          // This is the newest parent closest to the xmlElem.
-          firstElem = partElem;
-        }
+        previousElem.appendChild(partElem);
 
         if (schemeNameOpt.isPresent()) {
           partElem.setAttribute("schemeName", schemeNameOpt.get());
@@ -385,9 +413,46 @@ public class NoticeSaver {
 
       } // End of for loop on parts.
 
-      // The last element is a leaf, so it is a field in this case.F
-      Validate.notNull(partElem, "partElem is null for %s", fieldId);
-      partElem.setTextContent(value);
+      // The last element is a leaf, so it is a field in this case.
+      final Element fieldElem = partElem;
+      Validate.notNull(fieldElem, "fieldElem is null for %s", fieldId);
+
+      if (onlyIfPriority && StringUtils.isBlank(fieldElem.getAttribute("schemeName"))) {
+        // Remove created and appended child elements.
+        Element elem = fieldElem;
+        while (true) {
+          if (elem.hasAttribute("temp")) {
+            final Node parentNode = elem.getParentNode();
+            if (parentNode != null) {
+              parentNode.removeChild(elem);
+              elem = (Element) parentNode;
+            } else {
+              break;
+            }
+          } else {
+            break;
+          }
+        }
+        continue; // Skip, it will be added later.
+      } else {
+        // Remove created and appended children.
+        Element elem = fieldElem;
+        while (true) {
+          if (elem.hasAttribute("temp")) {
+            final Node parentNode = elem.getParentNode();
+            if (parentNode != null) {
+              elem.removeAttribute("temp");
+              elem = (Element) parentNode;
+            } else {
+              break;
+            }
+          } else {
+            break;
+          }
+        }
+      }
+
+      fieldElem.setTextContent(value);
 
       final String fieldType = JsonUtils.getTextStrict(fieldMeta, "type");
       if (fieldType == "code") {
@@ -398,25 +463,28 @@ public class NoticeSaver {
           // Maybe via a special key/value.
           listName = "sector";
         }
-        partElem.setAttribute("listName", listName);
+        fieldElem.setAttribute("listName", listName);
       }
 
       if (debug) {
-        partElem.setAttribute("debugId", fieldId);
+        fieldElem.setAttribute("debugId", fieldId);
       }
 
-      if (firstElem != null) {
-        xmlNodeElem.appendChild(firstElem);
-      }
-    }
+    } // End of for loop on concept fields.
   }
 
-  private static NodeList evaluateXpath(final Object node, final XPath xPathInst,
+  private static NodeList evaluateXpath(final XPath xPathInst, final Object contextElem,
       final String xpathExpr) {
     Validate.notBlank(xpathExpr);
     try {
+
+      // Potential optimization would be to reuse some of the compiled xpath.
+      // final NodeList nodeList =
+      // (NodeList) xPathInst.compile(xpathExpr).evaluate(contextElem, XPathConstants.NODESET);
+
       final NodeList nodeList =
-          (NodeList) xPathInst.compile(xpathExpr).evaluate(node, XPathConstants.NODESET);
+          (NodeList) xPathInst.evaluate(xpathExpr, contextElem, XPathConstants.NODESET);
+
       return nodeList;
     } catch (XPathExpressionException e) {
       throw new RuntimeException(e);
@@ -429,7 +497,6 @@ public class NoticeSaver {
   }
 
   private static PhysicalXpath handleXpathPart(final String partParam) {
-
     String tag = partParam;
     final Optional<String> schemeNameOpt;
 
@@ -475,6 +542,41 @@ public class NoticeSaver {
     final String xpathExpr = partParam.replaceAll(REPLACEMENT, "/");
 
     return new PhysicalXpath(xpathExpr, tag, schemeNameOpt);
+  }
+
+  public static List<String> setupCbcOrder() {
+    // TODO tttt later: load this dynamically from the xsd sequence.
+    // EFORMS-BusinessRegistrationInformationNotice.xsd
+    final List<String> list = new ArrayList<>();
+    list.add("ext:UBLExtensions");
+    list.add("cbc:UBLVersionID");
+    list.add("cbc:CustomizationID");
+    list.add("cbc:ProfileID");
+    list.add("cbc:ProfileExecutionID");
+    list.add("cbc:ID");
+    list.add("cbc:UUID");
+    list.add("cbc:IssueDate");
+    list.add("cbc:IssueTime");
+    list.add("cbc:VersionID");
+    list.add("cbc:PreviousVersionID");
+    list.add("cbc:RequestedPublicationDate");
+    list.add("cbc:RegulatoryDomain");
+    list.add("cbc:NoticeTypeCode");
+    list.add("cbc:NoticeLanguageCode");
+    list.add("cbc:Note");
+    list.add("cbc:BriefDescription");
+    list.add("cac:AdditionalNoticeLanguage");
+    list.add("cac:Signature");
+    list.add("cac:SenderParty");
+    list.add("cac:ReceiverParty");
+    list.add("cac:BusinessParty");
+    list.add("cac:BrochureDocumentReference");
+    list.add("cac:AdditionalDocumentReference");
+    list.add("cac:BusinessCapability");
+    list.add("efac:BusinessPartyGroup");
+    list.add("efac:NoticePurpose");
+    list.add("efac:NoticeSubType");
+    return list;
   }
 
 }
