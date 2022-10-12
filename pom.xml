@@ -34,7 +34,7 @@
   </developers>
 
   <scm>
-    <connection>scm:git:git://github.com/OP-TED/eforms-core-java.git</connection>
+    <connection>scm:git:git://github.com/OP-TED/eforms-notice-editor.git</connection>
     <url>https://github.com/OP-TED/eforms-notice-editor.git</url>
   </scm>
 
