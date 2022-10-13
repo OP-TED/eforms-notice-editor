@@ -129,6 +129,20 @@
       <version>6.2.0</version>
     </dependency>
 
+    <dependency>
+      <!-- Used for namespace aware xpath. -->
+      <groupId>net.sf.saxon</groupId>
+      <artifactId>Saxon-HE</artifactId>
+      <version>11.4</version>
+      <exclusions>
+        <!-- To avoid issues with the org.w3c.dom package. -->
+        <exclusion>
+          <groupId>xml-apis</groupId>
+          <artifactId>xml-apis</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
   </dependencies>
 
   <build>

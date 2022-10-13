@@ -274,7 +274,7 @@ public class NoticeSaverTest {
   public void test() throws ParserConfigurationException {
     final ObjectMapper mapper = new ObjectMapper();
 
-    final String prefixedSdkVersion = "eforms-sdk-1.1.0";
+    final String prefixedSdkVersion = "eforms-sdk-" + "1.1.0";
     final String noticeSubType = "X02";
 
     final ObjectNode root = setupVisualModel(mapper, prefixedSdkVersion, noticeSubType);
@@ -321,9 +321,10 @@ public class NoticeSaverTest {
     final PhysicalModel pm = NoticeSaver.buildPhysicalModelXml(fieldsAndNodes, noticeInfoBySubtype,
         documentInfoByType, conceptualModel, debug, buildFields);
 
-    System.out.println("XML output");
-    final String xmlText = pm.getXmlAsText(true);
-    System.out.println(xmlText);
+    System.out.println("XML as text:");
+    final String xmlText = pm.getXmlAsText(false); // Not indented to avoid line breaks.
+
+    System.out.println(pm.getXmlAsText(true));
 
     // Check fields root node.
     assertTrue(xmlText.contains("BusinessRegistrationInformationNotice"));
@@ -340,6 +341,8 @@ public class NoticeSaverTest {
     assertEquals(1, StringUtils.countMatches(xmlText, "<ext:UBLExtensions>"));
     assertEquals(1, StringUtils.countMatches(xmlText, "<cac:BusinessParty>"));
     assertEquals(1, StringUtils.countMatches(xmlText, "<efac:NoticePurpose>"));
+
+    // Not passing yet:
     // assertEquals(2, StringUtils.countMatches(xmlText, "<cac:PartyLegalEntity>"));
 
     // Check fields.
@@ -358,6 +361,7 @@ public class NoticeSaverTest {
     assertTrue(xmlText.contains(">education<"));
     assertTrue(xmlText.contains(">health<"));
 
+    assertTrue(xmlText.contains("listName=\"sector\">education<"));
     assertTrue(xmlText.contains("listName=\"sector\">health<"));
   }
 

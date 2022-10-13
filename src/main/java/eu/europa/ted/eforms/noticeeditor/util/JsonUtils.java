@@ -41,6 +41,11 @@ public class JsonUtils {
     return jsonElem.asInt();
   }
 
+  public static boolean getBoolStrict(final JsonNode json, final String key) {
+    final JsonNode jsonElem = checkKeyAndElemNotNull(json, key);
+    return jsonElem.asBoolean();
+  }
+
   public static String getTextStrict(final JsonNode json, final String key) {
     final JsonNode jsonElem = checkKeyAndElemNotNull(json, key);
     final String text = jsonElem.asText(null);

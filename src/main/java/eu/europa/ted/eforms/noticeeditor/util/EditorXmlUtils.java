@@ -27,12 +27,17 @@ public class EditorXmlUtils {
       transformer.setOutputProperty(OutputKeys.ENCODING, StandardCharsets.UTF_8.toString());
       transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
       transformer.setOutputProperty(OutputKeys.METHOD, "xml");
-
       if (indented) {
+        // NOTE: indentation and the text may vary by implementation (pure JDK, Saxon HE, ...)
         transformer.setOutputProperty(OutputKeys.INDENT, "yes");
       }
+      transformer.setURIResolver(null); // Do not resolve URIs.
 
-      transformer.transform(new DOMSource(doc), new StreamResult(stringWriter));
+      // final DOMSource domSource = new DOMSource(doc); // Also works but shows a warning.
+      final DOMSource domSource = new DOMSource(doc.getDocumentElement());
+
+      transformer.transform(domSource, new StreamResult(stringWriter));
+
       return stringWriter.toString();
     } catch (Exception ex) {
       throw new RuntimeException("Error converting to String", ex);

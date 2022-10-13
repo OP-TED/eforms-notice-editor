@@ -19,6 +19,7 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
+import javax.xml.xpath.XPathFactoryConfigurationException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
@@ -31,11 +32,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
 import eu.europa.ted.eforms.noticeeditor.util.EditorXmlUtils;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
+import net.sf.saxon.lib.NamespaceConstant;
 
 public class NoticeSaver {
 
-  private static final String REPLACEMENT = "~~~";
   private static final Logger logger = LoggerFactory.getLogger(NoticeSaver.class);
+
+  private static final String REPLACEMENT = "~~~";
 
   public static Map<String, ConceptNode> buildConceptualModel(final FieldsAndNodes fieldsAndNodes,
       final JsonNode visualRoot) {
@@ -102,6 +105,11 @@ public class NoticeSaver {
     return conceptNode;
   }
 
+  public static final Element createElem(final Document doc, final String tagName) {
+    // This removes the xmlns="" that Saxon adds.
+    return doc.createElementNS("", tagName);
+  }
+
   /**
    * Builds the physical model.
    *
@@ -118,43 +126,77 @@ public class NoticeSaver {
 
     final DocumentBuilder safeDocBuilder =
         SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype(true);
+    logger.info("XML DOM namespaceAware={}", safeDocBuilder.isNamespaceAware());
+    logger.info("XML DOM validating={}", safeDocBuilder.isValidating());
     final Document doc = safeDocBuilder.newDocument();
     doc.setXmlStandalone(true);
 
-    // Get the namespace and the document type from the SDK data.
-    final String noticeSubType = concept.getNoticeSubType();
-    final JsonNode noticeInfo = noticeInfoBySubtype.get(noticeSubType);
-    final String documentType = JsonUtils.getTextStrict(noticeInfo, "documentType");
-    final JsonNode documentTypeInfo = documentInfoByType.get(documentType);
-    final String namespaceUri = JsonUtils.getTextStrict(documentTypeInfo, "namespace");
+    final DocumentTypeInfo docTypeInfo =
+        getDocumentTypeInfo(noticeInfoBySubtype, documentInfoByType, concept);
+    final String namespaceUri = docTypeInfo.getNamespaceUri();
+    final String rootElementType = docTypeInfo.getRootElementTagName();
 
-    final String rootElementType = JsonUtils.getTextStrict(documentTypeInfo, "rootElement");
-    final Element rootElem = doc.createElement(rootElementType);
+    // TODO tttt use path to xsd, try local changes for now.
+    // https://citnet.tech.ec.europa.eu/CITnet/jira/browse/TEDEFO-1426
+    // For the moment do as if it was there.
+    final String xsdPath = docTypeInfo.getXsdPath();
+
+    // Create the root element, top level element.
+    final Element rootElem = createElem(doc, rootElementType);
     doc.appendChild(rootElem);
 
-    final XPath xPathInst = XPathFactory.newInstance().newXPath();
-    setXmlNamespaces(namespaceUri, rootElem, xPathInst);
+    final XPath xPathInst = setXmlNamespaces(namespaceUri, rootElem);
+
+    // Attempt to put schemeName first.
+    // buildPhysicalModelXmlRec(fieldsAndNodes, doc, concept.getRoot(), rootElem, debug,
+    // buildFields,
+    // 0, true, xPathInst);
+
     buildPhysicalModelXmlRec(fieldsAndNodes, doc, concept.getRoot(), rootElem, debug, buildFields,
-        0, false, xPathInst); // tttt
+        0, false, xPathInst);
 
     // Sort order.
-    // TODO tttt use proper order depending on the notice sub type ...
+    reorderElements(rootElem, xPathInst);
+
+    return new PhysicalModel(doc);
+  }
+
+  /**
+   * Get information about the document type from the SDK.
+   */
+  public static DocumentTypeInfo getDocumentTypeInfo(
+      final Map<String, JsonNode> noticeInfoBySubtype,
+      final Map<String, JsonNode> documentInfoByType, final ConceptualModel concept) {
+    final JsonNode noticeInfo = getNoticeSubTypeInfo(noticeInfoBySubtype, concept);
+
+    // Get the document type info from the SDK data.
+    final String documentType = JsonUtils.getTextStrict(noticeInfo, "documentType");
+    final JsonNode documentTypeInfo = documentInfoByType.get(documentType);
+    return new DocumentTypeInfo(documentTypeInfo);
+  }
+
+  /**
+   * Get information about the notice sub type from the SDK.
+   */
+  public static JsonNode getNoticeSubTypeInfo(final Map<String, JsonNode> noticeInfoBySubtype,
+      final ConceptualModel concept) {
+    final String noticeSubType = concept.getNoticeSubType();
+    return noticeInfoBySubtype.get(noticeSubType);
+  }
+
+  /**
+   * Fix the sort order.
+   */
+  private static void reorderElements(final Element rootElem, final XPath xPathInst) {
     final List<String> setupCbcOrder = setupCbcOrder();
     for (final String tag : setupCbcOrder) {
-
-      // TODO tttt
-      // xpathInst should be prefix and namespace URI aware but it is not ...
-      final String tagNoNamespace = tag.substring(tag.indexOf(":") + 1);
-
-      final NodeList elementsFound = evaluateXpath(xPathInst, rootElem, tagNoNamespace);
+      final NodeList elementsFound = evaluateXpath(xPathInst, rootElem, tag);
       for (int i = 0; i < elementsFound.getLength(); i++) {
         final Node elem = elementsFound.item(i);
         rootElem.removeChild(elem);
         rootElem.appendChild(elem);
       }
     }
-
-    return new PhysicalModel(doc);
   }
 
   /**
@@ -162,9 +204,11 @@ public class NoticeSaver {
    *
    * @param namespaceUriRoot This depends on the notice sub type
    * @param rootElement The root element of the XML
+   * @return XPath instance with prefix to namespace awareness
    */
-  private static void setXmlNamespaces(final String namespaceUriRoot, final Element rootElement,
-      final XPath xPathInst) {
+  static XPath setXmlNamespaces(final String namespaceUriRoot, final Element rootElement) {
+    Validate.notBlank(namespaceUriRoot);
+    Validate.notNull(rootElement);
 
     final Map<String, String> map = new LinkedHashMap<>();
     map.put("xsi", "http://www.w3.org/2001/XMLSchema-instance");
@@ -175,35 +219,56 @@ public class NoticeSaver {
     map.put("efbc", "http://data.europa.eu/p27/eforms-ubl-extension-basic-components/1");
     map.put("ext", "urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2");
 
-    // On the XML document root.
-    final String xmlns = "xmlns";
-    rootElement.setAttribute(xmlns, namespaceUriRoot);
+    //
+    // NAMESPACES FOR THE XML DOCUMENT.
+    //
+    final String xmlnsPrefix = "xmlns";
+    rootElement.setAttribute(xmlnsPrefix, namespaceUriRoot);
+
     final String xmlnsUri = "http://www.w3.org/2000/xmlns/";
     final Set<Entry<String, String>> entrySet = map.entrySet();
     for (Entry<String, String> entry : entrySet) {
-      rootElement.setAttributeNS(xmlnsUri, xmlns + ":" + entry.getKey(), entry.getValue());
+      rootElement.setAttributeNS(xmlnsUri, xmlnsPrefix + ":" + entry.getKey(), entry.getValue());
     }
 
-    // FOR XPATH.
-    final NamespaceContext namespaceCtx = new NamespaceContext() {
-      @Override
-      public String getNamespaceURI(String prefix) {
-        final String namespaceUri = map.get(prefix);
-        Validate.notBlank(namespaceUri, "namespace is blank for prefix=%s", prefix);
-        return namespaceUri;
-      }
+    //
+    // NAMESPACES FOR XPATH.
+    //
+    try {
+      // Why Saxon: It was not working with the default Java / JDK lib.
+      final String objectModelSaxon = NamespaceConstant.OBJECT_MODEL_SAXON;
+      System.setProperty("javax.xml.xpath.XPathFactory:" + objectModelSaxon,
+          "net.sf.saxon.xpath.XPathFactoryImpl");
 
-      @Override
-      public String getPrefix(String uri) {
-        return null;
-      }
+      final XPath xPathInst = XPathFactory.newInstance(objectModelSaxon).newXPath();
 
-      @Override
-      public Iterator<String> getPrefixes(String namespaceURI) {
-        return null;
-      }
-    };
-    xPathInst.setNamespaceContext(namespaceCtx);
+      // Custom namespace context.
+      // https://stackoverflow.com/questions/13702637/xpath-with-namespace-in-java
+      final NamespaceContext namespaceCtx = new NamespaceContext() {
+        @Override
+        public String getNamespaceURI(final String prefix) {
+          final String namespaceUri = map.get(prefix);
+          Validate.notBlank(namespaceUri, "Namespace is blank for prefix=%s", prefix);
+          return namespaceUri;
+        }
+
+        @Override
+        public String getPrefix(final String uri) {
+          return null;
+        }
+
+        @Override
+        public Iterator<String> getPrefixes(final String namespaceURI) {
+          return null;
+        }
+      };
+      xPathInst.setNamespaceContext(namespaceCtx);
+      return xPathInst;
+
+    } catch (XPathFactoryConfigurationException ex) {
+      throw new RuntimeException(ex);
+    }
+
   }
 
   /**
@@ -286,7 +351,8 @@ public class NoticeSaver {
         System.out.println("  tag=" + tag);
         System.out.println("  xmlTag=" + xmlNodeElem.getTagName());
 
-        // TODO tttt if the element is not repeatable, reuse it.
+        // TODO tttt if the element is not repeatable, reuse it. Maybe here is the right place to
+        // use the counter.
 
         // Find existing elements in the context of the previous element.
         final NodeList foundElements;
@@ -295,6 +361,7 @@ public class NoticeSaver {
           // Sometimes the xpath absolute part already matches the previous element.
           // If there is no special xpath expression, just skip the part.
           // This avoids nesting of the same .../tag/tag/...
+          // TODO tttt this may be fixed by TEDEFO-1466
           continue; // Skip this tag.
         }
 
@@ -313,11 +380,10 @@ public class NoticeSaver {
           // Create an XML element for the node.
           System.out.println("  creating node " + tag);
           logger.debug("Creating nodeId={}, tag={}", nodeId, tag);
-          partElem = doc.createElement(tag);
+          partElem = createElem(doc, tag);
         }
 
         previousElem.appendChild(partElem);
-
 
         if (schemeNameOpt.isPresent()) {
           partElem.setAttribute("schemeName", schemeNameOpt.get());
@@ -359,6 +425,8 @@ public class NoticeSaver {
       final String xpathRel = getTextStrict(fieldMeta, "xpathRelative");
       // final String xpathAbs = getTextStrict(fieldMeta, "xpathAbsolute");
 
+      final boolean fieldMetaRepeatable = JsonUtils.getBoolStrict(fieldMeta, "repeatable");
+
       Element previousElem = xmlNodeElem;
       Element partElem = null;
 
@@ -370,14 +438,10 @@ public class NoticeSaver {
 
         final PhysicalXpath px = handleXpathPart(partXpath);
         final Optional<String> schemeNameOpt = px.getSchemeNameOpt();
-        final String xpathExpr = px.getXpathExpr();
+        final String xpathExpr = fieldMetaRepeatable ? "somethingimpossible" : px.getXpathExpr();
         final String tag = px.getTag();
 
         final NodeList foundElements = evaluateXpath(xPathInst, previousElem, xpathExpr);
-        System.out.println("previousElem=" + EditorXmlUtils.getNodePath(previousElem));
-        System.out.println("xpathExpr=" + xpathExpr);
-        System.out.println("foundElements=" + foundElements.getLength());
-
         if (foundElements.getLength() > 0) {
           assert foundElements.getLength() == 1;
 
@@ -399,7 +463,7 @@ public class NoticeSaver {
         } else {
           // Create an XML element for the field.
           logger.debug("Creating tag={}", tag);
-          partElem = doc.createElement(tag);
+          partElem = createElem(doc, tag);
           partElem.setAttribute("temp", "temp");
         }
 
@@ -452,7 +516,15 @@ public class NoticeSaver {
         }
       }
 
+      // Set value of the field.
+      Validate.notNull(value, "value is null for fieldId=%s", fieldId);
       fieldElem.setTextContent(value);
+
+      if (debug) {
+        fieldElem.setAttribute("editorCounterSelf", Integer.toString(conceptField.getCounter()));
+        fieldElem.setAttribute("editorCounterPrnt",
+            Integer.toString(conceptField.getParentCounter()));
+      }
 
       final String fieldType = JsonUtils.getTextStrict(fieldMeta, "type");
       if (fieldType == "code") {
@@ -467,23 +539,23 @@ public class NoticeSaver {
       }
 
       if (debug) {
-        fieldElem.setAttribute("debugId", fieldId);
+        fieldElem.setAttribute("editorFieldId", fieldId);
       }
 
     } // End of for loop on concept fields.
   }
 
-  private static NodeList evaluateXpath(final XPath xPathInst, final Object contextElem,
+  static NodeList evaluateXpath(final XPath xPathInst, final Object contextElem,
       final String xpathExpr) {
     Validate.notBlank(xpathExpr);
     try {
 
       // Potential optimization would be to reuse some of the compiled xpath.
-      // final NodeList nodeList =
-      // (NodeList) xPathInst.compile(xpathExpr).evaluate(contextElem, XPathConstants.NODESET);
-
       final NodeList nodeList =
-          (NodeList) xPathInst.evaluate(xpathExpr, contextElem, XPathConstants.NODESET);
+          (NodeList) xPathInst.compile(xpathExpr).evaluate(contextElem, XPathConstants.NODESET);
+
+      // final NodeList nodeList =
+      // (NodeList) xPathInst.evaluate(xpathExpr, contextElem, XPathConstants.NODESET);
 
       return nodeList;
     } catch (XPathExpressionException e) {

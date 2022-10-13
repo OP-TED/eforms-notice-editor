@@ -50,6 +50,7 @@ import eu.europa.ted.eforms.noticeeditor.genericode.GenericodeTools;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.ConceptNode;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.ConceptualModel;
+import eu.europa.ted.eforms.noticeeditor.helper.notice.DocumentTypeInfo;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.NoticeSaver;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.PhysicalModel;
@@ -371,8 +372,7 @@ public class SdkService {
       final SdkResource resourceType, final String filenameForDownload) {
     Validate.notNull(sdkVersion, "Undefined SDK version");
     try {
-      final Path path = SdkResourceLoader.getResourceAsPath(sdkVersion, resourceType,
-          filenameForDownload, NoticeEditorConstants.EFORMS_SDKS_DIR);
+      final Path path = readSdkPath(sdkVersion, resourceType, filenameForDownload);
       final ObjectMapper mapper = new ObjectMapper();
       final JsonNode jsonRootNode = mapper.readTree(path.toFile());
       return jsonRootNode;
@@ -381,6 +381,16 @@ public class SdkService {
       throw new RuntimeException(
           String.format("Exception reading JSON file %s", filenameForDownload), ex);
     }
+  }
+
+  /**
+   * Sdk resouce as a Path.
+   */
+  public static Path readSdkPath(final SdkVersion sdkVersion, final SdkResource resourceType,
+      final String filenameForDownload) {
+    Validate.notNull(sdkVersion, "Undefined SDK version");
+    return SdkResourceLoader.getResourceAsPath(sdkVersion, resourceType, filenameForDownload,
+        NoticeEditorConstants.EFORMS_SDKS_DIR);
   }
 
   /**
@@ -533,6 +543,13 @@ public class SdkService {
 
     final ConceptNode conceptRoot = buildConceptualModel.get(ND_ROOT);
     final ConceptualModel concept = new ConceptualModel(conceptRoot);
+
+    final DocumentTypeInfo docTypeInfo =
+        NoticeSaver.getDocumentTypeInfo(noticeInfoBySubtype, documentInfoByType, concept);
+    final String sdkXsdPath = docTypeInfo.getXsdPath();
+
+    // TODO tttt use new constant once PR is merged into develop.
+    // readSdkPath(sdkVersion, SdkResource.SCHEMAS, sdkXsdPath)
 
     final PhysicalModel physicalModel = NoticeSaver.buildPhysicalModelXml(fieldsAndNodes,
         noticeInfoBySubtype, documentInfoByType, concept, false, true);
