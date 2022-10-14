@@ -6,10 +6,13 @@ For edition it reads a notice file (xml) and the corresponding notice type file 
 
 ## Run server
 
-This is Jetty based (a bit like Tomcat but self contained, you could easily switch to Tomcat):
+`mvn clean install`
+
+This is Jetty based (a bit like Tomcat but self contained, you could easily switch to Tomcat).
+We recommend you avoid running the project via mvn, from the `target` folder, example:
 
 ```
-mvn compile exec:java -Dexec.mainClass="eu.europa.ted.eforms.noticeeditor.EformsNoticeEditorApp"
+java -jar notice-editor-demo-0.0.1-SNAPSHOT.jar"
 ```
 
 In your browser go to: `localhost:8080/` (or whatever the start logs say)
