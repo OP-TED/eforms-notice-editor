@@ -13,3 +13,11 @@ server:
 
     # Number of selector threads to use.
     # selectors:
+
+eforms:
+  sdk:
+    # Path to eForms SDK
+    path: eforms-sdks
+
+    # Comma-separated list of the supported major versions of eForms SDK
+    versions: 0.6,0.7,1.0,1.1
