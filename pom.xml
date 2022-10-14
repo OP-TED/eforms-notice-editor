@@ -51,7 +51,8 @@
     <version.checkstyle>9.0</version.checkstyle> <!-- NOTE: versions before 8 something got confused by lambdas, luckily 9 solves this. -->
     <version.commons-io>2.11.0</version.commons-io>
     <version.commons-lang3>3.12.0</version.commons-lang3>
-    <version.jackson>2.13.3</version.jackson>
+    <version.jackson>2.13.4</version.jackson>
+    <version.jackson-databind>2.13.4.2</version.jackson-databind>
     <version.jakarta.servlet-api>4.0.4</version.jakarta.servlet-api>
     <version.jaxb-impl>2.3.3</version.jaxb-impl>
     <version.jsr305>3.0.2</version.jsr305>
@@ -111,7 +112,7 @@
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>${version.jackson}</version>
+        <version>${version.jackson-databind}</version>
       </dependency>
 
       <!-- Logback -->
