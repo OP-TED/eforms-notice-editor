@@ -17,7 +17,7 @@ public class DocumentTypeInfo {
     this.namespaceUri = JsonUtils.getTextStrict(this.json, "namespace");
     this.rootElementType = JsonUtils.getTextStrict(this.json, "rootElement");
     // this.xsd = JsonUtils.getTextStrict(this.json, "xsd");
-    this.xsd = "todo"; // TODO
+    this.xsd = "todo"; // TODO tttt
   }
 
   public String getXsdPath() {

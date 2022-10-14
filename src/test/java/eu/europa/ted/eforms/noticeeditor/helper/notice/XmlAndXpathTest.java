@@ -12,8 +12,8 @@ import org.w3c.dom.Element;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
 import eu.europa.ted.eforms.noticeeditor.util.EditorXmlUtils;
 
-public class XmlTestbed {
-  private static final Logger logger = LoggerFactory.getLogger(XmlTestbed.class);
+public class XmlAndXpathTest {
+  private static final Logger logger = LoggerFactory.getLogger(XmlAndXpathTest.class);
 
   @SuppressWarnings("static-method")
   @Test
