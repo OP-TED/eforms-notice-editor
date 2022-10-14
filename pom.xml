@@ -47,13 +47,20 @@
     <version.eforms-core>0.1.0</version.eforms-core>
 
     <!-- Versions - Third-party libraries -->
+    <version.checkstyle>9.0</version.checkstyle>  <!-- NOTE: versions before 8 something got confused by lambdas, luckily 9 solves this. -->
+    <version.commons-io>2.11.0</version.commons-io>
+    <version.commons-lang3>3.12.0</version.commons-lang3>
+    <version.ph-genericode>6.2.0</version.ph-genericode>
     <version.spotbugs>4.4.1</version.spotbugs>
 
     <!-- Versions - Plugins -->
     <version.checkstyle.plugin>3.1.2</version.checkstyle.plugin>
     <version.build-helper.plugin>3.3.0</version.build-helper.plugin>
+    <version.gpg.plugin>1.5</version.gpg.plugin>
     <version.install.plugin>2.5.2</version.install.plugin>
+    <version.javadoc.plugin>3.4.0</version.javadoc.plugin>
     <version.sb-contrib.plugin>7.4.7</version.sb-contrib.plugin>
+    <version.source.plugin>3.2.1</version.source.plugin>
     <version.spotbugs.plugin>4.3.0</version.spotbugs.plugin>
     <version.spring-boot>2.7.0</version.spring-boot>
     <version.surefire.plugin>3.0.0-M7</version.surefire.plugin> <!-- Versions prior to 3.0.x do not pick up Junit 5 tests correctly. -->
@@ -66,6 +73,26 @@
         <groupId>eu.europa.ted.eforms</groupId>
         <artifactId>eforms-core-java</artifactId>
         <version>${version.eforms-core}</version>
+      </dependency>
+
+      <!-- Apache Commons -->
+      <dependency>
+        <groupId>commons-io</groupId>
+        <artifactId>commons-io</artifactId>
+        <version>${version.commons-io}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-lang3</artifactId>
+        <version>${version.commons-lang3}</version>
+      </dependency>
+
+      <!-- PH -->
+      <dependency>
+        <!-- Helger lib to read codelist genericode (.gc) files. -->
+        <groupId>com.helger</groupId>
+        <artifactId>ph-genericode</artifactId>
+        <version>${version.ph-genericode}</version>
       </dependency>
 
       <!-- Spring & Spring Boot -->
@@ -85,8 +112,8 @@
       <groupId>eu.europa.ted.eforms</groupId>
       <artifactId>eforms-core-java</artifactId>
     </dependency>
-    <!-- Spring Boot -->
 
+    <!-- Spring & Spring Boot -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-thymeleaf</artifactId>
@@ -113,22 +140,21 @@
       <artifactId>spring-boot-starter-jetty</artifactId>
     </dependency>
 
+    <!-- Apache Commons -->
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
     </dependency>
-
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <version>2.11.0</version>
     </dependency>
 
-    <!-- Helger lib to read codelist genericode (.gc) files. -->
+    <!-- PH -->
     <dependency>
+      <!-- Helger lib to read codelist genericode (.gc) files. -->
       <groupId>com.helger</groupId>
       <artifactId>ph-genericode</artifactId>
-      <version>6.2.0</version>
     </dependency>
   </dependencies>
 
@@ -199,7 +225,7 @@
               <groupId>com.puppycrawl.tools</groupId>
               <artifactId>checkstyle</artifactId>
               <!-- NOTE: versions before 8 something got confused by lambdas, luckily 9 solves this. -->
-              <version>9.0</version>
+              <version>${version.checkstyle}</version>
             </dependency>
           </dependencies>
           <configuration>
@@ -219,6 +245,21 @@
               </goals>
             </execution>
           </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>${version.javadoc.plugin}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-gpg-plugin</artifactId>
+          <version>${version.gpg.plugin}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-source-plugin</artifactId>
+          <version>${version.source.plugin}</version>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -383,7 +424,6 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-source-plugin</artifactId>
-            <version>3.2.1</version>
             <executions>
               <execution>
                 <id>attach-sources</id>
@@ -396,7 +436,6 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
-            <version>3.4.0</version>
             <executions>
               <execution>
                 <id>attach-javadocs</id>
@@ -409,7 +448,6 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
-            <version>1.5</version>
             <executions>
               <execution>
                 <id>sign-artifacts</id>
