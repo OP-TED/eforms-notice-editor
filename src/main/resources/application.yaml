@@ -5,7 +5,11 @@ server:
 
   ####Jetty specific properties########
   jetty:
-#   acceptors: 10 # Number of acceptor threads to use.
-#   max-http-post-size: 0 # Maximum size in bytes of the HTTP post or put content.
+    # Number of acceptor threads to use.
+    # acceptors: 10
+
+    # Maximum size in bytes of the HTTP post or put content.
     max-http-form-post-size: 1000000000
-#   selectors: # Number of selector threads to use.
+
+    # Number of selector threads to use.
+    # selectors:
