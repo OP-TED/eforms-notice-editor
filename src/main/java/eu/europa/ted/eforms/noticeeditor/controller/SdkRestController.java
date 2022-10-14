@@ -14,8 +14,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.xml.sax.SAXException;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import eu.europa.ted.eforms.noticeeditor.domain.Language;
 import eu.europa.ted.eforms.noticeeditor.service.SdkService;
 import eu.europa.ted.eforms.sdk.SdkConstants.SdkResource;
@@ -72,7 +70,7 @@ public class SdkRestController implements AsyncConfigurer {
   public void serveFieldsJson(final HttpServletResponse response,
       @PathVariable(value = "sdkVersion") String sdkVersion) {
     SdkService.serveSdkJsonFile(response, new SdkVersion(sdkVersion), SdkResource.FIELDS,
-        SdkService.FIELDS_JSON);
+        SdkService.SDK_FIELDS_JSON);
   }
 
   /**
@@ -105,11 +103,13 @@ public class SdkRestController implements AsyncConfigurer {
 
   /**
    * Save: Takes notice as JSON and builds notice XML. The SDK version is in the notice metadata.
+   *
+   * @throws IOException
    */
   @RequestMapping(value = "/notice/save", method = RequestMethod.POST,
       produces = MediaType.APPLICATION_XML_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
   public void saveNotice(final HttpServletResponse response, @RequestBody String notice)
-      throws JsonMappingException, JsonProcessingException, ParserConfigurationException {
+      throws ParserConfigurationException, IOException {
     SdkService.saveNoticeAsXml(Optional.of(response), notice);
   }
 

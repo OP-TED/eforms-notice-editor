@@ -1,27 +1,35 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
+import org.apache.commons.lang3.Validate;
 import com.fasterxml.jackson.databind.JsonNode;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
+import eu.europa.ted.eforms.sdk.SdkConstants;
 
 /**
  * Abstraction around the json data of the document type information.
  */
 public class DocumentTypeInfo {
-  private final JsonNode json;
+  private final JsonNode jsonItem;
   private final String namespaceUri;
   private final String rootElementType;
-  private final String xsd;
+  private final String xsdFile;
 
   public DocumentTypeInfo(final JsonNode jsonParam) {
-    this.json = jsonParam;
-    this.namespaceUri = JsonUtils.getTextStrict(this.json, "namespace");
-    this.rootElementType = JsonUtils.getTextStrict(this.json, "rootElement");
+    Validate.notNull(jsonParam, "jsonParam of document type is null");
+    this.jsonItem = jsonParam;
+
+    this.namespaceUri =
+        JsonUtils.getTextStrict(this.jsonItem, SdkConstants.NOTICE_TYPES_JSON_NAMESPACE_KEY);
+
+    this.rootElementType =
+        JsonUtils.getTextStrict(this.jsonItem, SdkConstants.NOTICE_TYPES_JSON_ROOT_ELEMENT_KEY);
+
     // this.xsd = JsonUtils.getTextStrict(this.json, "xsd");
-    this.xsd = "todo"; // TODO tttt
+    this.xsdFile = "EFORMS-BusinessRegistrationInformationNotice.xsd"; // TODO tttt
   }
 
-  public String getXsdPath() {
-    return xsd;
+  public String getXsdFile() {
+    return xsdFile;
   }
 
   public String getNamespaceUri() {

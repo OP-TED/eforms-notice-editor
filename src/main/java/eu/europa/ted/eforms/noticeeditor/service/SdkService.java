@@ -33,7 +33,6 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -54,13 +53,15 @@ import eu.europa.ted.eforms.noticeeditor.helper.notice.DocumentTypeInfo;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.NoticeSaver;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.PhysicalModel;
+import eu.europa.ted.eforms.noticeeditor.helper.notice.SchemaInfo;
+import eu.europa.ted.eforms.noticeeditor.helper.notice.SchemaTools;
 import eu.europa.ted.eforms.noticeeditor.util.IntuitiveStringComparator;
 import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
+import eu.europa.ted.eforms.sdk.SdkConstants;
 import eu.europa.ted.eforms.sdk.SdkConstants.SdkResource;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 import eu.europa.ted.eforms.sdk.resource.SdkResourceLoader;
-
 
 /**
  * Reads and serves data from the SDK.
@@ -69,9 +70,13 @@ import eu.europa.ted.eforms.sdk.resource.SdkResourceLoader;
     value = "EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS", justification = "Checked to Runtime OK here")
 public class SdkService {
 
-  private static final String EFORMS_SDK = "eforms-sdk-";
+  /**
+   * Notice field having the eformsSdkVersion as a value.
+   */
+  private static final String CBC_CUSTOMIZATION_ID_SDK_VERSION = "OPT-002-notice";
 
-  private static final String NOTICE_TYPES_JSON = "notice-types.json";
+  private static final String SDK_NOTICE_TYPES_JSON = "notice-types.json";
+  public static final String SDK_FIELDS_JSON = "fields.json";
 
   public static final String ND_ROOT = "ND-Root";
 
@@ -93,8 +98,6 @@ public class SdkService {
    */
   private static final Pattern REGEX_SDK_VERSION =
       Pattern.compile("\\p{Digit}{1,2}\\.\\p{Digit}{1,2}\\.\\p{Digit}{1,2}");
-
-  public static final String FIELDS_JSON = "fields.json";
 
   public static String buildJsonFromCodelistGc(final String codeListId, final Path path,
       final String langCode) throws IOException {
@@ -210,10 +213,12 @@ public class SdkService {
     // this version when reporting a bug.
     map.put("appVersion", EformsNoticeEditorApp.APP_VERSION);
 
-    map.put("sdkVersions",
-        NoticeEditorConstants.SUPPORTED_SDKS.stream().map(SdkVersion::toStringWithoutPatch)
-            .sorted(new IntuitiveStringComparator<>()).sorted(Collections.reverseOrder())
-            .collect(Collectors.toList()));
+    // Load available sdk versions. They will be listed in the UI.
+    map.put("sdkVersions", NoticeEditorConstants.SUPPORTED_SDKS.stream()//
+        .map(SdkVersion::toStringWithoutPatch)//
+        .sorted(new IntuitiveStringComparator<>())//
+        .sorted(Collections.reverseOrder())//
+        .collect(Collectors.toList()));
 
     logger.info("Fetching home info: DONE");
     return map;
@@ -232,7 +237,7 @@ public class SdkService {
 
       final List<String> noticeTypes = availableNoticeTypes.stream()//
           // Remove some files.
-          .filter(filename -> filename.endsWith(".json") && !NOTICE_TYPES_JSON.equals(filename))//
+          .filter(filename -> filename.endsWith(".json") && !SDK_NOTICE_TYPES_JSON.equals(filename))//
           // Remove extension.
           .map(filename -> filename.substring(0, filename.lastIndexOf('.')))//
           .sorted(new IntuitiveStringComparator<>())//
@@ -491,8 +496,7 @@ public class SdkService {
   }
 
   public static void saveNoticeAsXml(final Optional<HttpServletResponse> responseOpt,
-      final String noticeJson)
-      throws JsonMappingException, JsonProcessingException, ParserConfigurationException {
+      final String noticeJson) throws ParserConfigurationException, IOException {
     Validate.notBlank(noticeJson);
     logger.info("Attempting to save notice as XML.");
 
@@ -500,11 +504,24 @@ public class SdkService {
     final JsonNode visualRoot = mapper.readTree(noticeJson);
 
     // Find the SDK version.
-    final String eFormsSdkVersion;
+    final String sdkVersionStr;
     {
-      final JsonNode visualField = visualRoot.get("OPT-002-notice-1");
-      eFormsSdkVersion = getTextStrict(visualField, "value");
-      logger.info("Found SDK version: {}", eFormsSdkVersion);
+      // Example: the SDK value looks like "eforms-sdk-1.1.0".
+      // We are only interested in 1.1.0 or just 1.1
+      final String fieldName = CBC_CUSTOMIZATION_ID_SDK_VERSION + "-1"; // "-1" (first field)
+
+      final JsonNode visualField = visualRoot.get(fieldName);
+      final String eFormsSdkVersion = getTextStrict(visualField, "value");
+      Validate.notBlank(eFormsSdkVersion, "eFormsSdkVersion is blank");
+      final String prefix = SdkConstants.NOTICE_CUSTOMIZATION_ID_VERSION_PREFIX;
+      Validate.isTrue(eFormsSdkVersion.startsWith(prefix),
+          "Expecting sdk version to start with prefix=%s", prefix);
+      final String sdkVersionStrTmp = eFormsSdkVersion.substring(prefix.length());
+
+      // For now we will only handle versions major and minor.
+      // TODO maybe handle precise versions like "1.1.0" later on (patch level).
+      sdkVersionStr = sdkVersionStrTmp.substring(0, sdkVersionStrTmp.lastIndexOf('.'));
+      logger.info("Found SDK version: {}, using {}", eFormsSdkVersion, sdkVersionStr);
     }
 
     // Find the notice id ("notice-id").
@@ -516,28 +533,35 @@ public class SdkService {
 
     // Load fields json depending of the correct SDK version.
     // I would like to load a precise version of the SDK.
-    final String sdkVersionStr = eFormsSdkVersion.substring(EFORMS_SDK.length());
     final SdkVersion sdkVersion = new SdkVersion(sdkVersionStr);
 
-    final JsonNode fieldsJson = readSdkJsonFile(sdkVersion, SdkResource.FIELDS, FIELDS_JSON);
+    final JsonNode fieldsJson = readSdkJsonFile(sdkVersion, SdkResource.FIELDS, SDK_FIELDS_JSON);
     final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldsJson);
     final Map<String, ConceptNode> buildConceptualModel =
         NoticeSaver.buildConceptualModel(fieldsAndNodes, visualRoot);
 
+    final JsonNode noticeTypesJson =
+        readSdkJsonFile(sdkVersion, SdkResource.NOTICE_TYPES, SDK_NOTICE_TYPES_JSON);
+
     final Map<String, JsonNode> noticeInfoBySubtype = new HashMap<>();
-    final Map<String, JsonNode> documentInfoByType = new HashMap<>();
     {
-      final JsonNode noticeTypesJson =
-          readSdkJsonFile(sdkVersion, SdkResource.NOTICE_TYPES, NOTICE_TYPES_JSON);
+      // TODO add noticeSubTypes to the SDK constants.
       final JsonNode noticeSubTypes = noticeTypesJson.get("noticeSubTypes");
       for (JsonNode item : noticeSubTypes) {
+        // TODO add subTypeId to the SDK constants.
         final String subTypeId = JsonUtils.getTextStrict(item, "subTypeId");
         noticeInfoBySubtype.put(subTypeId, item);
       }
-      final JsonNode documentTypes = noticeTypesJson.get("documentTypes");
+    }
+
+    final Map<String, JsonNode> documentInfoByType = new HashMap<>();
+    {
+      final JsonNode documentTypes =
+          noticeTypesJson.get(SdkConstants.NOTICE_TYPES_JSON_DOCUMENT_TYPES_KEY);
       for (JsonNode item : documentTypes) {
+        // TODO add document type id to the SDK constants.
         final String id = JsonUtils.getTextStrict(item, "id");
-        noticeInfoBySubtype.put(id, item);
+        documentInfoByType.put(id, item);
       }
     }
 
@@ -546,13 +570,14 @@ public class SdkService {
 
     final DocumentTypeInfo docTypeInfo =
         NoticeSaver.getDocumentTypeInfo(noticeInfoBySubtype, documentInfoByType, concept);
-    final String sdkXsdPath = docTypeInfo.getXsdPath();
 
-    // TODO tttt use new constant once PR is merged into develop.
-    // readSdkPath(sdkVersion, SdkResource.SCHEMAS, sdkXsdPath)
+    final String sdkXsdFile = docTypeInfo.getXsdFile();
+    final Path sdkXsdPath = readSdkPath(sdkVersion, SdkResource.SCHEMAS_MAINDOC, sdkXsdFile);
+    final String rootElementTagName = docTypeInfo.getRootElementTagName();
+    final SchemaInfo schemaInfo = SchemaTools.getSchemaInfo(sdkXsdPath, rootElementTagName);
 
     final PhysicalModel physicalModel = NoticeSaver.buildPhysicalModelXml(fieldsAndNodes,
-        noticeInfoBySubtype, documentInfoByType, concept, false, true);
+        noticeInfoBySubtype, documentInfoByType, concept, false, true, schemaInfo);
 
     final Document doc = physicalModel.getDomDocument();
     final String xmlAsText = physicalModel.getXmlAsText(false);

@@ -2,6 +2,7 @@ package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -271,7 +272,7 @@ public class NoticeSaverTest {
 
   @SuppressWarnings("static-method")
   @Test
-  public void test() throws ParserConfigurationException {
+  public void test() throws ParserConfigurationException, IOException {
     final ObjectMapper mapper = new ObjectMapper();
 
     final String prefixedSdkVersion = "eforms-sdk-" + "1.1.0";
@@ -279,15 +280,21 @@ public class NoticeSaverTest {
 
     final ObjectNode root = setupVisualModel(mapper, prefixedSdkVersion, noticeSubType);
 
-    // fields.json NODES.
+    //
+    // NODES from fields.json
+    //
     final Map<String, JsonNode> nodeById = new LinkedHashMap<>();
     setupFieldsJsonXmlStructureNodes(mapper, nodeById);
 
-    // fields.json FIELDS.
+    //
+    // FIELDS from fields.json
+    //
     final Map<String, JsonNode> fieldById = new LinkedHashMap<>();
     setupFieldsJsonFields(mapper, fieldById);
 
-    // notice-types.json
+    //
+    // OTHER from notice-types.json
+    //
     // Setup dummy notice-types.json info that we need for the XML generation.
     final Map<String, JsonNode> noticeInfoBySubtype = new HashMap<>();
     {
@@ -295,6 +302,7 @@ public class NoticeSaverTest {
       info.put("documentType", "BRIN");
       noticeInfoBySubtype.put(noticeSubType, info);
     }
+
     final Map<String, JsonNode> documentInfoByType = new HashMap<>();
     {
       final ObjectNode info = mapper.createObjectNode();
@@ -318,51 +326,53 @@ public class NoticeSaverTest {
     //
     final boolean debug = true; // Very useful for the testing.
     final boolean buildFields = true;
+    SchemaInfo schemaInfo = SchemaToolsTest.getTestSchemaInfo();
     final PhysicalModel pm = NoticeSaver.buildPhysicalModelXml(fieldsAndNodes, noticeInfoBySubtype,
-        documentInfoByType, conceptualModel, debug, buildFields);
+        documentInfoByType, conceptualModel, debug, buildFields, schemaInfo);
 
     System.out.println("XML as text:");
-    final String xmlText = pm.getXmlAsText(false); // Not indented to avoid line breaks.
+
+    final String xml = pm.getXmlAsText(false); // Not indented to avoid line breaks.
 
     System.out.println(pm.getXmlAsText(true));
 
     // Check fields root node.
-    assertTrue(xmlText.contains("BusinessRegistrationInformationNotice"));
-    assertTrue(xmlText.contains("xmlns="));
+    assertTrue(xml.contains("BusinessRegistrationInformationNotice"));
+    assertTrue(xml.contains("xmlns="));
 
     // Check some metadata.
-    assertTrue(xmlText.contains(noticeSubType));
-    assertTrue(xmlText.contains(prefixedSdkVersion));
-    assertEquals(1, StringUtils.countMatches(xmlText, "<cbc:CustomizationID"));
-    assertEquals(1, StringUtils.countMatches(xmlText, "<cbc:SubTypeCode"));
+    assertTrue(xml.contains(noticeSubType));
+    assertTrue(xml.contains(prefixedSdkVersion));
+    assertEquals(1, StringUtils.countMatches(xml, "<cbc:CustomizationID"));
+    assertEquals(1, StringUtils.countMatches(xml, "<cbc:SubTypeCode"));
 
     // Check nodes.
-    assertEquals(1, StringUtils.countMatches(xmlText, "<BusinessRegistrationInformationNotice"));
-    assertEquals(1, StringUtils.countMatches(xmlText, "<ext:UBLExtensions>"));
-    assertEquals(1, StringUtils.countMatches(xmlText, "<cac:BusinessParty>"));
-    assertEquals(1, StringUtils.countMatches(xmlText, "<efac:NoticePurpose>"));
+    assertEquals(1, StringUtils.countMatches(xml, "<BusinessRegistrationInformationNotice"));
+    assertEquals(1, StringUtils.countMatches(xml, "<ext:UBLExtensions>"));
+    assertEquals(1, StringUtils.countMatches(xml, "<cac:BusinessParty>"));
+    assertEquals(1, StringUtils.countMatches(xml, "<efac:NoticePurpose>"));
 
     // Not passing yet:
     // assertEquals(2, StringUtils.countMatches(xmlText, "<cac:PartyLegalEntity>"));
 
     // Check fields.
-    assertTrue(xmlText.contains("OPP-070-notice\""));
-    assertTrue(xmlText.contains("BT-500-Business\""));
+    assertTrue(xml.contains("OPP-070-notice\""));
+    assertTrue(xml.contains("BT-500-Business\""));
 
-    assertTrue(xmlText.contains("BT-501-Business-National\""));
-    assertTrue(xmlText.contains("BT-501-Business-National\" schemeName=\"national\""));
+    assertTrue(xml.contains("BT-501-Business-National\""));
+    assertTrue(xml.contains("BT-501-Business-National\" schemeName=\"national\""));
 
-    assertTrue(xmlText.contains("BT-501-Business-European\""));
-    assertTrue(xmlText.contains("BT-501-Business-European\" schemeName=\"EU\""));
+    assertTrue(xml.contains("BT-501-Business-European\""));
+    assertTrue(xml.contains("BT-501-Business-European\" schemeName=\"EU\""));
 
-    assertTrue(xmlText.contains("OPP-100-Business\""));
+    assertTrue(xml.contains("OPP-100-Business\""));
 
-    assertTrue(xmlText.contains("OPP-105-Business\""));
-    assertTrue(xmlText.contains(">education<"));
-    assertTrue(xmlText.contains(">health<"));
+    assertTrue(xml.contains("OPP-105-Business\""));
+    assertTrue(xml.contains(">education<"));
+    assertTrue(xml.contains(">health<"));
 
-    assertTrue(xmlText.contains("listName=\"sector\">education<"));
-    assertTrue(xmlText.contains("listName=\"sector\">health<"));
+    assertTrue(xml.contains("listName=\"sector\">education<"));
+    assertTrue(xml.contains("listName=\"sector\">health<"));
   }
 
 }

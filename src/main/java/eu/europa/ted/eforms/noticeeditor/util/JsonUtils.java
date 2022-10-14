@@ -46,6 +46,11 @@ public class JsonUtils {
     return jsonElem.asBoolean();
   }
 
+  public static String getTextMaybeBlank(final JsonNode json, final String key) {
+    final JsonNode jsonElem = checkKeyAndElemNotNull(json, key);
+    return jsonElem.asText("");
+  }
+
   public static String getTextStrict(final JsonNode json, final String key) {
     final JsonNode jsonElem = checkKeyAndElemNotNull(json, key);
     final String text = jsonElem.asText(null);

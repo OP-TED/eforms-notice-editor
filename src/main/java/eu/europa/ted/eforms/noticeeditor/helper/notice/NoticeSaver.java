@@ -32,6 +32,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
 import eu.europa.ted.eforms.noticeeditor.util.EditorXmlUtils;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
+import eu.europa.ted.eforms.sdk.SdkConstants;
 import net.sf.saxon.lib.NamespaceConstant;
 
 public class NoticeSaver {
@@ -58,7 +59,7 @@ public class NoticeSaver {
         final JsonNode fieldMeta = fieldsAndNodes.getFieldById(fieldId);
         Validate.notNull(fieldMeta, "fieldMeta is null for fieldId=%s", fieldId);
 
-        final String value = getTextStrict(visualItem, "value");
+        final String value = JsonUtils.getTextMaybeBlank(visualItem, "value");
         final int counter = getIntStrict(visualItem, "contentCount");
         final int parentCounter = getIntStrict(visualItem, "contentParentCount");
         final ConceptField conceptField = new ConceptField(fieldId, value, counter, parentCounter);
@@ -115,13 +116,15 @@ public class NoticeSaver {
    *
    * @param debug Adds special debug info to the XML, useful for humans and unit tests
    * @param buildFields Allows to disable field building, for debugging purposes
+   * @param schemaInfo
    *
    * @return The physical model as an object containing the XML with a few extras
    */
   public static PhysicalModel buildPhysicalModelXml(final FieldsAndNodes fieldsAndNodes,
       final Map<String, JsonNode> noticeInfoBySubtype,
       final Map<String, JsonNode> documentInfoByType, final ConceptualModel concept,
-      final boolean debug, final boolean buildFields) throws ParserConfigurationException {
+      final boolean debug, final boolean buildFields, final SchemaInfo schemaInfo)
+      throws ParserConfigurationException {
     logger.info("Attempting to build physical model.");
 
     final DocumentBuilder safeDocBuilder =
@@ -139,7 +142,7 @@ public class NoticeSaver {
     // TODO tttt use path to xsd, try local changes for now.
     // https://citnet.tech.ec.europa.eu/CITnet/jira/browse/TEDEFO-1426
     // For the moment do as if it was there.
-    final String xsdPath = docTypeInfo.getXsdPath();
+    final String xsdPath = docTypeInfo.getXsdFile();
 
     // Create the root element, top level element.
     final Element rootElem = createElem(doc, rootElementType);
@@ -156,7 +159,7 @@ public class NoticeSaver {
         0, false, xPathInst);
 
     // Sort order.
-    reorderElements(rootElem, xPathInst);
+    reorderElements(rootElem, xPathInst, schemaInfo);
 
     return new PhysicalModel(doc);
   }
@@ -167,10 +170,13 @@ public class NoticeSaver {
   public static DocumentTypeInfo getDocumentTypeInfo(
       final Map<String, JsonNode> noticeInfoBySubtype,
       final Map<String, JsonNode> documentInfoByType, final ConceptualModel concept) {
+    logger.debug("Attempting to read document type info.");
     final JsonNode noticeInfo = getNoticeSubTypeInfo(noticeInfoBySubtype, concept);
 
     // Get the document type info from the SDK data.
-    final String documentType = JsonUtils.getTextStrict(noticeInfo, "documentType");
+    final String documentType =
+        JsonUtils.getTextStrict(noticeInfo, SdkConstants.NOTICE_TYPES_JSON_DOCUMENT_TYPE_KEY);
+
     final JsonNode documentTypeInfo = documentInfoByType.get(documentType);
     return new DocumentTypeInfo(documentTypeInfo);
   }
@@ -185,11 +191,13 @@ public class NoticeSaver {
   }
 
   /**
-   * Fix the sort order.
+   * Changes the order of the elements to the schema sequence order. The XML DOM model is modified
+   * as a side effect.
    */
-  private static void reorderElements(final Element rootElem, final XPath xPathInst) {
-    final List<String> setupCbcOrder = setupCbcOrder();
-    for (final String tag : setupCbcOrder) {
+  private static void reorderElements(final Element rootElem, final XPath xPathInst,
+      final SchemaInfo schemaInfo) {
+    List<String> rootOrder = schemaInfo.getRootOrder();
+    for (final String tag : rootOrder) {
       final NodeList elementsFound = evaluateXpath(xPathInst, rootElem, tag);
       for (int i = 0; i < elementsFound.getLength(); i++) {
         final Node elem = elementsFound.item(i);
@@ -235,7 +243,7 @@ public class NoticeSaver {
     // NAMESPACES FOR XPATH.
     //
     try {
-      // Why Saxon: It was not working with the default Java / JDK lib.
+      // Why Saxon HE lib: It was not working with the default Java / JDK lib (Java 15).
       final String objectModelSaxon = NamespaceConstant.OBJECT_MODEL_SAXON;
       System.setProperty("javax.xml.xpath.XPathFactory:" + objectModelSaxon,
           "net.sf.saxon.xpath.XPathFactoryImpl");
@@ -614,41 +622,6 @@ public class NoticeSaver {
     final String xpathExpr = partParam.replaceAll(REPLACEMENT, "/");
 
     return new PhysicalXpath(xpathExpr, tag, schemeNameOpt);
-  }
-
-  public static List<String> setupCbcOrder() {
-    // TODO tttt later: load this dynamically from the xsd sequence.
-    // EFORMS-BusinessRegistrationInformationNotice.xsd
-    final List<String> list = new ArrayList<>();
-    list.add("ext:UBLExtensions");
-    list.add("cbc:UBLVersionID");
-    list.add("cbc:CustomizationID");
-    list.add("cbc:ProfileID");
-    list.add("cbc:ProfileExecutionID");
-    list.add("cbc:ID");
-    list.add("cbc:UUID");
-    list.add("cbc:IssueDate");
-    list.add("cbc:IssueTime");
-    list.add("cbc:VersionID");
-    list.add("cbc:PreviousVersionID");
-    list.add("cbc:RequestedPublicationDate");
-    list.add("cbc:RegulatoryDomain");
-    list.add("cbc:NoticeTypeCode");
-    list.add("cbc:NoticeLanguageCode");
-    list.add("cbc:Note");
-    list.add("cbc:BriefDescription");
-    list.add("cac:AdditionalNoticeLanguage");
-    list.add("cac:Signature");
-    list.add("cac:SenderParty");
-    list.add("cac:ReceiverParty");
-    list.add("cac:BusinessParty");
-    list.add("cac:BrochureDocumentReference");
-    list.add("cac:AdditionalDocumentReference");
-    list.add("cac:BusinessCapability");
-    list.add("efac:BusinessPartyGroup");
-    list.add("efac:NoticePurpose");
-    list.add("efac:NoticeSubType");
-    return list;
   }
 
 }

@@ -1,13 +1,12 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.namespace.QName;
-import javax.xml.transform.stream.StreamSource;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.ParserConfigurationException;
 import org.apache.ws.commons.schema.XmlSchema;
 import org.apache.ws.commons.schema.XmlSchemaCollection;
 import org.apache.ws.commons.schema.XmlSchemaComplexType;
@@ -16,58 +15,65 @@ import org.apache.ws.commons.schema.XmlSchemaParticle;
 import org.apache.ws.commons.schema.XmlSchemaSequence;
 import org.apache.ws.commons.schema.XmlSchemaSequenceMember;
 import org.apache.ws.commons.schema.XmlSchemaType;
-import org.junit.jupiter.api.Test;
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
+import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
 
-public class XsdTest {
+public class SchemaTools {
 
-  @SuppressWarnings("static-method")
-  @Test
-  public void readXsdUsingApacheXmlSchemaTest() throws IOException {
-    final Path pathToXsd =
-        Path.of("src/test/resources/schemas/EFORMS-BusinessRegistrationInformationNotice.xsd");
-    try (InputStream is = Files.newInputStream(pathToXsd)) {
+  public static SchemaInfo getSchemaInfo(final Path pathToXsd, final String rootTagName)
+      throws IOException {
+    try {
+      // try (InputStream is = Files.newInputStream(pathToXsd)) {
+
       final XmlSchemaCollection schemaCol = new XmlSchemaCollection();
-      final XmlSchema schema = schemaCol.read(new StreamSource(is));
 
-      // schema.getElementByName("BusinessRegistrationInformationNotice");
-      final String rootTagName = "BusinessRegistrationInformationNotice";
+      final DocumentBuilder build = SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype(true);
+      final Document xsdDoc = build.parse(pathToXsd.toFile());
+
+      final XmlSchema schema = schemaCol.read(xsdDoc);
+
+      System.out.println("folder=" + pathToXsd.toFile().getParentFile().getAbsolutePath());
+      // TODO tttt probably fails here because I ran the editor through mvn exec:java
+
+      // Reading from input stream works but it gets lost with the <xsd:import> later.
+      // Maybe this has something to do with running the project via Maven.
+      // final XmlSchema schema = schemaCol.read(new StreamSource(is));
+
       final String rootTypeName = rootTagName + "Type";
       final XmlSchemaType type = schema.getTypeByName(rootTypeName);
 
-      final List<String> order = getSequenceTagNamesAsList(type);
-      for (final String item : order) {
-        System.out.println(item);
-      }
-
       // We are interested in the sequence for the element sort order.
+      // Example:
       // <xsd:complexType name="BusinessRegistrationInformationNoticeType">
       // <xsd:sequence>
       // <xsd:element ref="ext:UBLExtensions" minOccurs="0" maxOccurs="1"/>
+      // <xsd:element ...
+
+      final List<String> rootOrder = getSequenceTagNamesAsList(type);
+
+      return new SchemaInfo(rootOrder);
+    } catch (ParserConfigurationException e) {
+      throw new RuntimeException(e);
+    } catch (SAXException e) {
+      throw new RuntimeException(e);
     }
   }
 
   /**
    * @return List containing the tag names (including prefix) in the order of the sequence.
    */
-  private static List<String> getSequenceTagNamesAsList(final XmlSchemaType type) {
+  static List<String> getSequenceTagNamesAsList(final XmlSchemaType type) {
     final List<String> order = new ArrayList<>();
     if (type instanceof XmlSchemaComplexType) {
-      // Get all particles associated with that element Type
       final XmlSchemaParticle allParticles = ((XmlSchemaComplexType) type).getParticle();
       final XmlSchemaSequence xmlSchemaSequence = (XmlSchemaSequence) allParticles;
       final List<XmlSchemaSequenceMember> items = xmlSchemaSequence.getItems();
       items.forEach(item -> {
         final XmlSchemaElement itemElements = (XmlSchemaElement) item;
-
         final QName targetQName = itemElements.getRef().getTargetQName();
         final String tagName = targetQName.getPrefix() + ":" + targetQName.getLocalPart();
         order.add(tagName);
-
-        // schemaElements.add(itemElements);
-        // addChild(element.getQName(), itemElements);
-        // Call method recursively to get all subsequent element
-        // getChildElementNames(itemElements);
-        // schemaElements = new ArrayList<XmlSchemaElement>();
       });
     }
     return order;
