@@ -60,6 +60,7 @@
     <version.ph-genericode>6.2.0</version.ph-genericode>
     <version.ph-commons>10.0.0</version.ph-commons>
     <version.sl4fj>1.7.36</version.sl4fj>
+    <version.snakeyaml>1.29</version.snakeyaml>
     <version.spotbugs>4.4.1</version.spotbugs>
 
     <!-- Versions - Plugins -->
@@ -189,6 +190,11 @@
         <groupId>jakarta.xml.bind</groupId>
         <artifactId>jakarta.xml.bind-api</artifactId>
         <version>${version.xml.bind-api}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.yaml</groupId>
+        <artifactId>snakeyaml</artifactId>
+        <version>${version.snakeyaml}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -352,6 +358,11 @@
         </exclusion>
       </exclusions>
     </dependency>
+      <dependency>
+        <groupId>org.yaml</groupId>
+        <artifactId>snakeyaml</artifactId>
+        <scope>runtime</scope>
+      </dependency>
   </dependencies>
 
   <build>
