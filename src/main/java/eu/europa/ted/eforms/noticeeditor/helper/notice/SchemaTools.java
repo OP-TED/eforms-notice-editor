@@ -1,12 +1,14 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.namespace.QName;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.stream.StreamSource;
+import org.apache.commons.lang3.Validate;
 import org.apache.ws.commons.schema.XmlSchema;
 import org.apache.ws.commons.schema.XmlSchemaCollection;
 import org.apache.ws.commons.schema.XmlSchemaComplexType;
@@ -15,33 +17,40 @@ import org.apache.ws.commons.schema.XmlSchemaParticle;
 import org.apache.ws.commons.schema.XmlSchemaSequence;
 import org.apache.ws.commons.schema.XmlSchemaSequenceMember;
 import org.apache.ws.commons.schema.XmlSchemaType;
-import org.w3c.dom.Document;
-import org.xml.sax.SAXException;
-import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SchemaTools {
+  private static final Logger logger = LoggerFactory.getLogger(SchemaTools.class);
 
   public static SchemaInfo getSchemaInfo(final Path pathToXsd, final String rootTagName)
       throws IOException {
-    try {
-      // try (InputStream is = Files.newInputStream(pathToXsd)) {
+    logger.debug("Attempting to read schema info (xsd).");
+    // try {
+    try (InputStream is = Files.newInputStream(pathToXsd)) {
 
       final XmlSchemaCollection schemaCol = new XmlSchemaCollection();
+      // final DocumentBuilder build =
+      // SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype(true);
 
-      final DocumentBuilder build = SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype(true);
-      final Document xsdDoc = build.parse(pathToXsd.toFile());
+      // java.xml/com.sun.org.apache.xerces.internal.impl.XMLEntityManager.setupCurrentEntity
+      // (XMLEntityManager.java:652)
 
-      final XmlSchema schema = schemaCol.read(xsdDoc);
+      // java.io.FileNotFoundException:
+      // C:\Users\rouschr\dev\eclipse-workspace\tedefo
+      // \eforms-notice-editor\UBL-CommonAggregateComponents-2.3.xsd
+      // (The system cannot find the file specified)
 
-      System.out.println("folder=" + pathToXsd.toFile().getParentFile().getAbsolutePath());
-      // TODO tttt probably fails here because I ran the editor through mvn exec:java
+      final XmlSchema schema = schemaCol.read(new StreamSource(is));
 
-      // Reading from input stream works but it gets lost with the <xsd:import> later.
-      // Maybe this has something to do with running the project via Maven.
-      // final XmlSchema schema = schemaCol.read(new StreamSource(is));
+      // final Document xsdDoc = build.parse(is);
+      // final Document xsdDoc = build.parse(pathToXsd.toFile());
+      // final XmlSchema schema = schemaCol.read(xsdDoc);
+      // final XmlSchema schema = schemaCol.read(xsdDoc);
 
       final String rootTypeName = rootTagName + "Type";
       final XmlSchemaType type = schema.getTypeByName(rootTypeName);
+      Validate.notNull(type, "Type is null for rootTypeName=%s", rootTypeName);
 
       // We are interested in the sequence for the element sort order.
       // Example:
@@ -53,10 +62,10 @@ public class SchemaTools {
       final List<String> rootOrder = getSequenceTagNamesAsList(type);
 
       return new SchemaInfo(rootOrder);
-    } catch (ParserConfigurationException e) {
-      throw new RuntimeException(e);
-    } catch (SAXException e) {
-      throw new RuntimeException(e);
+      // } catch (ParserConfigurationException e) {
+      // throw new RuntimeException(e);
+      // } catch (SAXException e) {
+      // throw new RuntimeException(e);
     }
   }
 

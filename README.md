@@ -12,7 +12,7 @@ This is Jetty based (a bit like Tomcat but self contained, you could easily swit
 We recommend you avoid running the project via mvn, from the `target` folder, example:
 
 ```
-java -jar notice-editor-demo-0.0.1-SNAPSHOT.jar"
+java -jar notice-editor-demo-0.0.1-SNAPSHOT.jar
 ```
 
 In your browser go to: `localhost:8080/` (or whatever the start logs say)
