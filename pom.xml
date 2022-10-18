@@ -1,19 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <parent>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-parent</artifactId>
-    <version>2.7.0</version>
-    <relativePath /> <!-- lookup parent from repository -->
-  </parent>
-
   <groupId>eu.europa.ted.eforms</groupId>
   <artifactId>notice-editor-demo</artifactId>
   <version>0.0.1-SNAPSHOT</version>
+
   <name>eForms notice editor demo</name>
   <description>Demo project for Spring Boot</description>
   <packaging>jar</packaging>
+
   <url>https://docs.ted.europa.eu/eforms/latest/</url>
 
   <licenses>
@@ -40,6 +35,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
     <!-- Java compiler -->
     <java.version>11</java.version>
@@ -51,15 +47,31 @@
     <version.eforms-core>0.1.0</version.eforms-core>
 
     <!-- Versions - Third-party libraries -->
+    <version.xml.bind-api>2.3.3</version.xml.bind-api>
+    <version.checkstyle>9.0</version.checkstyle> <!-- NOTE: versions before 8 something got confused by lambdas, luckily 9 solves this. -->
+    <version.commons-io>2.11.0</version.commons-io>
+    <version.commons-lang3>3.12.0</version.commons-lang3>
+    <version.jackson>2.13.3</version.jackson>
+    <version.jakarta.servlet-api>4.0.4</version.jakarta.servlet-api>
+    <version.jaxb-impl>2.3.3</version.jaxb-impl>
+    <version.jsr305>3.0.2</version.jsr305>
+    <version.junit-jupiter-api>5.8.2</version.junit-jupiter-api>
+    <version.logback>1.2.11</version.logback>
+    <version.ph-genericode>6.2.0</version.ph-genericode>
+    <version.ph-commons>10.0.0</version.ph-commons>
+    <version.sl4fj>1.7.36</version.sl4fj>
     <version.spotbugs>4.4.1</version.spotbugs>
 
     <!-- Versions - Plugins -->
     <version.checkstyle.plugin>3.1.2</version.checkstyle.plugin>
     <version.build-helper.plugin>3.3.0</version.build-helper.plugin>
+    <version.gpg.plugin>1.5</version.gpg.plugin>
     <version.install.plugin>2.5.2</version.install.plugin>
+    <version.javadoc.plugin>3.4.0</version.javadoc.plugin>
     <version.sb-contrib.plugin>7.4.7</version.sb-contrib.plugin>
+    <version.source.plugin>3.2.1</version.source.plugin>
     <version.spotbugs.plugin>4.3.0</version.spotbugs.plugin>
-    <version.spring-boot>2.6.6</version.spring-boot>
+    <version.spring-boot>2.7.0</version.spring-boot>
     <version.surefire.plugin>3.0.0-M7</version.surefire.plugin> <!-- Versions prior to 3.0.x do not pick up Junit 5 tests correctly. -->
   </properties>
 
@@ -71,6 +83,113 @@
         <artifactId>eforms-core-java</artifactId>
         <version>${version.eforms-core}</version>
       </dependency>
+
+      <!-- Apache Commons -->
+      <dependency>
+        <groupId>commons-io</groupId>
+        <artifactId>commons-io</artifactId>
+        <version>${version.commons-io}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-lang3</artifactId>
+        <version>${version.commons-lang3}</version>
+      </dependency>
+
+      <!-- Jackson -->
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-annotations</artifactId>
+        <version>${version.jackson}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-core</artifactId>
+        <version>${version.jackson}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>${version.jackson}</version>
+      </dependency>
+
+      <!-- Logback -->
+      <dependency>
+        <groupId>ch.qos.logback</groupId>
+        <artifactId>logback-classic</artifactId>
+        <version>${version.logback}</version>
+      </dependency>
+      <dependency>
+        <groupId>ch.qos.logback</groupId>
+        <artifactId>logback-core</artifactId>
+        <version>${version.logback}</version>
+      </dependency>
+
+      <!-- PH -->
+      <dependency>
+        <!-- Helger lib to read codelist genericode (.gc) files. -->
+        <groupId>com.helger</groupId>
+        <artifactId>ph-genericode</artifactId>
+        <version>${version.ph-genericode}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.helger.commons</groupId>
+        <artifactId>ph-commons</artifactId>
+        <version>${version.ph-commons}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.helger.commons</groupId>
+        <artifactId>ph-jaxb</artifactId>
+        <version>${version.ph-commons}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.helger.commons</groupId>
+        <artifactId>ph-xml</artifactId>
+        <version>${version.ph-commons}</version>
+      </dependency>
+
+      <!-- SLF4J -->
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>jcl-over-slf4j</artifactId>
+        <version>${version.sl4fj}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>${version.sl4fj}</version>
+      </dependency>
+
+      <!-- Spring & Spring Boot -->
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-dependencies</artifactId>
+        <version>${version.spring-boot}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- Other -->
+      <dependency>
+        <groupId>com.google.code.findbugs</groupId>
+        <artifactId>jsr305</artifactId>
+        <version>${version.jsr305}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.sun.xml.bind</groupId>
+        <artifactId>jaxb-impl</artifactId>
+        <version>${version.jaxb-impl}</version>
+      </dependency>
+      <dependency>
+        <groupId>jakarta.servlet</groupId>
+        <artifactId>jakarta.servlet-api</artifactId>
+        <version>${version.jakarta.servlet-api}</version>
+      </dependency>
+      <dependency>
+        <groupId>jakarta.xml.bind</groupId>
+        <artifactId>jakarta.xml.bind-api</artifactId>
+        <version>${version.xml.bind-api}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -80,50 +199,158 @@
       <groupId>eu.europa.ted.eforms</groupId>
       <artifactId>eforms-core-java</artifactId>
     </dependency>
-    <!-- Spring Boot -->
 
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-thymeleaf</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-devtools</artifactId>
-      <scope>runtime</scope>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <!-- Use Jetty instead of Tomcat. -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-jetty</artifactId>
-    </dependency>
-
+    <!-- Apache Commons -->
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
     </dependency>
-
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <version>2.11.0</version>
     </dependency>
 
-    <!-- Helger lib to read codelist genericode (.gc) files. -->
+    <!-- Jackson -->
     <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+
+    <!-- Logback -->
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-core</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- PH -->
+    <dependency>
+      <!-- Helger lib to read codelist genericode (.gc) files. -->
       <groupId>com.helger</groupId>
       <artifactId>ph-genericode</artifactId>
-      <version>6.2.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.helger.commons</groupId>
+      <artifactId>ph-commons</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.helger.commons</groupId>
+      <artifactId>ph-jaxb</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.helger.commons</groupId>
+      <artifactId>ph-xml</artifactId>
+    </dependency>
+
+    <!-- SLF4J -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+
+    <!-- Spring & Spring Boot -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-devtools</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-autoconfigure</artifactId>
+    </dependency>
+    <dependency>
+      <!-- Use Jetty instead of Tomcat. -->
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-jetty</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-thymeleaf</artifactId>
+      <scope>runtime</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-starter</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-aop</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-beans</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-context</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-expression</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-webmvc</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- Other -->
+    <dependency>
+      <groupId>com.google.code.findbugs</groupId>
+      <artifactId>jsr305</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.sun.xml.bind</groupId>
+      <artifactId>jaxb-impl</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.xml.bind</groupId>
+      <artifactId>jakarta.xml.bind-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
 
@@ -194,7 +421,7 @@
               <groupId>com.puppycrawl.tools</groupId>
               <artifactId>checkstyle</artifactId>
               <!-- NOTE: versions before 8 something got confused by lambdas, luckily 9 solves this. -->
-              <version>9.0</version>
+              <version>${version.checkstyle}</version>
             </dependency>
           </dependencies>
           <configuration>
@@ -215,6 +442,21 @@
             </execution>
           </executions>
         </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>${version.javadoc.plugin}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-gpg-plugin</artifactId>
+          <version>${version.gpg.plugin}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-source-plugin</artifactId>
+          <version>${version.source.plugin}</version>
+        </plugin>
       </plugins>
     </pluginManagement>
 
@@ -222,6 +464,17 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>repackage</id>
+            <goals>
+              <goal>repackage</goal>
+            </goals>
+            <configuration>
+              <mainClass>${start-class}</mainClass>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <!-- https://mvnrepository.com/artifact/com.github.spotbugs/spotbugs-maven-plugin -->
@@ -367,7 +620,6 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-source-plugin</artifactId>
-            <version>3.2.1</version>
             <executions>
               <execution>
                 <id>attach-sources</id>
@@ -380,7 +632,6 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
-            <version>3.4.0</version>
             <executions>
               <execution>
                 <id>attach-javadocs</id>
@@ -393,7 +644,6 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
-            <version>1.5</version>
             <executions>
               <execution>
                 <id>sign-artifacts</id>
