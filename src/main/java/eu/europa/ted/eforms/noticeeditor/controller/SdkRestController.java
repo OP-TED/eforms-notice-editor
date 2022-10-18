@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.Optional;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.parsers.ParserConfigurationException;
-import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,8 +31,7 @@ public class SdkRestController implements AsyncConfigurer {
    *
    * @throws IOException
    */
-  @RequestMapping(value = "/info", method = RequestMethod.GET,
-      produces = MediaType.APPLICATION_JSON_VALUE)
+  @RequestMapping(value = "/info", method = RequestMethod.GET, produces = SdkService.MIME_TYPE_JSON)
   public Map<String, Object> selectHomeInfo() throws IOException {
     return SdkService.getHomePageInfo();
   }
@@ -42,7 +40,7 @@ public class SdkRestController implements AsyncConfigurer {
    * Get JSON containing basic home info.
    */
   @RequestMapping(value = "/{sdkVersion}/notice-types", method = RequestMethod.GET,
-      produces = MediaType.APPLICATION_JSON_VALUE)
+      produces = SdkService.MIME_TYPE_JSON)
   public Map<String, Object> selectNoticeTypesList(
       @PathVariable(value = "sdkVersion") String sdkVersion) {
     return SdkService.getNoticeSubTypes(new SdkVersion(sdkVersion));
@@ -52,7 +50,7 @@ public class SdkRestController implements AsyncConfigurer {
    * Get JSON containing data about the specified codelist, with text in the given language.
    */
   @RequestMapping(value = "/{sdkVersion}/codelists/{codeListId}/lang/{langCode}",
-      method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+      method = RequestMethod.GET, produces = SdkService.MIME_TYPE_JSON)
   @ResponseBody
   private String serveCodelist(@PathVariable(value = "sdkVersion") final String sdkVersion,
       @PathVariable(value = "codeListId") final String codeListId,
@@ -66,7 +64,7 @@ public class SdkRestController implements AsyncConfigurer {
    * GET JSON containing data about the SDK fields.
    */
   @RequestMapping(value = "/{sdkVersion}/fields", method = RequestMethod.GET,
-      produces = MediaType.APPLICATION_JSON_VALUE)
+      produces = SdkService.MIME_TYPE_JSON)
   public void serveFieldsJson(final HttpServletResponse response,
       @PathVariable(value = "sdkVersion") String sdkVersion) {
     SdkService.serveSdkJsonFile(response, new SdkVersion(sdkVersion), SdkResource.FIELDS,
@@ -77,7 +75,7 @@ public class SdkRestController implements AsyncConfigurer {
    * Get JSON containing data about the SDK notice types.
    */
   @RequestMapping(value = "/{sdkVersion}/notice-types/{noticeId}", method = RequestMethod.GET,
-      produces = MediaType.APPLICATION_JSON_VALUE)
+      produces = SdkService.MIME_TYPE_JSON)
   public void serveNoticeTypeJson(final HttpServletResponse response,
       @PathVariable(value = "sdkVersion") String sdkVersion,
       @PathVariable(value = "noticeId") String noticeId) {
@@ -90,7 +88,7 @@ public class SdkRestController implements AsyncConfigurer {
    * Get JSON containing data about translations for the given language.
    */
   @RequestMapping(value = "/{sdkVersion}/translations/{langCode}.json", method = RequestMethod.GET,
-      produces = MediaType.APPLICATION_JSON_VALUE)
+      produces = SdkService.MIME_TYPE_JSON)
   public void serveTranslationsFields(final HttpServletResponse response,
       @PathVariable(value = "sdkVersion") String sdkVersion,
       @PathVariable(value = "langCode") String langCode)
@@ -107,7 +105,7 @@ public class SdkRestController implements AsyncConfigurer {
    * @throws IOException
    */
   @RequestMapping(value = "/notice/save", method = RequestMethod.POST,
-      produces = MediaType.APPLICATION_XML_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+      produces = SdkService.MIME_TYPE_XML, consumes = SdkService.MIME_TYPE_JSON)
   public void saveNotice(final HttpServletResponse response, @RequestBody String notice)
       throws ParserConfigurationException, IOException {
     SdkService.saveNoticeAsXml(Optional.of(response), notice);

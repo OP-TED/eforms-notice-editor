@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -54,7 +55,6 @@ import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.NoticeSaver;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.PhysicalModel;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.SchemaInfo;
-import eu.europa.ted.eforms.noticeeditor.helper.notice.SchemaTools;
 import eu.europa.ted.eforms.noticeeditor.util.IntuitiveStringComparator;
 import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
@@ -69,6 +69,18 @@ import eu.europa.ted.eforms.sdk.resource.SdkResourceLoader;
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
     value = "EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS", justification = "Checked to Runtime OK here")
 public class SdkService {
+
+  /**
+   * Mime type for JSON data.
+   */
+  public static final String MIME_TYPE_JSON = "application/json";
+
+  /**
+   * Mime type for XML data. Or should it be "text/xml"? Because browsers handle "application/xml"
+   * better this will be used in the editor. You are free to use what ever you want, but you have to
+   * be consistent in other parts of the application.
+   */
+  public static final String MIME_TYPE_XML = "application/xml";
 
   /**
    * Notice field having the eformsSdkVersion as a value.
@@ -286,7 +298,7 @@ public class SdkService {
         throw new RuntimeException(String.format("InputStream is null for %s", path));
       }
       // Indicate the content type and encoding BEFORE writing to output.
-      response.setContentType("application/json");
+      response.setContentType(MIME_TYPE_JSON);
       response.setCharacterEncoding(StandardCharsets.UTF_8.toString());
       // setGzipResponse(response);
 
@@ -309,26 +321,28 @@ public class SdkService {
    * Serves the specified json string as download.
    *
    * @param response The HTTP response to serve the download to
-   * @param jsonString The JSON string to serve
+   * @param text The JSON string to serve
    * @param filenameForDownload The filename to set in the headers
    * @param isAsDownload Serve as attachement or not
+   * @param mimeType The response mime type
    * @throws IOException If a problem occurs during flush buffer
    */
-  private static void serveJsonString(final HttpServletResponse response, final String jsonString,
-      final String filenameForDownload, final boolean isAsDownload) throws IOException {
-    Validate.notBlank(jsonString, "jsonString is blank");
+  private static void serveStringUtf8(final HttpServletResponse response, final String text,
+      final String filenameForDownload, final boolean isAsDownload, String mimeType)
+      throws IOException {
+    Validate.notBlank(text, "jsonString is blank");
     Validate.notBlank(filenameForDownload, "filenameForDownload is blank");
     // ---------------------------------
     // THE FILE IS SMALL, JUST COPY IT.
     // ---------------------------------
     final Charset utf8 = StandardCharsets.UTF_8;
-    try (InputStream is = IOUtils.toInputStream(jsonString, utf8)) {
+    try (InputStream is = IOUtils.toInputStream(text, utf8)) {
       if (is == null) {
         throw new RuntimeException(
             String.format("InputStream is null for %s", filenameForDownload));
       }
       // Indicate the content type and encoding BEFORE writing to output.
-      response.setContentType("application/json");
+      response.setContentType(mimeType);
       response.setCharacterEncoding(utf8.toString());
       // setGzipResponse(response);
 
@@ -405,10 +419,28 @@ public class SdkService {
       final String filenameForDownload) {
     Validate.notBlank(jsonStr, "jsonStr is blank");
     try {
-
       // As the sdkVersion and other details are in the url this can be cached for a while.
       setResponseCacheControl(response, CACHE_MAX_AGE_SECONDS);
-      serveJsonString(response, jsonStr, filenameForDownload, false);
+      serveStringUtf8(response, jsonStr, filenameForDownload, false, MIME_TYPE_JSON);
+    } catch (Exception ex) {
+      logger.error(ex.toString(), ex);
+      throw new RuntimeException(
+          String.format("Exception serving JSON file %s", filenameForDownload), ex);
+    }
+  }
+
+  /**
+   * Common SDK XML string logic.
+   */
+  public static void serveSdkXmlStringAsDownload(final HttpServletResponse response,
+      final String jsonStr, final String filenameForDownload) {
+    Validate.notBlank(jsonStr, "jsonStr is blank");
+    try {
+      // As the sdkVersion and other details are in the url this can be cached for a while.
+      setResponseCacheControl(response, CACHE_MAX_AGE_SECONDS);
+
+      final String responseMimeType = MIME_TYPE_XML;
+      serveStringUtf8(response, jsonStr, filenameForDownload, true, responseMimeType);
 
     } catch (Exception ex) {
       logger.error(ex.toString(), ex);
@@ -574,27 +606,20 @@ public class SdkService {
     final String sdkXsdFile = docTypeInfo.getXsdFile();
     final Path sdkXsdPath = readSdkPath(sdkVersion, SdkResource.SCHEMAS_MAINDOC, sdkXsdFile);
     final String rootElementTagName = docTypeInfo.getRootElementTagName();
-    final SchemaInfo schemaInfo = SchemaTools.getSchemaInfo(sdkXsdPath, rootElementTagName);
+    // TODO tttt
+    // final SchemaInfo schemaInfo = SchemaTools.getSchemaInfo(sdkXsdPath, rootElementTagName);
+
+    final SchemaInfo schemaInfo = new SchemaInfo(new ArrayList<>());
 
     final PhysicalModel physicalModel = NoticeSaver.buildPhysicalModelXml(fieldsAndNodes,
         noticeInfoBySubtype, documentInfoByType, concept, false, true, schemaInfo);
 
-    final Document doc = physicalModel.getDomDocument();
     final String xmlAsText = physicalModel.getXmlAsText(false);
-
-    // final TransformerFactory transformerFactory = TransformerFactory.newInstance();
-    // final Transformer transformer = transformerFactory.newTransformer();
-    // final DOMSource source = new DOMSource(doc);
-    // TODO create XML
-    // StreamResult result = new StreamResult(output);
-    // transformer.transform(source, result);
-
-    final String jsonStr = "{}";
 
     // TODO find a better filename.
     final String filenameForDownload = String.format("notice-%s.xml", noticeUuid);
     if (responseOpt.isPresent()) {
-      serveSdkJsonString(responseOpt.get(), jsonStr, filenameForDownload);
+      serveSdkXmlStringAsDownload(responseOpt.get(), xmlAsText, filenameForDownload);
     }
   }
 

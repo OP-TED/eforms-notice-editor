@@ -108,7 +108,12 @@ public class NoticeSaver {
 
   public static final Element createElem(final Document doc, final String tagName) {
     // This removes the xmlns="" that Saxon adds.
-    return doc.createElementNS("", tagName);
+    try {
+      return doc.createElementNS("", tagName);
+    } catch (org.w3c.dom.DOMException ex) {
+      logger.error("Problem creating element with tagName={}", tagName);
+      throw ex;
+    }
   }
 
   /**
@@ -158,7 +163,6 @@ public class NoticeSaver {
     buildPhysicalModelXmlRec(fieldsAndNodes, doc, concept.getRoot(), rootElem, debug, buildFields,
         0, false, xPathInst);
 
-    // Sort order.
     reorderElements(rootElem, xPathInst, schemaInfo);
 
     return new PhysicalModel(doc);
@@ -196,9 +200,9 @@ public class NoticeSaver {
    */
   private static void reorderElements(final Element rootElem, final XPath xPathInst,
       final SchemaInfo schemaInfo) {
-    List<String> rootOrder = schemaInfo.getRootOrder();
-    for (final String tag : rootOrder) {
-      final NodeList elementsFound = evaluateXpath(xPathInst, rootElem, tag);
+    final List<String> rootOrder = schemaInfo.getRootOrder();
+    for (final String tagName : rootOrder) {
+      final NodeList elementsFound = evaluateXpath(xPathInst, rootElem, tagName);
       for (int i = 0; i < elementsFound.getLength(); i++) {
         final Node elem = elementsFound.item(i);
         rootElem.removeChild(elem);
@@ -618,7 +622,12 @@ public class NoticeSaver {
       tag = tag.substring(0, tag.indexOf('['));
     }
 
-    // For the xpath expression keep the original.
+    // cbc:NoticeTypeCode~~~@listName
+    if (tag.contains(REPLACEMENT)) {
+      tag = tag.substring(0, tag.indexOf(REPLACEMENT));
+    }
+
+    // For the xpath expression keep the original param, only do the replacement.
     final String xpathExpr = partParam.replaceAll(REPLACEMENT, "/");
 
     return new PhysicalXpath(xpathExpr, tag, schemeNameOpt);

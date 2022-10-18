@@ -4,6 +4,9 @@
 // NOTE: For bigger scripts and maintenability you could also use something like TypeScript instead.
 (function() {
   console.log("Loading editor script.");
+  
+  const MIME_TYPE_XML = "application/xml";
+  const MIME_TYPE_JSON = "application/json"; // Used in other parts of the editor for xml.
 
   const timeOutDefaultMillis = 3000;
   const timeOutLargeMillis = 6000;
@@ -152,7 +155,7 @@
         };
         const url = "sdk/notice/save";
         const body = jsonText;
-	      jsonPost(url, timeOutLargeMillis, afterModelPost, jsonPostOnError, body);
+	      jsonPostRespXml(url, timeOutLargeMillis, afterModelPost, jsonPostOnError, body);
       };
       serializeBtnElem.addEventListener("click", serializeToJsonFunc, false);
     }
@@ -1147,18 +1150,22 @@
   }
     
   function jsonGet(url, timeoutMillis, fnOk, fnErr) {
-    buildXhr("GET", url, timeoutMillis, fnOk, fnErr).send();
+    buildXhr("GET", url, timeoutMillis, fnOk, fnErr, MIME_TYPE_JSON).send();
   }
 
   function jsonPost(url, timeoutMillis, fnOk, fnErr, body) {
-    buildXhr("POST", url, timeoutMillis, fnOk, fnErr).send(body);
+    buildXhr("POST", url, timeoutMillis, fnOk, fnErr, MIME_TYPE_JSON).send(body);
+  }
+  
+  function jsonPostRespXml(url, timeoutMillis, fnOk, fnErr, body) {
+    buildXhr("POST", url, timeoutMillis, fnOk, fnErr, MIME_TYPE_XML).send(body);
   }
 
   /**
    * Helper to perform HTTP GET XHR for JSON (XHR = Xml Http Request, for AJAX).
    * In general the back-end REST API is called from here.
    */
-  function buildXhr(method, url, timeoutMillis, fnOk, fnErr) {
+  function buildXhr(method, url, timeoutMillis, fnOk, fnErr, responseMimeType) {
     const xhr = new XMLHttpRequest();
     xhr.open(method, url, true);  // Asnyc HTTP by default.
     xhr.setRequestHeader("Content-Type", "application/json");
@@ -1167,8 +1174,12 @@
     // For proxy settings: check your browser configuration.
     xhr.onload = function() {
       if (xhr.readyState == 4 && xhr.status === 200) {
-        const jsonData = JSON.parse(xhr.responseText);
-         fnOk(jsonData);
+        if ("application/json" === responseMimeType) {
+          const jsonData = JSON.parse(xhr.responseText);
+          fnOk(jsonData);
+        } else {
+          fnOk(xhr.responseText);
+        }
       } else {
         fnErr(xhr);
       }
