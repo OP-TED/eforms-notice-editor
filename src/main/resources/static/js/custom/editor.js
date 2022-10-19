@@ -145,17 +145,22 @@
         console.debug("Attempting to serialize form to JSON.");
         event.preventDefault();
         
-        const textArea = document.getElementById("id-editor-log-json-area");
-        textArea.value = '';
+        const textAreaJson = document.getElementById("id-editor-log-json-area");
+        textAreaJson.value = '';
+
+        const textAreaXml = document.getElementById("id-editor-log-xml-area");
+        textAreaXml.value = '';
 
         const dataModel = that.toModel();
         //console.dir(dataModel);
         const jsonText = JSON.stringify(dataModel, null, 2);
-        textArea.value = jsonText;
-        textArea.style.display = 'block';
+        textAreaJson.value = jsonText;
+        textAreaJson.style.display = 'block';
 
         const afterModelPost = function(data) {
           console.log("After model post:" + data);
+          textAreaXml.value = data;
+          textAreaXml.style.display = 'block';
         };
         const url = "sdk/notice/save";
         const body = jsonText;

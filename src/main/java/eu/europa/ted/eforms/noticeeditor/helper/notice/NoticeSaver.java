@@ -223,6 +223,10 @@ public class NoticeSaver {
     Validate.notNull(rootElement);
 
     final Map<String, String> map = new LinkedHashMap<>();
+
+    // If these namespaces evolve they could start to differ by SDK version.
+    // TODO load from XSDs?
+    // TODO maybe provide a simple mapping in notice-types.json or an index json file in /schemas?
     map.put("xsi", "http://www.w3.org/2001/XMLSchema-instance");
     map.put("cbc", "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2");
     map.put("cac", "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2");
@@ -247,11 +251,10 @@ public class NoticeSaver {
     // NAMESPACES FOR XPATH.
     //
     try {
-      // Why Saxon HE lib: It was not working with the default Java / JDK lib (Java 15).
+      // Why Saxon HE lib: namespaces were not working with the JDK (Java 15).
       final String objectModelSaxon = NamespaceConstant.OBJECT_MODEL_SAXON;
       System.setProperty("javax.xml.xpath.XPathFactory:" + objectModelSaxon,
           "net.sf.saxon.xpath.XPathFactoryImpl");
-
       final XPath xPathInst = XPathFactory.newInstance(objectModelSaxon).newXPath();
 
       // Custom namespace context.
@@ -308,13 +311,11 @@ public class NoticeSaver {
     // FIELDS.
     if (buildFields) {
       buildFields(fieldsAndNodes, conceptElem, doc, xPathInst, xmlNodeElem, debug, onlyIfPriority);
-      System.out.println("");
-      System.out.println(EditorXmlUtils.asText(doc, true));
+      if (debug) {
+        System.out.println("");
+        System.out.println(EditorXmlUtils.asText(doc, true));
+      }
     }
-
-    // System.out.println("");
-    // System.out.println(EditorXmlUtils.asText(doc, true));
-
   }
 
   /**
@@ -345,7 +346,7 @@ public class NoticeSaver {
       Element partElem = null;
 
       // xpathRelative can contain many xml elements. We must build the hierarchy.
-      // TODO Use ANTLR xpath grammar later??
+      // TODO Use ANTLR xpath grammar later?
       // TODO maybe use xpath to locate the tag in the doc ? What xpath finds is where to add the
       // data.
 
@@ -353,15 +354,19 @@ public class NoticeSaver {
       final List<String> parts = new ArrayList<>(Arrays.asList(partsArr));
       parts.remove(0); // If absolute.
       parts.remove(0); // If absolute.
-      System.out.println("  PARTS NODE: " + parts);
+      if (debug) {
+        System.out.println("  PARTS NODE: " + parts);
+      }
       for (final String partXpath : parts) {
 
         final PhysicalXpath px = handleXpathPart(partXpath);
         final Optional<String> schemeNameOpt = px.getSchemeNameOpt();
         final String xpathExpr = px.getXpathExpr();
         final String tag = px.getTag();
-        System.out.println("  tag=" + tag);
-        System.out.println("  xmlTag=" + xmlNodeElem.getTagName());
+        if (debug) {
+          System.out.println("  tag=" + tag);
+          System.out.println("  xmlTag=" + xmlNodeElem.getTagName());
+        }
 
         // TODO tttt if the element is not repeatable, reuse it. Maybe here is the right place to
         // use the counter.
@@ -390,17 +395,16 @@ public class NoticeSaver {
           }
         } else {
           // Create an XML element for the node.
-          System.out.println("  creating node " + tag);
-          logger.debug("Creating nodeId={}, tag={}", nodeId, tag);
+          if (debug) {
+            logger.debug("Creating nodeId={}, tag={}", nodeId, tag);
+          }
           partElem = createElem(doc, tag);
         }
 
         previousElem.appendChild(partElem);
-
         if (schemeNameOpt.isPresent()) {
           partElem.setAttribute("schemeName", schemeNameOpt.get());
         }
-
         previousElem = partElem;
 
       } // End of for loop on parts.
@@ -422,13 +426,17 @@ public class NoticeSaver {
 
     // logger.debug("xmlEleme=" + EditorXmlUtils.getNodePath(xmlNodeElem));
     final List<ConceptField> conceptFields = conceptElem.getConceptFields();
-    System.out.println("  conceptFields" + conceptFields);
+    if (debug) {
+      System.out.println("  conceptFields" + conceptFields);
+    }
     for (final ConceptField conceptField : conceptFields) {
       final String value = conceptField.getValue();
       final String fieldId = conceptField.getId();
 
-      System.out.println("");
-      System.out.println("  fieldId=" + fieldId);
+      if (debug) {
+        System.out.println("");
+        System.out.println("  fieldId=" + fieldId);
+      }
 
       // Get the field meta-data from the SDK.
       final JsonNode fieldMeta = fieldsAndNodes.getFieldById(fieldId);
@@ -445,7 +453,9 @@ public class NoticeSaver {
       // TODO Use ANTLR xpath grammar later.
       final String[] partsArr = getXpathPartsArr(xpathRel);
       final List<String> parts = new ArrayList<>(Arrays.asList(partsArr));
-      System.out.println("  PARTS FIELD: " + parts);
+      if (debug) {
+        System.out.println("  PARTS FIELD: " + parts);
+      }
       for (final String partXpath : parts) {
 
         final PhysicalXpath px = handleXpathPart(partXpath);
@@ -557,17 +567,25 @@ public class NoticeSaver {
     } // End of for loop on concept fields.
   }
 
+  /**
+   * Evaluates xpath and returns a nodelist. Note: this works when the required notice values are
+   * present as some xpath may rely on their presence (codes, indicators, ...).
+   *
+   * @param xPathInst The XPath instance (reusable)
+   * @param contextElem The XML context element in which the xpath is evaluated
+   * @param xpathExpr The XPath expression relative to the passed context
+   * @return The result of evaluating the XPath expression as a NodeList
+   */
   static NodeList evaluateXpath(final XPath xPathInst, final Object contextElem,
       final String xpathExpr) {
     Validate.notBlank(xpathExpr);
     try {
-
-      // Potential optimization would be to reuse some of the compiled xpath.
-      final NodeList nodeList =
-          (NodeList) xPathInst.compile(xpathExpr).evaluate(contextElem, XPathConstants.NODESET);
-
+      // A potential optimization would be to reuse some of the compiled xpath.
       // final NodeList nodeList =
-      // (NodeList) xPathInst.evaluate(xpathExpr, contextElem, XPathConstants.NODESET);
+      // (NodeList) xPathInst.compile(xpathExpr).evaluate(contextElem, XPathConstants.NODESET);
+
+      final NodeList nodeList =
+          (NodeList) xPathInst.evaluate(xpathExpr, contextElem, XPathConstants.NODESET);
 
       return nodeList;
     } catch (XPathExpressionException e) {

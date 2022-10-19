@@ -614,7 +614,7 @@ public class SdkService {
     final PhysicalModel physicalModel = NoticeSaver.buildPhysicalModelXml(fieldsAndNodes,
         noticeInfoBySubtype, documentInfoByType, concept, false, true, schemaInfo);
 
-    final String xmlAsText = physicalModel.getXmlAsText(false);
+    final String xmlAsText = physicalModel.getXmlAsText(true);
 
     // TODO find a better filename.
     final String filenameForDownload = String.format("notice-%s.xml", noticeUuid);
