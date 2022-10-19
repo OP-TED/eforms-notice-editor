@@ -24,6 +24,10 @@
   const DATA_EDITOR_ID_REFERENCE = "data-editor-id-reference";
   const DATA_EDITOR_ID_REF_PREFIX = "data-editor-id-ref-";
   const DATA_EDITOR_INSTANCE_ID_FIELD = "data-editor-instance-id-field";
+  const DATA_EDITOR_VALUE_FIELD = "data-editor-value-field";
+  const DATA_EDITOR_COUNT = "data-editor-count";
+  const DATA_EDITOR_TYPE = "data-editor-type";
+  const DATA_EDITOR_CONTENT_PARENT_ID = "data-editor-content-parent-id";
 
   const displayTypeToElemInfo = {};
   displayTypeToElemInfo["CHECKBOX"] = {"tag": "input", "type" : "checkbox"};
@@ -208,7 +212,7 @@
       // 3. order should already be ok, just use data-...-parentId to rebuild the tree
       
       const dataModel = {};
-      const fieldElems = document.querySelectorAll("[data-editor-value-field='true']");
+      const fieldElems = document.querySelectorAll("[" + DATA_EDITOR_VALUE_FIELD+ "='true']");
       for (const fieldElem of fieldElems) {
         const data = {};
         
@@ -218,10 +222,10 @@
         const contentId = fieldElem.getAttribute(DATA_EDITOR_CONTENT_ID);
         data["contentId"] = contentId;
 
-				const contentType = fieldElem.getAttribute("data-editor-type");        
+				const contentType = fieldElem.getAttribute(DATA_EDITOR_TYPE);        
 				data["type"] = contentType;
 
-				const contentCount = fieldElem.getAttribute("data-editor-count");        
+				const contentCount = fieldElem.getAttribute(DATA_EDITOR_COUNT);        
 				data["contentCount"] = contentCount;
 
         // The form value (text inside of form fields, input, select, textarea, ...).
@@ -231,7 +235,7 @@
 				//
 				// Parent related logic.
 				//
-        const contentParentId = fieldElem.getAttribute("data-editor-content-parent-id");
+        const contentParentId = fieldElem.getAttribute(DATA_EDITOR_CONTENT_PARENT_ID);
         data["contentParentId"] = contentParentId;
         const parentSelector = "[" + DATA_EDITOR_CONTENT_ID + "='" + contentParentId + "']";
 
@@ -239,7 +243,7 @@
 				const containerParentElem = fieldElem.closest(parentSelector);
 				
 				// TODO Need to find a way to group them by the parent same. probably via the DOM.
-        const contentParentCount = containerParentElem.getAttribute("data-editor-count");        
+        const contentParentCount = containerParentElem.getAttribute(DATA_EDITOR_COUNT);        
 				data["contentParentCount"] = contentParentCount;
         
         const field = this.fieldMap[contentId];
@@ -496,9 +500,9 @@
       }
 
       if (isField) {
-        formElem.setAttribute("data-editor-type", "field");
+        formElem.setAttribute(DATA_EDITOR_TYPE, "field");
       } else {
-        containerElem.setAttribute("data-editor-type", "non-field");
+        containerElem.setAttribute(DATA_EDITOR_TYPE, "non-field");
       }
        
 	    // Prefix the ids to avoid conflict with various other identifiers existing in the same page.
@@ -508,9 +512,9 @@
 	    containerElem.setAttribute("id", this.buildIdUniqueNew(content) + "-container-elem");
 	    
 	    containerElem.setAttribute(DATA_EDITOR_CONTENT_ID, content.id + "-container-elem");
-	    containerElem.setAttribute("data-editor-content-parent-id", parentElem.getAttribute(DATA_EDITOR_CONTENT_ID));
+	    containerElem.setAttribute(DATA_EDITOR_CONTENT_PARENT_ID, parentElem.getAttribute(DATA_EDITOR_CONTENT_ID));
 	     
-	    containerElem.setAttribute("data-editor-count", content.editorCount);
+	    containerElem.setAttribute(DATA_EDITOR_COUNT, content.editorCount);
 
 	    // 
 	    // Style: CSS classes and more.
@@ -666,12 +670,12 @@
         // IMPORTANT: this links the form items with the NTD and thus in some cases with the field and node map.
 	      formElem.setAttribute(DATA_EDITOR_CONTENT_ID, content.id);
 
-	      formElem.setAttribute("data-editor-content-parent-id", parentElem.getAttribute(DATA_EDITOR_CONTENT_ID)); 
+	      formElem.setAttribute(DATA_EDITOR_CONTENT_PARENT_ID, parentElem.getAttribute(DATA_EDITOR_CONTENT_ID)); 
 
-	      formElem.setAttribute("data-editor-count", content.editorCount);
+	      formElem.setAttribute(DATA_EDITOR_COUNT, content.editorCount);
 	      
 	      // This is used later on to retrieve form values.
-	      formElem.setAttribute("data-editor-value-field", "true");
+	      formElem.setAttribute(DATA_EDITOR_VALUE_FIELD, "true");
 
         // Set the translation.
         const i18nText = this.getTranslationById(content._label);
