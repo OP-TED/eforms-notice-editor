@@ -1,0 +1,15 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+  ####Jetty specific properties########
+  jetty:
+    # Number of acceptor threads to use.
+    # acceptors: 10
+
+    # Maximum size in bytes of the HTTP post or put content.
+    max-http-form-post-size: 1000000000
+
+    # Number of selector threads to use.
+    # selectors:

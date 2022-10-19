@@ -54,7 +54,8 @@
     <version.checkstyle>9.0</version.checkstyle> <!-- NOTE: versions before 8 something got confused by lambdas, luckily 9 solves this. -->
     <version.commons-io>2.11.0</version.commons-io>
     <version.commons-lang3>3.12.0</version.commons-lang3>
-    <version.jackson>2.13.3</version.jackson>
+    <version.jackson>2.13.4</version.jackson>
+    <version.jackson-databind>2.13.4.2</version.jackson-databind>
     <version.jakarta.servlet-api>4.0.4</version.jakarta.servlet-api>
     <version.jaxb-impl>2.3.3</version.jaxb-impl>
     <version.jsr305>3.0.2</version.jsr305>
@@ -63,6 +64,7 @@
     <version.ph-genericode>6.2.0</version.ph-genericode>
     <version.ph-commons>10.0.0</version.ph-commons>
     <version.sl4fj>1.7.36</version.sl4fj>
+    <version.snakeyaml>1.29</version.snakeyaml>
     <version.spotbugs>4.4.1</version.spotbugs>
 
     <!-- Versions - Plugins -->
@@ -113,7 +115,7 @@
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>${version.jackson}</version>
+        <version>${version.jackson-databind}</version>
       </dependency>
 
       <!-- Logback -->
@@ -192,6 +194,11 @@
         <groupId>jakarta.xml.bind</groupId>
         <artifactId>jakarta.xml.bind-api</artifactId>
         <version>${version.xml.bind-api}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.yaml</groupId>
+        <artifactId>snakeyaml</artifactId>
+        <version>${version.snakeyaml}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -354,6 +361,12 @@
           <artifactId>*</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+
+    <dependency>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
+      <scope>runtime</scope>
     </dependency>
 
     <dependency>
