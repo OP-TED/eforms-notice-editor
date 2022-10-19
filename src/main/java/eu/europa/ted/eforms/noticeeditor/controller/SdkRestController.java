@@ -1,10 +1,16 @@
 package eu.europa.ted.eforms.noticeeditor.controller;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.parsers.ParserConfigurationException;
+import org.apache.commons.lang3.Validate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,10 +27,25 @@ import eu.europa.ted.eforms.sdk.SdkVersion;
 /**
  * REST API implementation for download of SDK related resources.
  */
-@SuppressWarnings("static-method")
 @RestController
 @RequestMapping(value = "/sdk")
 public class SdkRestController implements AsyncConfigurer {
+  private Path eformsSdkDir;
+
+  @Value("${eforms.sdk.versions}")
+  private List<SdkVersion> supportedSdks;
+
+  @Autowired
+  private SdkService sdkService;
+
+  public SdkRestController(@Value("${eforms.sdk.path}") String eformsSdkDir,
+      @Value("${eforms.sdk.versions}") List<String> supportedSdks) {
+    Validate.notEmpty(eformsSdkDir, "Undefined eForms SDK directory");
+    Validate.notNull(supportedSdks, "Undefined supported SDK versions");
+
+    this.eformsSdkDir = Path.of(eformsSdkDir);
+    this.supportedSdks = supportedSdks.stream().map(SdkVersion::new).collect(Collectors.toList());
+  }
 
   /**
    * Get JSON containing basic home info.
@@ -33,7 +54,7 @@ public class SdkRestController implements AsyncConfigurer {
    */
   @RequestMapping(value = "/info", method = RequestMethod.GET, produces = SdkService.MIME_TYPE_JSON)
   public Map<String, Object> selectHomeInfo() throws IOException {
-    return SdkService.getHomePageInfo();
+    return SdkService.getHomePageInfo(supportedSdks);
   }
 
   /**
@@ -43,7 +64,7 @@ public class SdkRestController implements AsyncConfigurer {
       produces = SdkService.MIME_TYPE_JSON)
   public Map<String, Object> selectNoticeTypesList(
       @PathVariable(value = "sdkVersion") String sdkVersion) {
-    return SdkService.getNoticeSubTypes(new SdkVersion(sdkVersion));
+    return SdkService.getNoticeSubTypes(new SdkVersion(sdkVersion), eformsSdkDir);
   }
 
   /**
@@ -56,8 +77,8 @@ public class SdkRestController implements AsyncConfigurer {
       @PathVariable(value = "codeListId") final String codeListId,
       @PathVariable(value = "langCode") final String langCode, final HttpServletResponse response)
       throws IOException {
-    return SdkService.serveCodelistAsJson(new SdkVersion(sdkVersion), codeListId, langCode,
-        response);
+    return SdkService.serveCodelistAsJson(new SdkVersion(sdkVersion), eformsSdkDir, codeListId,
+        langCode, response);
   }
 
   /**
@@ -67,7 +88,7 @@ public class SdkRestController implements AsyncConfigurer {
       produces = SdkService.MIME_TYPE_JSON)
   public void serveFieldsJson(final HttpServletResponse response,
       @PathVariable(value = "sdkVersion") String sdkVersion) {
-    SdkService.serveSdkJsonFile(response, new SdkVersion(sdkVersion), SdkResource.FIELDS,
+    sdkService.serveSdkJsonFile(response, new SdkVersion(sdkVersion), SdkResource.FIELDS,
         SdkService.SDK_FIELDS_JSON);
   }
 
@@ -80,7 +101,7 @@ public class SdkRestController implements AsyncConfigurer {
       @PathVariable(value = "sdkVersion") String sdkVersion,
       @PathVariable(value = "noticeId") String noticeId) {
     final String filenameForDownload = String.format("%s.json", noticeId);
-    SdkService.serveSdkJsonFile(response, new SdkVersion(sdkVersion), SdkResource.NOTICE_TYPES,
+    sdkService.serveSdkJsonFile(response, new SdkVersion(sdkVersion), SdkResource.NOTICE_TYPES,
         filenameForDownload);
   }
 
@@ -95,7 +116,7 @@ public class SdkRestController implements AsyncConfigurer {
       throws ParserConfigurationException, SAXException, IOException {
     final Language lang = Language.valueOfFromLocale(langCode);
     final String filenameForDownload = String.format("i18n_%s.xml", lang.getLocale().getLanguage());
-    SdkService.serveTranslations(response, new SdkVersion(sdkVersion), langCode,
+    SdkService.serveTranslations(response, new SdkVersion(sdkVersion), eformsSdkDir, langCode,
         filenameForDownload);
   }
 
@@ -108,7 +129,7 @@ public class SdkRestController implements AsyncConfigurer {
       produces = SdkService.MIME_TYPE_XML, consumes = SdkService.MIME_TYPE_JSON)
   public void saveNotice(final HttpServletResponse response, @RequestBody String notice)
       throws ParserConfigurationException, IOException {
-    SdkService.saveNoticeAsXml(Optional.of(response), notice);
+    sdkService.saveNoticeAsXml(Optional.of(response), notice);
   }
 
 }

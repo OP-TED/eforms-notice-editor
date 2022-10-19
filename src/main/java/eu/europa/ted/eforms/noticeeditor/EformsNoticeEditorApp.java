@@ -1,8 +1,13 @@
 package eu.europa.ted.eforms.noticeeditor;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
@@ -14,11 +19,16 @@ import eu.europa.ted.eforms.sdk.resource.SdkDownloader;
  */
 @ConfigurationPropertiesScan
 @SpringBootApplication
-public class EformsNoticeEditorApp {
-
+public class EformsNoticeEditorApp implements CommandLineRunner {
   private static final Logger logger = LoggerFactory.getLogger(EformsNoticeEditorApp.class);
 
   public static final String APP_VERSION = "1.0.0";
+
+  @Value("${eforms.sdk.path}")
+  private String eformsSdkDir;
+
+  @Value("${eforms.sdk.versions}")
+  private List<String> supportedSdks;
 
   public static void main(final String[] args) {
     logger.info("STARTING eForms Notice Editor Demo Application");
@@ -28,14 +38,20 @@ public class EformsNoticeEditorApp {
     // Here you have access to command line args.
     // logger.debug("args={}", Arrays.toString(args));
 
-    for (SdkVersion sdkVersion : NoticeEditorConstants.SUPPORTED_SDKS) {
+    SpringApplication.run(EformsNoticeEditorApp.class, args);
+  }
+
+  @Override
+  public void run(String... args) throws Exception {
+    Validate.notEmpty(eformsSdkDir, "Undefined eForms SDK path");
+    Validate.notNull(supportedSdks, "Undefined supported SDK versions");
+
+    for (String sdkVersion : supportedSdks) {
       try {
-        SdkDownloader.downloadSdk(sdkVersion, NoticeEditorConstants.EFORMS_SDKS_DIR);
+        SdkDownloader.downloadSdk(new SdkVersion(sdkVersion), Path.of(eformsSdkDir));
       } catch (IOException e) {
         throw new RuntimeException("Failed to download SDK artifacts", e);
       }
     }
-
-    SpringApplication.run(EformsNoticeEditorApp.class, args);
   }
 }
