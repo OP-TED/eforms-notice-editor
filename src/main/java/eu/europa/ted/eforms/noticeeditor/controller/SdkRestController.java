@@ -1,9 +1,14 @@
 package eu.europa.ted.eforms.noticeeditor.controller;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.parsers.ParserConfigurationException;
+import org.apache.commons.lang3.Validate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,6 +29,19 @@ import eu.europa.ted.eforms.sdk.SdkVersion;
 @RestController
 @RequestMapping(value = "/sdk")
 public class SdkRestController implements AsyncConfigurer {
+  private Path eformsSdkDir;
+
+  @Value("${eforms.sdk.versions}")
+  private List<SdkVersion> supportedSdks;
+
+  public SdkRestController(@Value("${eforms.sdk.path}") String eformsSdkDir,
+      @Value("${eforms.sdk.versions}") List<String> supportedSdks) {
+    Validate.notEmpty(eformsSdkDir, "Undefined eForms SDK directory");
+    Validate.notNull(supportedSdks, "Undefined supported SDK versions");
+
+    this.eformsSdkDir = Path.of(eformsSdkDir);
+    this.supportedSdks = supportedSdks.stream().map(SdkVersion::new).collect(Collectors.toList());
+  }
 
   /**
    * Get JSON containing basic home info.
@@ -32,7 +50,7 @@ public class SdkRestController implements AsyncConfigurer {
   @RequestMapping(value = "/info", method = RequestMethod.GET,
       produces = MediaType.APPLICATION_JSON_VALUE)
   public Map<String, Object> selectHomeInfo() throws IOException {
-    return SdkService.getHomePageInfo();
+    return SdkService.getHomePageInfo(supportedSdks);
   }
 
   /**
@@ -42,7 +60,7 @@ public class SdkRestController implements AsyncConfigurer {
       produces = MediaType.APPLICATION_JSON_VALUE)
   public Map<String, Object> selectNoticeTypesList(
       @PathVariable(value = "sdkVersion") String sdkVersion) {
-    return SdkService.getNoticeSubTypes(new SdkVersion(sdkVersion));
+    return SdkService.getNoticeSubTypes(new SdkVersion(sdkVersion), eformsSdkDir);
   }
 
   /**
@@ -55,7 +73,8 @@ public class SdkRestController implements AsyncConfigurer {
       @PathVariable(value = "codeListId") final String codeListId,
       @PathVariable(value = "langCode") final String langCode, final HttpServletResponse response)
       throws IOException {
-    return SdkService.serveCodelistAsJson(new SdkVersion(sdkVersion), codeListId, langCode,
+    return SdkService.serveCodelistAsJson(new SdkVersion(sdkVersion), eformsSdkDir, codeListId,
+        langCode,
         response);
   }
 
@@ -67,8 +86,8 @@ public class SdkRestController implements AsyncConfigurer {
   public void serveFieldsJson(final HttpServletResponse response,
       @PathVariable(value = "sdkVersion") String sdkVersion) {
     final String filenameForDownload = "fields.json";
-    SdkService.serveSdkJsonFile(response, new SdkVersion(sdkVersion), SdkResource.FIELDS,
-        filenameForDownload);
+    SdkService.serveSdkJsonFile(response, new SdkVersion(sdkVersion), eformsSdkDir,
+        SdkResource.FIELDS, filenameForDownload);
   }
 
   /**
@@ -80,8 +99,8 @@ public class SdkRestController implements AsyncConfigurer {
       @PathVariable(value = "sdkVersion") String sdkVersion,
       @PathVariable(value = "noticeId") String noticeId) {
     final String filenameForDownload = String.format("%s.json", noticeId);
-    SdkService.serveSdkJsonFile(response, new SdkVersion(sdkVersion), SdkResource.NOTICE_TYPES,
-        filenameForDownload);
+    SdkService.serveSdkJsonFile(response, new SdkVersion(sdkVersion), eformsSdkDir,
+        SdkResource.NOTICE_TYPES, filenameForDownload);
   }
 
   /**
@@ -95,7 +114,7 @@ public class SdkRestController implements AsyncConfigurer {
       throws ParserConfigurationException, SAXException, IOException {
     final Language lang = Language.valueOfFromLocale(langCode);
     final String filenameForDownload = String.format("i18n_%s.xml", lang.getLocale().getLanguage());
-    SdkService.serveTranslations(response, new SdkVersion(sdkVersion), langCode,
+    SdkService.serveTranslations(response, new SdkVersion(sdkVersion), eformsSdkDir, langCode,
         filenameForDownload);
   }
 

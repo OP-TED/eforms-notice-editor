@@ -1,0 +1,12 @@
+{"properties": [
+  {
+    "name": "eforms.sdk.path",
+    "type": "java.lang.String",
+    "description": "Path to eForms SDK"
+  },
+  {
+    "name": "eforms.sdk.versions",
+    "type": "java.lang.String",
+    "description": "Comma-separated list of the supported major versions of eForms SDK"
+  }
+]}

@@ -39,7 +39,6 @@ import com.helger.genericode.v10.Column;
 import com.helger.genericode.v10.Row;
 import com.helger.genericode.v10.Value;
 import eu.europa.ted.eforms.noticeeditor.EformsNoticeEditorApp;
-import eu.europa.ted.eforms.noticeeditor.NoticeEditorConstants;
 import eu.europa.ted.eforms.noticeeditor.domain.Language;
 import eu.europa.ted.eforms.noticeeditor.genericode.CustomGenericodeMarshaller;
 import eu.europa.ted.eforms.noticeeditor.genericode.GenericodeTools;
@@ -181,7 +180,9 @@ public class SdkService {
     }
   }
 
-  public static Map<String, Object> getHomePageInfo() {
+  public static Map<String, Object> getHomePageInfo(List<SdkVersion> supportedSdks) {
+    Validate.notNull(supportedSdks, "Undefined supported SDKs");
+
     final Map<String, Object> map = new LinkedHashMap<>();
     final Instant now = Instant.now();
 
@@ -193,7 +194,7 @@ public class SdkService {
     map.put("appVersion", EformsNoticeEditorApp.APP_VERSION);
 
     map.put("sdkVersions",
-        NoticeEditorConstants.SUPPORTED_SDKS.stream().map(SdkVersion::toStringWithoutPatch)
+        supportedSdks.stream().map(SdkVersion::toStringWithoutPatch)
             .sorted(new IntuitiveStringComparator<>()).sorted(Collections.reverseOrder())
             .collect(Collectors.toList()));
 
@@ -204,13 +205,14 @@ public class SdkService {
   /**
    * Dynamically get the available notice sub types from the given SDK.
    */
-  public static Map<String, Object> getNoticeSubTypes(final SdkVersion sdkVersion) {
+  public static Map<String, Object> getNoticeSubTypes(final SdkVersion sdkVersion,
+      final Path eformsSdkDir) {
     final Map<String, Object> map = new LinkedHashMap<>();
     map.put("sdkVersion", sdkVersion);
     try {
       final List<String> availableNoticeTypes =
           JavaTools.listFiles(SdkResourceLoader.getResourceAsPath(sdkVersion,
-              SdkResource.NOTICE_TYPES, NoticeEditorConstants.EFORMS_SDKS_DIR));
+              SdkResource.NOTICE_TYPES, eformsSdkDir));
 
       final List<String> noticeTypes = availableNoticeTypes.stream()//
           // Remove some files.
@@ -232,10 +234,11 @@ public class SdkService {
   /**
    * Serve an SDK codelist information as JSON.
    */
-  public static String serveCodelistAsJson(final SdkVersion sdkVersion, final String codeListId,
-      final String langCode, final HttpServletResponse response) throws IOException {
+  public static String serveCodelistAsJson(final SdkVersion sdkVersion, final Path eformsSdkDir,
+      final String codeListId, final String langCode, final HttpServletResponse response)
+      throws IOException {
     final Path path = SdkResourceLoader.getResourceAsPath(sdkVersion, SdkResource.CODELISTS,
-        String.format("%s.gc", codeListId), NoticeEditorConstants.EFORMS_SDKS_DIR);
+        String.format("%s.gc", codeListId), eformsSdkDir);
 
     // As the SDK and other details are inside the url this data can be cached for a while.
     SdkService.setResponseCacheControl(response, SdkService.CACHE_MAX_AGE_SECONDS);
@@ -328,13 +331,13 @@ public class SdkService {
    * Common SDK folder logic for reading files.
    */
   public static void serveSdkJsonFile(final HttpServletResponse response,
-      final SdkVersion sdkVersion, final SdkResource resourceType,
+      final SdkVersion sdkVersion, final Path eformsSdkDir, final SdkResource resourceType,
       final String filenameForDownload) {
     Validate.notNull(sdkVersion, "Undefined SDK version");
 
     try {
       final Path path = SdkResourceLoader.getResourceAsPath(sdkVersion, resourceType,
-          filenameForDownload, NoticeEditorConstants.EFORMS_SDKS_DIR);
+          filenameForDownload, eformsSdkDir);
 
       // As the sdkVersion and other details are in the url this can be cached for a while.
       setResponseCacheControl(response, CACHE_MAX_AGE_SECONDS);
@@ -373,7 +376,7 @@ public class SdkService {
    * @return Map of the labels by id
    */
   public static Map<String, String> getTranslations(final SdkVersion sdkVersion,
-      final String labelAssetType, final String langCode)
+      final Path eformsSdkDir, final String labelAssetType, final String langCode)
       throws ParserConfigurationException, SAXException, IOException {
     // SECURITY: Do not inject the passed language directly into a string that goes to the file
     // system. We use our internal enum as a whitelist.
@@ -382,7 +385,7 @@ public class SdkService {
         String.format("%s_%s.xml", labelAssetType, lang.getLocale().getLanguage());
 
     final Path path = SdkResourceLoader.getResourceAsPath(sdkVersion, SdkResource.TRANSLATIONS,
-        filenameForDownload, NoticeEditorConstants.EFORMS_SDKS_DIR);
+        filenameForDownload, eformsSdkDir);
 
     // Example:
     // <?xml version="1.0" encoding="UTF-8"?>
@@ -401,7 +404,8 @@ public class SdkService {
       // The keys (labelIds) are the same in english, we are only missing the values.
       // Take the english file to get the keys and leave the the translations empty.
       logger.warn("File does not exist: {}", file.getName());
-      final Map<String, String> fallbackMap = getTranslations(sdkVersion, labelAssetType, "en");
+      final Map<String, String> fallbackMap =
+          getTranslations(sdkVersion, eformsSdkDir, labelAssetType, "en");
       for (final Entry<String, String> entry : fallbackMap.entrySet()) {
         entry.setValue("");
       }
@@ -427,17 +431,20 @@ public class SdkService {
   }
 
   public static void serveTranslations(final HttpServletResponse response,
-      final SdkVersion sdkVersion, final String langCode, String filenameForDownload)
+      final SdkVersion sdkVersion, final Path eformsSdkDir, final String langCode,
+      String filenameForDownload)
       throws ParserConfigurationException, SAXException, IOException, JsonProcessingException {
     final Map<String, String> labelById = new LinkedHashMap<>();
 
     // Security: set the asset type on the server side!
     final String labelAssetTypeField = "field";
-    labelById.putAll(SdkService.getTranslations(sdkVersion, labelAssetTypeField, langCode));
+    labelById.putAll(
+        SdkService.getTranslations(sdkVersion, eformsSdkDir, labelAssetTypeField, langCode));
 
     // Security: set the asset type on the server side!
     final String labelAssetTypeGroup = "group";
-    labelById.putAll(SdkService.getTranslations(sdkVersion, labelAssetTypeGroup, langCode));
+    labelById.putAll(
+        SdkService.getTranslations(sdkVersion, eformsSdkDir, labelAssetTypeGroup, langCode));
 
     // Convert to JSON string and respond.
     final String jsonStr = new ObjectMapper().writeValueAsString(labelById);
