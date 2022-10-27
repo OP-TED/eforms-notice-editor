@@ -93,6 +93,7 @@ public class SdkService {
 
   private static final String SDK_NOTICE_TYPES_JSON = "notice-types.json";
   public static final String SDK_FIELDS_JSON = "fields.json";
+  public static final String SDK_CODELISTS_JSON = "codelists.json";
 
   public static final String ND_ROOT = "ND-Root";
 
@@ -115,7 +116,7 @@ public class SdkService {
   private static final Pattern REGEX_SDK_VERSION =
       Pattern.compile("\\p{Digit}{1,2}\\.\\p{Digit}{1,2}\\.\\p{Digit}{1,2}");
 
-  public static String buildJsonFromCodelistGc(final String codeListId, final Path path,
+  public static String buildJsonFromCodelistGc(final String codelistGc, final Path path,
       final String langCode) throws IOException {
     // Use GC Helger lib to load SDK .gc file.
     final CustomGenericodeMarshaller marshaller = GenericodeTools.getMarshaller();
@@ -152,7 +153,7 @@ public class SdkService {
         final String technicalCode;
         if (technicalCodeValOpt.isPresent()) {
           technicalCode = technicalCodeValOpt.get().getSimpleValueValue();
-          Validate.notBlank("technicalCode is blank for codeListId=%s", codeListId);
+          Validate.notBlank("technicalCode is blank for codelistGc=%s", codelistGc);
 
           // Get desired language first, fallback to eng.
           final Optional<Value> desiredLabelOpt = gcFindFirstColumnRef(gcRowValues, genericodeLang);
@@ -273,15 +274,19 @@ public class SdkService {
    * Serve an SDK codelist information as JSON.
    */
   public static String serveCodelistAsJson(final SdkVersion sdkVersion, final Path eformsSdkDir,
-      final String codeListId, final String langCode, final HttpServletResponse response)
+      final String codelistGc, final String langCode, final HttpServletResponse response)
       throws IOException {
+
+    // SECURITY: just an example here but do not blindly accept any filename here.
+    Validate.isTrue(codelistGc.endsWith(".gc"), "codelistGc=%s must end with .gc", codelistGc);
+
     final Path path = SdkResourceLoader.getResourceAsPath(sdkVersion, SdkResource.CODELISTS,
-        String.format("%s.gc", codeListId), eformsSdkDir);
+        codelistGc, eformsSdkDir);
 
     // As the SDK and other details are inside the url this data can be cached for a while.
     SdkService.setResponseCacheControl(response, SdkService.CACHE_MAX_AGE_SECONDS);
 
-    return SdkService.buildJsonFromCodelistGc(codeListId, path, langCode);
+    return SdkService.buildJsonFromCodelistGc(codelistGc, path, langCode);
   }
 
   /**
@@ -373,7 +378,6 @@ public class SdkService {
   public void serveSdkJsonFile(final HttpServletResponse response, final SdkVersion sdkVersion,
       final SdkResource resourceType, final String filenameForDownload) {
     Validate.notNull(sdkVersion, "Undefined SDK version");
-
     try {
       final Path path = SdkResourceLoader.getResourceAsPath(sdkVersion, resourceType,
           filenameForDownload, Path.of(eformsSdkPath));
@@ -418,7 +422,7 @@ public class SdkService {
   }
 
   /**
-   * Common SDK JSON string logic.
+   * Common SDK JSON string logic. Serve any JSON string.
    */
   public static void serveSdkJsonString(final HttpServletResponse response, final String jsonStr,
       final String filenameForDownload) {
@@ -651,6 +655,28 @@ public class SdkService {
     // This will work well with large repetitive text files like JSON files, XML files, ...
     // https://stackoverflow.com/questions/21410317/using-gzip-compression-with-spring-boot-mvc-javaconfig-with-restful
     response.setHeader("Content-Encoding", "gzip");
+  }
+
+  /**
+   * Serves basic information like fields.json and codelists.json data required to build the form.
+   *
+   * @param sdkVersion The version for selecting the correct SDK.
+   */
+  public void serveSdkBasicMetadata(final HttpServletResponse response,
+      final SdkVersion sdkVersion) {
+
+    final JsonNode fieldsJson =
+        readSdkJsonFile(sdkVersion, SdkResource.FIELDS, SdkService.SDK_FIELDS_JSON);
+
+    final JsonNode codelistsJson =
+        readSdkJsonFile(sdkVersion, SdkResource.CODELISTS, SdkService.SDK_CODELISTS_JSON);
+
+    // Instead of doing several separate calls, it is simpler to group basic information in one go.
+    final ObjectNode basicInfoJson = JsonUtils.createObjectNode();
+    basicInfoJson.set("fieldsJson", fieldsJson);
+    basicInfoJson.set("codelistsJson", codelistsJson);
+
+    serveSdkJsonString(response, basicInfoJson.toPrettyString(), "basic.json");
   }
 
 }

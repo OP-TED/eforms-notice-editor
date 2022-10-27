@@ -70,26 +70,25 @@ public class SdkRestController implements AsyncConfigurer {
   /**
    * Get JSON containing data about the specified codelist, with text in the given language.
    */
-  @RequestMapping(value = "/{sdkVersion}/codelists/{codeListId}/lang/{langCode}",
+  @RequestMapping(value = "/{sdkVersion}/codelists/{codelistGc}/lang/{langCode}",
       method = RequestMethod.GET, produces = SdkService.MIME_TYPE_JSON)
   @ResponseBody
   private String serveCodelist(@PathVariable(value = "sdkVersion") final String sdkVersion,
-      @PathVariable(value = "codeListId") final String codeListId,
+      @PathVariable(value = "codelistGc") final String codelistGc,
       @PathVariable(value = "langCode") final String langCode, final HttpServletResponse response)
       throws IOException {
-    return SdkService.serveCodelistAsJson(new SdkVersion(sdkVersion), eformsSdkDir, codeListId,
+    return SdkService.serveCodelistAsJson(new SdkVersion(sdkVersion), eformsSdkDir, codelistGc,
         langCode, response);
   }
 
   /**
-   * GET JSON containing data about the SDK fields.
+   * GET JSON containing data about the SDK fields and the codelists metadata.
    */
-  @RequestMapping(value = "/{sdkVersion}/fields", method = RequestMethod.GET,
+  @RequestMapping(value = "/{sdkVersion}/basic-meta-data", method = RequestMethod.GET,
       produces = SdkService.MIME_TYPE_JSON)
   public void serveFieldsJson(final HttpServletResponse response,
       @PathVariable(value = "sdkVersion") String sdkVersion) {
-    sdkService.serveSdkJsonFile(response, new SdkVersion(sdkVersion), SdkResource.FIELDS,
-        SdkService.SDK_FIELDS_JSON);
+    sdkService.serveSdkBasicMetadata(response, new SdkVersion(sdkVersion));
   }
 
   /**

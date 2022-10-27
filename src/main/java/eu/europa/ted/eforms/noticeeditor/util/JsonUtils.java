@@ -7,6 +7,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class JsonUtils {
 
@@ -30,6 +32,15 @@ public class JsonUtils {
 
     return objectMapper;
   }
+
+  public static ObjectNode createObjectNode() {
+    return getStandardJacksonObjectMapper().createObjectNode();
+  }
+
+  public static ArrayNode createArrayNode() {
+    return getStandardJacksonObjectMapper().createArrayNode();
+  }
+
 
   public static String marshall(final Object obj) throws JsonProcessingException {
     final ObjectMapper objectMapper = getStandardJacksonObjectMapper();

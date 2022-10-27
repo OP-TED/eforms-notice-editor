@@ -97,8 +97,11 @@
   * Editor class: it stores SDK data like loaded fields, nodes, translations, ...
   */
   class Editor {
-    constructor(dataFieldsJson, dataNoticeType, dataI18n, noticeFormElement) {
+    constructor(dataBasicJson, dataNoticeType, dataI18n, noticeFormElement) {
     
+    	const dataFieldsJson = dataBasicJson.fieldsJson;
+    	const dataCodelistsJson = dataBasicJson.codelistsJson;
+    	
       if (!dataFieldsJson.sdkVersion) {
         throw new Error("Invalid sdkVersion");
       }
@@ -127,7 +130,14 @@
         nodeMap[node.id] = node;
       }
       this.nodeMap = nodeMap;
-
+      
+      const codelists = dataCodelistsJson.codelists;
+      const codelistMap = {};
+      for (const codelist of codelists) {
+        codelistMap[codelist.id] = codelist;
+      }
+      this.codelistMap = codelistMap;
+      
       // The top section containing the metadata, most of these fields are hidden or read only.
       this.noticeMetadata = {"id" : "THE_METADATA", "content" : dataNoticeType.metadata};
       this.noticeMetadata[KEY_NTD_LABEL] = "editor.the.metadata";
@@ -721,6 +731,7 @@
   
 	    const noticeId = this.noticeId;
 	    const fieldMap = this.fieldMap;
+	    const codelistMap = this.codelistMap;
 	
 	    // Find the fields.json field associated with this notice type definition field.
 	    const fieldId = content.id;
@@ -738,12 +749,8 @@
 	      const fieldCodeListVal = field.codeList.value;
 	      
 	      var codelistId = fieldCodeListVal.id;
-	      const parentId = fieldCodeListVal.parentId;
-	      if (parentId) {
-	        // This codelist is tailored.
-	        // TODO having to do this here is clearly not ideal.
-	        codelistId = parentId + "_" + codelistId;
-	      }
+	      const codelistInfo = codelistMap[codelistId];
+	   		const codelistGc = codelistInfo.filename;
 	      
 	      const isHierarchical = fieldCodeListVal.type === "hierarchical";
 	      if (isHierarchical) {
@@ -757,7 +764,7 @@
 	      
 	      const that = this;
         // TODO use getSelectedLanguage() after /lang, use "en" for now as translations are missing.
-	      const urlToCodelistJson = "sdk/" + sdkVersion + "/codelists/" + codelistId + "/lang/" + FALLBACK_LANGUAGE;
+	      const urlToCodelistJson = "sdk/" + sdkVersion + "/codelists/" + codelistGc + "/lang/" + FALLBACK_LANGUAGE;
 	      const afterCodelistLoad = function(data) {
 	        // Dynamically load the options.
 	        // const i18nText = that.getTranslationById(content._label);
@@ -1023,11 +1030,11 @@
     // GET the translations for the default language.
     downloadSdkTranslations(getSelectedLanguage(), function(dataI18n) {
       
-	    const jsonOkFieldsFunc = function(dataFieldsJson) {
-        if (!dataFieldsJson.sdkVersion) {
+	    const jsonOkBasicFunc = function(dataBasicJson) {
+        if (!dataBasicJson.fieldsJson.sdkVersion) {
 	        throw new Error("Invalid sdkVersion");
 	      }
-        console.log("fields.json data has been loaded");
+        console.log("basic json data has been loaded");
 
 	      const jsonOkNoticeTypeFunc = function(dataNoticeType) {
           const sdkVersion = dataNoticeType.sdkVersion;
@@ -1038,7 +1045,7 @@
 	        setText("notice-noticeId", dataNoticeType.noticeId); // Notice sub-type.
 	        
           // Use the Editor class.
-	        const editor = new Editor(dataFieldsJson, dataNoticeType, dataI18n, noticeFormElem);
+	        const editor = new Editor(dataBasicJson, dataNoticeType, dataI18n, noticeFormElem);
 	        editor.buildForm(); // Build the form. Initialize.
 	        
 	        funcCallbackWhenLoadedDefinition();
@@ -1050,12 +1057,11 @@
 	      jsonGet(urlToGetNoticeTypeJsonData, timeOutLargeMillis, jsonOkNoticeTypeFunc, jsonGetOnError);
 	    };
       
-      // GET the fields.json data.
-      // We load the entire fields.json to simplify the code later on.
+      // GET SDK fields.json data (and more) for the given SDK version.
       // You could also dynamically load data only when it is needed, but this would create many requests which may be slow.
-      // This is a URL to the back-end REST API.
-      const urlToGetFieldJsonData = "/sdk/" + sdkVersion + "/fields";
-	    jsonGet(urlToGetFieldJsonData, timeOutLargeMillis, jsonOkFieldsFunc, jsonGetOnError);
+      // This is a URL to the editor back-end REST API.
+      const urlToGetBasicJsonData = "/sdk/" + sdkVersion + "/basic-meta-data";
+	    jsonGet(urlToGetBasicJsonData, timeOutLargeMillis, jsonOkBasicFunc, jsonGetOnError);
     });
   }
   
