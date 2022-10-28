@@ -24,8 +24,9 @@ public class DocumentTypeInfo {
     this.rootElementType =
         JsonUtils.getTextStrict(this.jsonItem, SdkConstants.NOTICE_TYPES_JSON_ROOT_ELEMENT_KEY);
 
+    /// We do not have this information in the SDK yet. We want to add a mapping later on.
     // this.xsd = JsonUtils.getTextStrict(this.json, "xsd");
-    this.xsdFile = "EFORMS-BusinessRegistrationInformationNotice.xsd"; // TODO tttt
+    this.xsdFile = "EFORMS-BusinessRegistrationInformationNotice.xsd";
   }
 
   public String getXsdFile() {

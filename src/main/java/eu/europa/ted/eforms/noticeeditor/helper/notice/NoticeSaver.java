@@ -39,7 +39,20 @@ public class NoticeSaver {
 
   private static final Logger logger = LoggerFactory.getLogger(NoticeSaver.class);
 
-  private static final String REPLACEMENT = "~~~";
+  private static final String NODE_PARENT_ID = "parentId";
+  private static final String NODE_XPATH_ABSOLUTE = "xpathAbsolute";
+
+  private static final String FIELD_CODE_LIST_ID = "codeListId";
+  private static final String FIELD_PARENT_NODE_ID = "parentNodeId";
+  private static final String FIELD_TYPE = "type";
+  private static final String FIELD_TYPE_CODE = "code";
+
+  private static final String XML_ATTR_EDITOR_COUNTER_SELF = "editorCounterSelf";
+  private static final String XML_ATTR_EDITOR_COUNTER_PRNT = "editorCounterPrnt";
+  private static final String XML_ATTR_EDITOR_FIELD_ID = "editorFieldId";
+  private static final String XML_ATTR_LIST_NAME = "listName";
+
+  private static final String XPATH_REPLACEMENT = "~~~";
 
   public static Map<String, ConceptNode> buildConceptualModel(final FieldsAndNodes fieldsAndNodes,
       final JsonNode visualRoot) {
@@ -49,7 +62,7 @@ public class NoticeSaver {
     final Map<String, ConceptNode> conceptNodeById = new HashMap<>();
 
     for (final JsonNode visualItem : visualRoot) {
-      final String type = getTextStrict(visualItem, "type");
+      final String type = getTextStrict(visualItem, FIELD_TYPE);
       if ("field".equals(type)) {
 
         // Here we mostly care about the value and the field id.
@@ -65,7 +78,7 @@ public class NoticeSaver {
         final ConceptField conceptField = new ConceptField(fieldId, value, counter, parentCounter);
 
         // Build the parent hierarchy.
-        final String parentNodeId = getTextStrict(fieldMeta, "parentNodeId");
+        final String parentNodeId = getTextStrict(fieldMeta, FIELD_PARENT_NODE_ID);
         final ConceptNode conceptNode =
             buildAncestryRec(conceptNodeById, parentNodeId, fieldsAndNodes);
 
@@ -83,8 +96,10 @@ public class NoticeSaver {
    * Builds the node and the parents until the root is reached.
    *
    * @param conceptNodeById is populated as a side effect
+   * @param nodeId The node identifier
+   * @param fieldsAndNodes Information about SDK fields and nodes
    *
-   * @return The concept node.
+   * @return The concept node
    */
   private static ConceptNode buildAncestryRec(final Map<String, ConceptNode> conceptNodeById,
       final String nodeId, final FieldsAndNodes fieldsAndNodes) {
@@ -94,7 +109,7 @@ public class NoticeSaver {
       // It does not exist, create it.
       conceptNode = new ConceptNode(nodeId);
       conceptNodeById.put(nodeId, conceptNode);
-      final Optional<String> parentNodeIdOpt = JsonUtils.getTextOpt(nodeMeta, "parentId");
+      final Optional<String> parentNodeIdOpt = JsonUtils.getTextOpt(nodeMeta, NODE_PARENT_ID);
       if (parentNodeIdOpt.isPresent()) {
         // This node has a parent. Build the parent until the root is reached.
         final ConceptNode parentConceptNode =
@@ -106,22 +121,18 @@ public class NoticeSaver {
     return conceptNode;
   }
 
-  public static final Element createElem(final Document doc, final String tagName) {
-    // This removes the xmlns="" that Saxon adds.
-    try {
-      return doc.createElementNS("", tagName);
-    } catch (org.w3c.dom.DOMException ex) {
-      logger.error("Problem creating element with tagName={}", tagName);
-      throw ex;
-    }
-  }
-
   /**
    * Builds the physical model.
    *
-   * @param debug Adds special debug info to the XML, useful for humans and unit tests
-   * @param buildFields Allows to disable field building, for debugging purposes
-   * @param schemaInfo
+   * @param fieldsAndNodes Information about SDK fields and nodes
+   * @param noticeInfoBySubtype Map with info about notice metadata by notice sub type
+   * @param documentInfoByType Map with info about document metadata by document type
+   * @param concept The conceptual model from the previous step
+   * @param debug Adds special debug info to the XML, useful for humans and unit tests. Not for
+   *        production
+   * @param buildFields Allows to disable field building, for debugging purposes. Note that if xpath
+   *        relies on the presence of fields or attribute of fields this could be problematic
+   * @param schemaInfo Information about the XML schema, mostly for the field order
    *
    * @return The physical model as an object containing the XML with a few extras
    */
@@ -136,40 +147,44 @@ public class NoticeSaver {
         SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype(true);
     logger.info("XML DOM namespaceAware={}", safeDocBuilder.isNamespaceAware());
     logger.info("XML DOM validating={}", safeDocBuilder.isValidating());
-    final Document doc = safeDocBuilder.newDocument();
-    doc.setXmlStandalone(true);
+    final Document xmlDoc = safeDocBuilder.newDocument();
+    xmlDoc.setXmlStandalone(true);
 
     final DocumentTypeInfo docTypeInfo =
         getDocumentTypeInfo(noticeInfoBySubtype, documentInfoByType, concept);
     final String namespaceUri = docTypeInfo.getNamespaceUri();
     final String rootElementType = docTypeInfo.getRootElementTagName();
 
-    // TODO tttt use path to xsd, try local changes for now.
-    // https://citnet.tech.ec.europa.eu/CITnet/jira/browse/TEDEFO-1426
-    // For the moment do as if it was there.
-    final String xsdPath = docTypeInfo.getXsdFile();
 
     // Create the root element, top level element.
-    final Element rootElem = createElem(doc, rootElementType);
-    doc.appendChild(rootElem);
+    final Element xmlDocRoot = createElem(xmlDoc, rootElementType);
+    xmlDoc.appendChild(xmlDocRoot);
 
-    final XPath xPathInst = setXmlNamespaces(namespaceUri, rootElem);
+    // TEDEFO-1426
+    // For the moment do as if it was there.
+    final String xsdPath = docTypeInfo.getXsdFile();
+    final XPath xPathInst = setXmlNamespaces(namespaceUri, xmlDocRoot);
 
     // Attempt to put schemeName first.
     // buildPhysicalModelXmlRec(fieldsAndNodes, doc, concept.getRoot(), rootElem, debug,
     // buildFields,
     // 0, true, xPathInst);
 
-    buildPhysicalModelXmlRec(fieldsAndNodes, doc, concept.getRoot(), rootElem, debug, buildFields,
-        0, false, xPathInst);
+    // Recursion: start with the concept root.
+    buildPhysicalModelXmlRec(fieldsAndNodes, xmlDoc, concept.getRoot(), xmlDocRoot, debug,
+        buildFields, 0, false, xPathInst);
 
-    reorderElements(rootElem, xPathInst, schemaInfo);
+    // Reorder the physical model.
+    reorderPhysicalModel(xmlDocRoot, xPathInst, schemaInfo);
 
-    return new PhysicalModel(doc);
+    return new PhysicalModel(xmlDoc);
   }
 
   /**
    * Get information about the document type from the SDK.
+   *
+   * @param noticeInfoBySubtype Map with info about notice metadata by notice sub type
+   * @param documentInfoByType Map with info about document metadata by document type
    */
   public static DocumentTypeInfo getDocumentTypeInfo(
       final Map<String, JsonNode> noticeInfoBySubtype,
@@ -198,7 +213,7 @@ public class NoticeSaver {
    * Changes the order of the elements to the schema sequence order. The XML DOM model is modified
    * as a side effect.
    */
-  private static void reorderElements(final Element rootElem, final XPath xPathInst,
+  private static void reorderPhysicalModel(final Element rootElem, final XPath xPathInst,
       final SchemaInfo schemaInfo) {
     final List<String> rootOrder = schemaInfo.getRootOrder();
     for (final String tagName : rootOrder) {
@@ -287,6 +302,8 @@ public class NoticeSaver {
   }
 
   /**
+   * Recursive function used to build the physical model.
+   *
    * @param fieldsAndNodes Field and node meta information (no form values)
    * @param doc The XML document
    * @param conceptElem The current conceptual element
@@ -312,6 +329,8 @@ public class NoticeSaver {
     if (buildFields) {
       buildFields(fieldsAndNodes, conceptElem, doc, xPathInst, xmlNodeElem, debug, onlyIfPriority);
       if (debug) {
+        // System out is used here because it is more readable than the logger lines.
+        // This is not a replacement for logger.debug(...)
         System.out.println("");
         System.out.println(EditorXmlUtils.asText(doc, true));
       }
@@ -340,13 +359,13 @@ public class NoticeSaver {
 
       // Get the node meta-data from the SDK.
       final JsonNode nodeMeta = fieldsAndNodes.getNodeById(nodeId);
-      final String xpathAbs = getTextStrict(nodeMeta, "xpathAbsolute");
+      final String xpathAbs = getTextStrict(nodeMeta, NODE_XPATH_ABSOLUTE);
 
       Element previousElem = xmlNodeElem;
       Element partElem = null;
 
       // xpathRelative can contain many xml elements. We must build the hierarchy.
-      // TODO Use ANTLR xpath grammar later?
+      // TODO Use ANTLR xpath grammar later? Avoid parsing the xpath altogether?
       // TODO maybe use xpath to locate the tag in the doc ? What xpath finds is where to add the
       // data.
 
@@ -355,10 +374,11 @@ public class NoticeSaver {
       parts.remove(0); // If absolute.
       parts.remove(0); // If absolute.
       if (debug) {
+        // System out is used here because it is more readable than the logger lines.
+        // This is not a replacement for logger.debug(...)
         System.out.println("  PARTS NODE: " + parts);
       }
       for (final String partXpath : parts) {
-
         final PhysicalXpath px = handleXpathPart(partXpath);
         final Optional<String> schemeNameOpt = px.getSchemeNameOpt();
         final String xpathExpr = px.getXpathExpr();
@@ -368,7 +388,7 @@ public class NoticeSaver {
           System.out.println("  xmlTag=" + xmlNodeElem.getTagName());
         }
 
-        // TODO tttt if the element is not repeatable, reuse it. Maybe here is the right place to
+        // TODO if the element is not repeatable, reuse it. Maybe here is the right place to
         // use the counter.
 
         // Find existing elements in the context of the previous element.
@@ -378,7 +398,7 @@ public class NoticeSaver {
           // Sometimes the xpath absolute part already matches the previous element.
           // If there is no special xpath expression, just skip the part.
           // This avoids nesting of the same .../tag/tag/...
-          // TODO tttt this may be fixed by TEDEFO-1466
+          // TODO this may be fixed by TEDEFO-1466
           continue; // Skip this tag.
         }
 
@@ -520,6 +540,7 @@ public class NoticeSaver {
           }
         }
         continue; // Skip, it will be added later.
+
       } else {
         // Remove created and appended children.
         Element elem = fieldElem;
@@ -543,25 +564,29 @@ public class NoticeSaver {
       fieldElem.setTextContent(value);
 
       if (debug) {
-        fieldElem.setAttribute("editorCounterSelf", Integer.toString(conceptField.getCounter()));
-        fieldElem.setAttribute("editorCounterPrnt",
+        // This could make the XML invalid, this is meant to be read by humans.
+        fieldElem.setAttribute(XML_ATTR_EDITOR_COUNTER_SELF,
+            Integer.toString(conceptField.getCounter()));
+
+        fieldElem.setAttribute(XML_ATTR_EDITOR_COUNTER_PRNT,
             Integer.toString(conceptField.getParentCounter()));
       }
 
-      final String fieldType = JsonUtils.getTextStrict(fieldMeta, "type");
-      if (fieldType == "code") {
+      final String fieldType = JsonUtils.getTextStrict(fieldMeta, FIELD_TYPE);
+      if (fieldType == FIELD_TYPE_CODE) {
         // Convention: in the XML the codelist is set in the listName attribute.
-        String listName = JsonUtils.getTextStrict(fieldMeta, "codeListId");
+        String listName = JsonUtils.getTextStrict(fieldMeta, FIELD_CODE_LIST_ID);
         if ("OPP-105-Business".equals(fieldId)) {
-          // TODO tttt sector, temporary fix here, should be provided in the SDK.
+          // TODO sector, temporary fix here, this information should be provided in the SDK.
           // Maybe via a special key/value.
           listName = "sector";
         }
-        fieldElem.setAttribute("listName", listName);
+        fieldElem.setAttribute(XML_ATTR_LIST_NAME, listName);
       }
 
       if (debug) {
-        fieldElem.setAttribute("editorFieldId", fieldId);
+        // This could make the XML invalid, this is meant to be read by humans.
+        fieldElem.setAttribute(XML_ATTR_EDITOR_FIELD_ID, fieldId);
       }
 
     } // End of for loop on concept fields.
@@ -595,10 +620,11 @@ public class NoticeSaver {
 
   private static String[] getXpathPartsArr(final String xpathAbs) {
     // TODO this fixes a few problems with this naive implementation.
-    return xpathAbs.replace("/@", REPLACEMENT + "@").split("/");
+    return xpathAbs.replace("/@", XPATH_REPLACEMENT + "@").split("/");
   }
 
   private static PhysicalXpath handleXpathPart(final String partParam) {
+    // NOTE: ideally we would want to fully avoid using xpath.
     String tag = partParam;
     final Optional<String> schemeNameOpt;
 
@@ -606,12 +632,6 @@ public class NoticeSaver {
       // TEMPORARY FIX until we have a proper solution inside of the SDK.
       tag = tag.replace("[not(@schemeName = 'EU')]", "[@schemeName = 'national']");
     }
-
-    // if (part.contains("[not(cbc:CompanyID~~~@schemeName = 'EU')]")) {
-    // // TEMPORARY FIX until we have a proper solution inside of the SDK.
-    // part = part.replace("[not(cbc:CompanyID~~~@schemeName = 'EU')]",
-    // "[cbc:CompanyID/@schemeName = 'national']");
-    // }
 
     if (tag.contains("[@schemeName = '")) {
       // Example:
@@ -640,15 +660,29 @@ public class NoticeSaver {
       tag = tag.substring(0, tag.indexOf('['));
     }
 
-    // cbc:NoticeTypeCode~~~@listName
-    if (tag.contains(REPLACEMENT)) {
-      tag = tag.substring(0, tag.indexOf(REPLACEMENT));
+    if (tag.contains(XPATH_REPLACEMENT)) {
+      tag = tag.substring(0, tag.indexOf(XPATH_REPLACEMENT));
     }
 
     // For the xpath expression keep the original param, only do the replacement.
-    final String xpathExpr = partParam.replaceAll(REPLACEMENT, "/");
+    final String xpathExpr = partParam.replaceAll(XPATH_REPLACEMENT, "/");
 
     return new PhysicalXpath(xpathExpr, tag, schemeNameOpt);
+  }
+
+  /**
+   * @param tagName The XML element tag name
+   *
+   * @return A w3c dom element (note that it is not attached to the DOM yet)
+   */
+  private static final Element createElem(final Document doc, final String tagName) {
+    // This removes the xmlns="" that Saxon adds.
+    try {
+      return doc.createElementNS("", tagName);
+    } catch (org.w3c.dom.DOMException ex) {
+      logger.error("Problem creating element with tagName={}", tagName);
+      throw ex;
+    }
   }
 
 }

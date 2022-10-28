@@ -619,15 +619,16 @@ public class SdkService {
     final String sdkXsdFile = docTypeInfo.getXsdFile();
     final Path sdkXsdPath = readSdkPath(sdkVersion, SdkResource.SCHEMAS_MAINDOC, sdkXsdFile);
     final String rootElementTagName = docTypeInfo.getRootElementTagName();
-    // TODO tttt
     // final SchemaInfo schemaInfo = SchemaTools.getSchemaInfo(sdkXsdPath, rootElementTagName);
 
     final SchemaInfo schemaInfo = new SchemaInfo(new ArrayList<>());
 
+    final boolean debug = false;
+    final boolean buildFields = true;
     final PhysicalModel physicalModel = NoticeSaver.buildPhysicalModelXml(fieldsAndNodes,
-        noticeInfoBySubtype, documentInfoByType, concept, false, true, schemaInfo);
+        noticeInfoBySubtype, documentInfoByType, concept, debug, buildFields, schemaInfo);
 
-    final String xmlAsText = physicalModel.getXmlAsText(true);
+    final String xmlAsText = physicalModel.getXmlAsText(buildFields);
 
     // TODO find a better filename.
     final String filenameForDownload = String.format("notice-%s.xml", noticeUuid);
