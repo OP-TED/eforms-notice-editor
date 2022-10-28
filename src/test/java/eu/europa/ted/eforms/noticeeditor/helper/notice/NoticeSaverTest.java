@@ -166,20 +166,20 @@ public class NoticeSaverTest {
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put("BT-501-Business-European", field);
-      field.put("parentNodeId", "ND-BusinessParty");
+      field.put("parentNodeId", "ND-EuEntity");
       field.put("xpathAbsolute",
-          "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName = 'EU']");
-      field.put("xpathRelative", "cac:PartyLegalEntity/cbc:CompanyID[@schemeName = 'EU']");
+          "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName = 'EU']/cbc:CompanyID[@schemeName = 'EU']");
+      field.put("xpathRelative", "cbc:CompanyID[@schemeName = 'EU']");
       field.put("type", "id");
       field.put("repeatable", false);
     }
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put("BT-501-Business-National", field);
-      field.put("parentNodeId", "ND-BusinessParty");
+      field.put("parentNodeId", "ND-LocalEntity");
       field.put("xpathAbsolute",
-          "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[not(@schemeName = 'EU')]");
-      field.put("xpathRelative", "cac:PartyLegalEntity/cbc:CompanyID[not(@schemeName = 'EU')]");
+          "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[not(@schemeName = 'EU')]/cbc:CompanyID[not(@schemeName = 'EU')]");
+      field.put("xpathRelative", "cbc:CompanyID[not(@schemeName = 'EU')]");
       field.put("type", "id");
       field.put("repeatable", false);
     }
