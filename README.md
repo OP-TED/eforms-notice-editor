@@ -55,6 +55,13 @@ Visitors and detectors:
 https://spotbugs-in-kengo-toda.readthedocs.io/en/lqc-list-detectors/detectors.html
 For contrib rules see: http://fb-contrib.sourceforge.net/bugdescriptions.html
 
+## Github discussions
+
+### Save notice
+
+https://github.com/OP-TED/eForms-SDK/discussions/126
+
+
 ## Reference Documentation
 
 For further reference, please consider the following sections:
