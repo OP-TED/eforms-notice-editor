@@ -38,8 +38,8 @@ public class SdkRestController implements AsyncConfigurer {
   @Autowired
   private SdkService sdkService;
 
-  public SdkRestController(@Value("${eforms.sdk.path}") String eformsSdkDir,
-      @Value("${eforms.sdk.versions}") List<String> supportedSdks) {
+  public SdkRestController(@Value("${eforms.sdk.path}") final String eformsSdkDir,
+      @Value("${eforms.sdk.versions}") final List<String> supportedSdks) {
     Validate.notEmpty(eformsSdkDir, "Undefined eForms SDK directory");
     Validate.notNull(supportedSdks, "Undefined supported SDK versions");
 
@@ -63,7 +63,7 @@ public class SdkRestController implements AsyncConfigurer {
   @RequestMapping(value = "/{sdkVersion}/notice-types", method = RequestMethod.GET,
       produces = SdkService.MIME_TYPE_JSON)
   public Map<String, Object> selectNoticeTypesList(
-      @PathVariable(value = "sdkVersion") String sdkVersion) {
+      @PathVariable(value = "sdkVersion") final String sdkVersion) {
     return SdkService.getNoticeSubTypes(new SdkVersion(sdkVersion), eformsSdkDir);
   }
 
@@ -87,7 +87,7 @@ public class SdkRestController implements AsyncConfigurer {
   @RequestMapping(value = "/{sdkVersion}/basic-meta-data", method = RequestMethod.GET,
       produces = SdkService.MIME_TYPE_JSON)
   public void serveFieldsJson(final HttpServletResponse response,
-      @PathVariable(value = "sdkVersion") String sdkVersion) {
+      final @PathVariable(value = "sdkVersion") String sdkVersion) {
     sdkService.serveSdkBasicMetadata(response, new SdkVersion(sdkVersion));
   }
 
@@ -97,8 +97,8 @@ public class SdkRestController implements AsyncConfigurer {
   @RequestMapping(value = "/{sdkVersion}/notice-types/{noticeId}", method = RequestMethod.GET,
       produces = SdkService.MIME_TYPE_JSON)
   public void serveNoticeTypeJson(final HttpServletResponse response,
-      @PathVariable(value = "sdkVersion") String sdkVersion,
-      @PathVariable(value = "noticeId") String noticeId) {
+      @PathVariable(value = "sdkVersion") final String sdkVersion,
+      @PathVariable(value = "noticeId") final String noticeId) {
     final String filenameForDownload = String.format("%s.json", noticeId);
     sdkService.serveSdkJsonFile(response, new SdkVersion(sdkVersion), SdkResource.NOTICE_TYPES,
         filenameForDownload);
@@ -110,8 +110,8 @@ public class SdkRestController implements AsyncConfigurer {
   @RequestMapping(value = "/{sdkVersion}/translations/{langCode}.json", method = RequestMethod.GET,
       produces = SdkService.MIME_TYPE_JSON)
   public void serveTranslationsFields(final HttpServletResponse response,
-      @PathVariable(value = "sdkVersion") String sdkVersion,
-      @PathVariable(value = "langCode") String langCode)
+      @PathVariable(value = "sdkVersion") final String sdkVersion,
+      @PathVariable(value = "langCode") final String langCode)
       throws ParserConfigurationException, SAXException, IOException {
     final Language lang = Language.valueOfFromLocale(langCode);
     final String filenameForDownload = String.format("i18n_%s.xml", lang.getLocale().getLanguage());
@@ -126,7 +126,7 @@ public class SdkRestController implements AsyncConfigurer {
    */
   @RequestMapping(value = "/notice/save", method = RequestMethod.POST,
       produces = SdkService.MIME_TYPE_XML, consumes = SdkService.MIME_TYPE_JSON)
-  public void saveNotice(final HttpServletResponse response, @RequestBody String notice)
+  public void saveNotice(final HttpServletResponse response, final @RequestBody String notice)
       throws ParserConfigurationException, IOException {
     sdkService.saveNoticeAsXml(Optional.of(response), notice);
   }

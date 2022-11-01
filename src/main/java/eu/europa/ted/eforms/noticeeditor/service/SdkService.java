@@ -243,7 +243,8 @@ public class SdkService {
   }
 
   /**
-   * Dynamically get the available notice sub types from the given SDK.
+   * Dynamically get the available notice sub types from the given SDK. They will be proposed in the
+   * UI for the user to select.
    */
   public static Map<String, Object> getNoticeSubTypes(final SdkVersion sdkVersion,
       final Path eformsSdkDir) {
@@ -271,7 +272,7 @@ public class SdkService {
   }
 
   /**
-   * Serve an SDK codelist information as JSON.
+   * Serve an SDK codelist information as JSON. This is called when a field allows to select codes.
    */
   public static String serveCodelistAsJson(final SdkVersion sdkVersion, final Path eformsSdkDir,
       final String codelistGc, final String langCode, final HttpServletResponse response)
@@ -373,7 +374,7 @@ public class SdkService {
   }
 
   /**
-   * Common SDK folder logic for reading files.
+   * Common SDK folder logic for reading JSON files.
    */
   public void serveSdkJsonFile(final HttpServletResponse response, final SdkVersion sdkVersion,
       final SdkResource resourceType, final String filenameForDownload) {
@@ -394,7 +395,7 @@ public class SdkService {
   }
 
   /**
-   * Reads SDK json file into a JsonNode to be used in the Java code.
+   * Reads SDK JSON file into a JsonNode to be used in the Java code on the server-side.
    */
   public JsonNode readSdkJsonFile(final SdkVersion sdkVersion, final SdkResource resourceType,
       final String filenameForDownload) {
@@ -416,7 +417,7 @@ public class SdkService {
    */
   public Path readSdkPath(final SdkVersion sdkVersion, final SdkResource resourceType,
       final String filenameForDownload) {
-    Validate.notNull(sdkVersion, "Undefined SDK version");
+    Validate.notNull(sdkVersion, "SDK version is null");
     return SdkResourceLoader.getResourceAsPath(sdkVersion, resourceType, filenameForDownload,
         Path.of(eformsSdkPath));
   }
@@ -426,7 +427,7 @@ public class SdkService {
    */
   public static void serveSdkJsonString(final HttpServletResponse response, final String jsonStr,
       final String filenameForDownload) {
-    Validate.notBlank(jsonStr, "jsonStr is blank");
+    Validate.notBlank(jsonStr, "JSON string is blank");
     try {
       // As the sdkVersion and other details are in the url this can be cached for a while.
       setResponseCacheControl(response, CACHE_MAX_AGE_SECONDS);
@@ -443,7 +444,7 @@ public class SdkService {
    */
   public static void serveSdkXmlStringAsDownload(final HttpServletResponse response,
       final String jsonStr, final String filenameForDownload) {
-    Validate.notBlank(jsonStr, "jsonStr is blank");
+    Validate.notBlank(jsonStr, "JSON string is blank");
     try {
       // As the sdkVersion and other details are in the url this can be cached for a while.
       setResponseCacheControl(response, CACHE_MAX_AGE_SECONDS);
@@ -467,6 +468,7 @@ public class SdkService {
   public static Map<String, String> getTranslations(final SdkVersion sdkVersion,
       final Path eformsSdkDir, final String labelAssetType, final String langCode)
       throws ParserConfigurationException, SAXException, IOException {
+
     // SECURITY: Do not inject the passed language directly into a string that goes to the file
     // system. We use our internal enum as a whitelist.
     final Language lang = Language.valueOfFromLocale(langCode);
@@ -521,9 +523,10 @@ public class SdkService {
 
   public static void serveTranslations(final HttpServletResponse response,
       final SdkVersion sdkVersion, final Path eformsSdkDir, final String langCode,
-      String filenameForDownload)
+      final String filenameForDownload)
       throws ParserConfigurationException, SAXException, IOException, JsonProcessingException {
-    final Map<String, String> labelById = new LinkedHashMap<>();
+
+    final Map<String, String> labelById = new LinkedHashMap<>(1024);
 
     // Security: set the asset type on the server side!
     final String labelAssetTypeField = "field";
@@ -540,9 +543,13 @@ public class SdkService {
     serveSdkJsonString(response, jsonStr, filenameForDownload);
   }
 
+  /**
+   * @param noticeJson The notice as JSON as built by the front-end form.
+   */
   public void saveNoticeAsXml(final Optional<HttpServletResponse> responseOpt,
       final String noticeJson) throws ParserConfigurationException, IOException {
-    Validate.notBlank(noticeJson);
+
+    Validate.notBlank(noticeJson, "noticeJson is blank");
     logger.info("Attempting to save notice as XML.");
 
     final ObjectMapper mapper = new ObjectMapper();
@@ -588,7 +595,7 @@ public class SdkService {
     final JsonNode noticeTypesJson =
         readSdkJsonFile(sdkVersion, SdkResource.NOTICE_TYPES, SDK_NOTICE_TYPES_JSON);
 
-    final Map<String, JsonNode> noticeInfoBySubtype = new HashMap<>();
+    final Map<String, JsonNode> noticeInfoBySubtype = new HashMap<>(512);
     {
       // TODO add noticeSubTypes to the SDK constants.
       final JsonNode noticeSubTypes = noticeTypesJson.get("noticeSubTypes");
@@ -665,6 +672,7 @@ public class SdkService {
    */
   public void serveSdkBasicMetadata(final HttpServletResponse response,
       final SdkVersion sdkVersion) {
+    Validate.notNull(sdkVersion, "sdkVersion is null");
 
     final JsonNode fieldsJson =
         readSdkJsonFile(sdkVersion, SdkResource.FIELDS, SdkService.SDK_FIELDS_JSON);
