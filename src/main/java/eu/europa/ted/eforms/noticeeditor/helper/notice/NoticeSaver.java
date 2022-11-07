@@ -2,6 +2,9 @@ package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 import static eu.europa.ted.eforms.noticeeditor.util.JsonUtils.getIntStrict;
 import static eu.europa.ted.eforms.noticeeditor.util.JsonUtils.getTextStrict;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -30,7 +33,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import com.fasterxml.jackson.databind.JsonNode;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
-import eu.europa.ted.eforms.noticeeditor.util.EditorXmlUtils;
+import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.sdk.SdkConstants;
 import net.sf.saxon.lib.NamespaceConstant;
@@ -41,11 +44,13 @@ public class NoticeSaver {
 
   private static final String NODE_PARENT_ID = "parentId";
   private static final String NODE_XPATH_ABSOLUTE = "xpathAbsolute";
+  private static final String NODE_XPATH_RELATIVE = "xpathRelative";
 
   private static final String FIELD_CODE_LIST_ID = "codeListId";
   private static final String FIELD_PARENT_NODE_ID = "parentNodeId";
   private static final String FIELD_TYPE = "type";
   private static final String FIELD_TYPE_CODE = "code";
+  public static final String FIELD_REPEATABLE = "repeatable";
 
   private static final String XML_ATTR_EDITOR_COUNTER_SELF = "editorCounterSelf";
   private static final String XML_ATTR_EDITOR_COUNTER_PRNT = "editorCounterPrnt";
@@ -155,7 +160,6 @@ public class NoticeSaver {
     final String namespaceUri = docTypeInfo.getNamespaceUri();
     final String rootElementType = docTypeInfo.getRootElementTagName();
 
-
     // Create the root element, top level element.
     final Element xmlDocRoot = createElem(xmlDoc, rootElementType);
     xmlDoc.appendChild(xmlDocRoot);
@@ -169,6 +173,21 @@ public class NoticeSaver {
     // buildPhysicalModelXmlRec(fieldsAndNodes, doc, concept.getRoot(), rootElem, debug,
     // buildFields,
     // 0, true, xPathInst);
+
+    if (debug) {
+      try {
+        // tttt
+        // Generate dot file for the conceptual model.
+        final boolean includeFields = false;
+        final String dotText = concept.toDot(fieldsAndNodes, includeFields);
+        final Path pathToFolder = Path.of("target/dot/");
+        Files.createDirectories(pathToFolder);
+        final Path pathToFile = pathToFolder.resolve(concept.getNoticeSubType() + "-concept.dot");
+        JavaTools.writeTextFile(pathToFile, dotText);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
 
     // Recursion: start with the concept root.
     buildPhysicalModelXmlRec(fieldsAndNodes, xmlDoc, concept.getRoot(), xmlDocRoot, debug,
@@ -319,7 +338,12 @@ public class NoticeSaver {
     Validate.notNull(conceptElem, "conceptElem is null");
     Validate.notNull(xmlNodeElem, "xmlElem is null, conceptElem=%s", conceptElem.getId());
 
-    logger.debug("--- " + depth + " " + xmlNodeElem.getTagName() + ", id=" + conceptElem.getId());
+    final String depthStr = StringUtils.leftPad(" ", depth * 4);
+    System.out.println(depthStr + " -----------------------");
+    System.out.println(depthStr + " BUILD PHYSICAL " + depth);
+    System.out.println(depthStr + " -----------------------");
+
+    System.out.println(depthStr + " " + xmlNodeElem.getTagName() + ", id=" + conceptElem.getId());
 
     // NODES.
     buildNodesAndFields(fieldsAndNodes, doc, conceptElem, xmlNodeElem, debug, buildFields, depth,
@@ -327,12 +351,13 @@ public class NoticeSaver {
 
     // FIELDS.
     if (buildFields) {
-      buildFields(fieldsAndNodes, conceptElem, doc, xPathInst, xmlNodeElem, debug, onlyIfPriority);
+      buildFields(fieldsAndNodes, conceptElem, doc, xPathInst, xmlNodeElem, debug, onlyIfPriority,
+          depth);
       if (debug) {
         // System out is used here because it is more readable than the logger lines.
         // This is not a replacement for logger.debug(...)
-        System.out.println("");
-        System.out.println(EditorXmlUtils.asText(doc, true));
+        // System.out.println("");
+        // System.out.println(EditorXmlUtils.asText(doc, true));
       }
     }
   }
@@ -353,13 +378,21 @@ public class NoticeSaver {
       final ConceptNode conceptElem, final Element xmlNodeElem, final boolean debug,
       final boolean buildFields, final int depth, final XPath xPathInst,
       final boolean onlyIfPriority) {
+
+    final String depthStr = StringUtils.leftPad(" ", depth * 4);
+    System.out.println(depthStr + " -----------------------");
+    System.out.println(depthStr + " BUILD NODES AND FIELDS");
+    System.out.println(depthStr + " -----------------------");
+
     final List<ConceptNode> conceptNodes = conceptElem.getConceptNodes();
     for (final ConceptNode conceptElemChild : conceptNodes) {
       final String nodeId = conceptElemChild.getId();
 
       // Get the node meta-data from the SDK.
       final JsonNode nodeMeta = fieldsAndNodes.getNodeById(nodeId);
-      final String xpathAbs = getTextStrict(nodeMeta, NODE_XPATH_ABSOLUTE);
+
+      // IMPORTANT: -------------------------------------- XPATH_RELATIVE correct if nodes correct!
+      final String xpathAbs = getTextStrict(nodeMeta, NODE_XPATH_RELATIVE);
 
       Element previousElem = xmlNodeElem;
       Element partElem = null;
@@ -371,12 +404,12 @@ public class NoticeSaver {
 
       final String[] partsArr = getXpathPartsArr(xpathAbs);
       final List<String> parts = new ArrayList<>(Arrays.asList(partsArr));
-      parts.remove(0); // If absolute.
-      parts.remove(0); // If absolute.
+      // parts.remove(0); // If absolute.
+      // parts.remove(0); // If absolute.
       if (debug) {
         // System out is used here because it is more readable than the logger lines.
         // This is not a replacement for logger.debug(...)
-        System.out.println("  PARTS NODE: " + parts);
+        System.out.println(depthStr + " PARTS NODE: " + parts);
       }
       for (final String partXpath : parts) {
         final PhysicalXpath px = handleXpathPart(partXpath);
@@ -384,8 +417,8 @@ public class NoticeSaver {
         final String xpathExpr = px.getXpathExpr();
         final String tag = px.getTag();
         if (debug) {
-          System.out.println("  tag=" + tag);
-          System.out.println("  xmlTag=" + xmlNodeElem.getTagName());
+          System.out.println(depthStr + " tag=" + tag);
+          System.out.println(depthStr + " xmlTag=" + xmlNodeElem.getTagName());
         }
 
         // TODO if the element is not repeatable, reuse it. Maybe here is the right place to
@@ -416,7 +449,8 @@ public class NoticeSaver {
         } else {
           // Create an XML element for the node.
           if (debug) {
-            logger.debug("Creating nodeId={}, tag={}", nodeId, tag);
+            final String msg = String.format("%s, xml=%s", nodeId, tag);
+            System.out.println(depthStr + " " + msg);
           }
           partElem = createElem(doc, tag);
         }
@@ -439,15 +473,24 @@ public class NoticeSaver {
   /**
    * Builds the fields, some fields have nodes in their xpath, those will also be built. As a
    * side-effect the doc and the passed xml element will be modified.
+   *
+   * @param depth
    */
   private static void buildFields(final FieldsAndNodes fieldsAndNodes,
       final ConceptNode conceptElem, final Document doc, final XPath xPathInst,
-      final Element xmlNodeElem, final boolean debug, final boolean onlyIfPriority) {
+      final Element xmlNodeElem, final boolean debug, final boolean onlyIfPriority,
+      final int depth) {
+
+    final String depthStr = StringUtils.leftPad(" ", depth * 4);
+
+    System.out.println(depthStr + " -----------------------");
+    System.out.println(depthStr + " BUILD FIELDS " + depth);
+    System.out.println(depthStr + " -----------------------");
 
     // logger.debug("xmlEleme=" + EditorXmlUtils.getNodePath(xmlNodeElem));
     final List<ConceptField> conceptFields = conceptElem.getConceptFields();
     if (debug) {
-      System.out.println("  conceptFields" + conceptFields);
+      System.out.println(depthStr + " conceptFields" + conceptFields);
     }
     for (final ConceptField conceptField : conceptFields) {
       final String value = conceptField.getValue();
@@ -455,7 +498,7 @@ public class NoticeSaver {
 
       if (debug) {
         System.out.println("");
-        System.out.println("  fieldId=" + fieldId);
+        System.out.println(depthStr + " fieldId=" + fieldId);
       }
 
       // Get the field meta-data from the SDK.
@@ -465,7 +508,7 @@ public class NoticeSaver {
       final String xpathRel = getTextStrict(fieldMeta, "xpathRelative");
       // final String xpathAbs = getTextStrict(fieldMeta, "xpathAbsolute");
 
-      final boolean fieldMetaRepeatable = JsonUtils.getBoolStrict(fieldMeta, "repeatable");
+      final boolean fieldMetaRepeatable = JsonUtils.getBoolStrict(fieldMeta, FIELD_REPEATABLE);
 
       Element previousElem = xmlNodeElem;
       Element partElem = null;
@@ -474,7 +517,7 @@ public class NoticeSaver {
       final String[] partsArr = getXpathPartsArr(xpathRel);
       final List<String> parts = new ArrayList<>(Arrays.asList(partsArr));
       if (debug) {
-        System.out.println("  PARTS FIELD: " + parts);
+        System.out.println(depthStr + " PARTS FIELD: " + parts);
       }
       for (final String partXpath : parts) {
 
@@ -504,7 +547,7 @@ public class NoticeSaver {
 
         } else {
           // Create an XML element for the field.
-          logger.debug("Creating tag={}", tag);
+          System.out.println(depthStr + " Creating tag=" + tag);
           partElem = createElem(doc, tag);
           partElem.setAttribute("temp", "temp");
         }

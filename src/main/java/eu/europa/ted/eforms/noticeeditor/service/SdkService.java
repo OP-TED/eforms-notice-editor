@@ -71,6 +71,8 @@ import eu.europa.ted.eforms.sdk.resource.SdkResourceLoader;
 @Service
 public class SdkService {
 
+  private static final Logger logger = LoggerFactory.getLogger(SdkService.class);
+
   @org.springframework.beans.factory.annotation.Value("${eforms.sdk.path}")
   private String eformsSdkPath;
 
@@ -96,8 +98,6 @@ public class SdkService {
   public static final String SDK_CODELISTS_JSON = "codelists.json";
 
   public static final String ND_ROOT = "ND-Root";
-
-  private static final Logger logger = LoggerFactory.getLogger(SdkService.class);
 
   /**
    * The number of seconds in one hour.
@@ -233,10 +233,11 @@ public class SdkService {
     map.put("appVersion", EformsNoticeEditorApp.APP_VERSION);
 
     // Load available sdk versions. They will be listed in the UI.
-    map.put("sdkVersions",
-        supportedSdks.stream().map(SdkVersion::toStringWithoutPatch)
-            .sorted(new IntuitiveStringComparator<>()).sorted(Collections.reverseOrder())
-            .collect(Collectors.toList()));
+    map.put("sdkVersions", supportedSdks.stream()//
+        .map(SdkVersion::toStringWithoutPatch)//
+        .sorted(new IntuitiveStringComparator<>())//
+        .sorted(Collections.reverseOrder())//
+        .collect(Collectors.toList()));
 
     logger.info("Fetching home info: DONE");
     return map;
@@ -344,6 +345,7 @@ public class SdkService {
       throws IOException {
     Validate.notBlank(text, "jsonString is blank");
     Validate.notBlank(filenameForDownload, "filenameForDownload is blank");
+
     // ---------------------------------
     // THE FILE IS SMALL, JUST COPY IT.
     // ---------------------------------
@@ -576,7 +578,7 @@ public class SdkService {
       logger.info("Found SDK version: {}, using {}", eFormsSdkVersion, sdkVersionStr);
     }
 
-    // Find the notice id ("notice-id").
+    // Find the notice UUID ("notice-id").
     final String noticeUuid;
     {
       final JsonNode visualItem = visualRoot.get("BT-701-notice-1");
@@ -630,7 +632,7 @@ public class SdkService {
 
     final SchemaInfo schemaInfo = new SchemaInfo(new ArrayList<>());
 
-    final boolean debug = false;
+    final boolean debug = true;
     final boolean buildFields = true;
     final PhysicalModel physicalModel = NoticeSaver.buildPhysicalModelXml(fieldsAndNodes,
         noticeInfoBySubtype, documentInfoByType, concept, debug, buildFields, schemaInfo);
