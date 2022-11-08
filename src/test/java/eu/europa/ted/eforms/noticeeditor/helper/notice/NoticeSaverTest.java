@@ -333,7 +333,6 @@ public class NoticeSaverTest {
     System.out.println("XML as text:");
 
     final String xml = pm.getXmlAsText(false); // Not indented to avoid line breaks.
-
     System.out.println(pm.getXmlAsText(true));
 
     // Check fields root node.
@@ -352,8 +351,7 @@ public class NoticeSaverTest {
     assertEquals(1, StringUtils.countMatches(xml, "<cac:BusinessParty>"));
     assertEquals(1, StringUtils.countMatches(xml, "<efac:NoticePurpose>"));
 
-    // Not passing yet:
-    // assertEquals(2, StringUtils.countMatches(xmlText, "<cac:PartyLegalEntity>"));
+    assertEquals(2, StringUtils.countMatches(xml, "<cac:PartyLegalEntity>"));
 
     // Check fields.
     assertTrue(xml.contains("OPP-070-notice\""));
