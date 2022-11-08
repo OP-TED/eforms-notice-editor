@@ -48,16 +48,23 @@ public class ConceptualModel {
   public static void toDotRec(final FieldsAndNodes fieldsAndNodes, final StringBuilder sb,
       final ConceptNode cn, final boolean includeFields) {
     final String cnId = cn.getId();
+
+    // Include nodes in dot file.
     for (final ConceptNode c : cn.getConceptNodes()) {
       final JsonNode jsonNode = fieldsAndNodes.getNodeById(c.getId());
       Validate.notNull(jsonNode, "null for nodeId=%s", c.getId());
+
       final boolean nodeIsRepeatable =
-          JsonUtils.getBoolStrict(jsonNode, NoticeSaver.FIELD_REPEATABLE);
+          JsonUtils.getBoolStrict(jsonNode, NoticeSaver.NODE_REPEATABLE);
       final String color = nodeIsRepeatable ? "green" : "black";
+
       GraphvizDotTool.appendEdge("", color, cnId, c.getId(), sb);
       toDotRec(fieldsAndNodes, sb, c, includeFields);
     }
+
+    // Include fields in dot file.
     if (includeFields) {
+      // This makes the tree a lot more bushy and can be hard to read.
       for (final ConceptField c : cn.getConceptFields()) {
         GraphvizDotTool.appendEdge("", "black", cnId, c.getId(), sb);
       }

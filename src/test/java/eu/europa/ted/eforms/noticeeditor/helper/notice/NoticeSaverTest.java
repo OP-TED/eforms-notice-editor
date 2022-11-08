@@ -270,9 +270,15 @@ public class NoticeSaverTest {
     }
   }
 
+  /**
+   * This unit test relies on dummy data and only tests parts of X02 but enough to cover the basics.
+   * It setups dummy fields and nodes data and notice-types data. It will be hard to maintain but is
+   * fully self-contained, so it can also be used to quickly debug a problem by modification of the
+   * dummy data.
+   */
   @SuppressWarnings("static-method")
   @Test
-  public void test() throws ParserConfigurationException, IOException {
+  public void testX02Dummy() throws ParserConfigurationException, IOException {
     final ObjectMapper mapper = new ObjectMapper();
 
     final String prefixedSdkVersion = "eforms-sdk-" + "1.1.0";
@@ -324,7 +330,7 @@ public class NoticeSaverTest {
     //
     // BUILD PHYSICAL MODEL.
     //
-    final boolean debug = true; // Very useful for the testing.
+    final boolean debug = true; // Adds field ids in the XML.
     final boolean buildFields = true;
     SchemaInfo schemaInfo = SchemaToolsTest.getTestSchemaInfo();
     final PhysicalModel pm = NoticeSaver.buildPhysicalModelXml(fieldsAndNodes, noticeInfoBySubtype,
@@ -335,6 +341,8 @@ public class NoticeSaverTest {
     final String xml = pm.getXmlAsText(false); // Not indented to avoid line breaks.
     System.out.println(pm.getXmlAsText(true));
 
+    assertTrue(xml.contains("encoding=\"UTF-8\""));
+
     // Check fields root node.
     assertTrue(xml.contains("BusinessRegistrationInformationNotice"));
     assertTrue(xml.contains("xmlns="));
@@ -342,16 +350,19 @@ public class NoticeSaverTest {
     // Check some metadata.
     assertTrue(xml.contains(noticeSubType));
     assertTrue(xml.contains(prefixedSdkVersion));
-    assertEquals(1, StringUtils.countMatches(xml, "<cbc:CustomizationID"));
-    assertEquals(1, StringUtils.countMatches(xml, "<cbc:SubTypeCode"));
+    expectCount(xml, 1, "<cbc:CustomizationID");
+    expectCount(xml, 1, "<cbc:SubTypeCode");
 
     // Check nodes.
-    assertEquals(1, StringUtils.countMatches(xml, "<BusinessRegistrationInformationNotice"));
-    assertEquals(1, StringUtils.countMatches(xml, "<ext:UBLExtensions>"));
-    assertEquals(1, StringUtils.countMatches(xml, "<cac:BusinessParty>"));
-    assertEquals(1, StringUtils.countMatches(xml, "<efac:NoticePurpose>"));
+    expectCount(xml, 1, "<BusinessRegistrationInformationNotice");
+    expectCount(xml, 1, "<ext:UBLExtensions>");
+    expectCount(xml, 1, "<cac:BusinessParty editorNodeId=\"ND-BusinessParty\"");
+    expectCount(xml, 1, "<efac:NoticePurpose editorNodeId=\"ND-OperationType\"");
 
-    assertEquals(2, StringUtils.countMatches(xml, "<cac:PartyLegalEntity>"));
+    // It is the same xml tag, but here we can even check the nodeId is originally correct.
+    // Without debug true this editor intermediary information would otherwise be lost.
+    expectCount(xml, 1, "<cac:PartyLegalEntity editorNodeId=\"ND-EuEntity\"");
+    expectCount(xml, 1, "<cac:PartyLegalEntity editorNodeId=\"ND-LocalEntity\"");
 
     // Check fields.
     assertTrue(xml.contains("OPP-070-notice\""));
@@ -371,6 +382,11 @@ public class NoticeSaverTest {
 
     assertTrue(xml.contains("listName=\"sector\">education<"));
     assertTrue(xml.contains("listName=\"sector\">health<"));
+  }
+
+  private static final void expectCount(final String xml, final int expectedCount,
+      final String toMatch) {
+    assertEquals(expectedCount, StringUtils.countMatches(xml, toMatch), toMatch);
   }
 
 }

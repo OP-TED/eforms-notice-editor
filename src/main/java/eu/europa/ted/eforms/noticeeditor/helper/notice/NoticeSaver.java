@@ -43,18 +43,20 @@ public class NoticeSaver {
   private static final Logger logger = LoggerFactory.getLogger(NoticeSaver.class);
 
   private static final String NODE_PARENT_ID = "parentId";
-  private static final String NODE_XPATH_ABSOLUTE = "xpathAbsolute";
   private static final String NODE_XPATH_RELATIVE = "xpathRelative";
+  public static final String NODE_REPEATABLE = "repeatable";
 
+  private static final String FIELD_XPATH_RELATIVE = "xpathRelative";
   private static final String FIELD_CODE_LIST_ID = "codeListId";
   private static final String FIELD_PARENT_NODE_ID = "parentNodeId";
   private static final String FIELD_TYPE = "type";
   private static final String FIELD_TYPE_CODE = "code";
-  public static final String FIELD_REPEATABLE = "repeatable";
+  private static final String FIELD_REPEATABLE = "repeatable";
 
   private static final String XML_ATTR_EDITOR_COUNTER_SELF = "editorCounterSelf";
   private static final String XML_ATTR_EDITOR_COUNTER_PRNT = "editorCounterPrnt";
   private static final String XML_ATTR_EDITOR_FIELD_ID = "editorFieldId";
+  private static final String XML_ATTR_EDITOR_NODE_ID = "editorNodeId";
   private static final String XML_ATTR_LIST_NAME = "listName";
 
   private static final String XPATH_REPLACEMENT = "~~~";
@@ -157,6 +159,7 @@ public class NoticeSaver {
 
     final DocumentTypeInfo docTypeInfo =
         getDocumentTypeInfo(noticeInfoBySubtype, documentInfoByType, concept);
+
     final String namespaceUri = docTypeInfo.getNamespaceUri();
     final String rootElementType = docTypeInfo.getRootElementTagName();
 
@@ -176,8 +179,8 @@ public class NoticeSaver {
 
     if (debug) {
       try {
-        // tttt
         // Generate dot file for the conceptual model.
+        // Visualizing it can help understand how it works or find problems.
         final boolean includeFields = false;
         final String dotText = concept.toDot(fieldsAndNodes, includeFields);
         final Path pathToFolder = Path.of("target/dot/");
@@ -185,7 +188,7 @@ public class NoticeSaver {
         final Path pathToFile = pathToFolder.resolve(concept.getNoticeSubType() + "-concept.dot");
         JavaTools.writeTextFile(pathToFile, dotText);
       } catch (IOException e) {
-        e.printStackTrace();
+        throw new RuntimeException(e);
       }
     }
 
@@ -409,6 +412,7 @@ public class NoticeSaver {
       if (debug) {
         // System out is used here because it is more readable than the logger lines.
         // This is not a replacement for logger.debug(...)
+        System.out.println(depthStr + " PARTS NODE SIZE: " + parts.size());
         System.out.println(depthStr + " PARTS NODE: " + parts);
       }
       for (final String partXpath : parts) {
@@ -440,6 +444,7 @@ public class NoticeSaver {
         if (foundElements.getLength() > 0) {
           assert foundElements.getLength() == 1;
           final Node xmlNode = foundElements.item(0);
+          // ------------------------- Node is a w3c dom node, nothing to do with the SDK nodes.
           if (xmlNode.getNodeType() == Node.ELEMENT_NODE) {
             // An existing element was found, reuse it.
             partElem = (Element) xmlNode;
@@ -462,6 +467,13 @@ public class NoticeSaver {
         previousElem = partElem;
 
       } // End of for loop on parts.
+
+
+      Validate.notNull(partElem, "partElem is null, conceptElem=%s", conceptElem.getId());
+      if (debug) {
+        // This could make the XML invalid, this is meant to be read by humans.
+        partElem.setAttribute(XML_ATTR_EDITOR_NODE_ID, nodeId);
+      }
 
       // Build child nodes recursively.
       buildPhysicalModelXmlRec(fieldsAndNodes, doc, conceptElemChild, partElem, debug, buildFields,
@@ -505,8 +517,8 @@ public class NoticeSaver {
       final JsonNode fieldMeta = fieldsAndNodes.getFieldById(fieldId);
       Validate.notNull(fieldMeta, "fieldMeta null for fieldId=%s", fieldId);
 
-      final String xpathRel = getTextStrict(fieldMeta, "xpathRelative");
-      // final String xpathAbs = getTextStrict(fieldMeta, "xpathAbsolute");
+      final String xpathRel = getTextStrict(fieldMeta, FIELD_XPATH_RELATIVE);
+      // final String xpathAbs = getTextStrict(fieldMeta, FIELD_XPATH_ABSOLUTE);
 
       final boolean fieldMetaRepeatable = JsonUtils.getBoolStrict(fieldMeta, FIELD_REPEATABLE);
 
@@ -517,6 +529,7 @@ public class NoticeSaver {
       final String[] partsArr = getXpathPartsArr(xpathRel);
       final List<String> parts = new ArrayList<>(Arrays.asList(partsArr));
       if (debug) {
+        System.out.println(depthStr + " PARTS FIELD SIZE: " + parts.size());
         System.out.println(depthStr + " PARTS FIELD: " + parts);
       }
       for (final String partXpath : parts) {
@@ -538,6 +551,7 @@ public class NoticeSaver {
             xmlNode = foundElements.item(0);
           }
 
+          // ------------------------- Node is a w3c dom node, nothing to do with SDK nodes.
           if (xmlNode.getNodeType() == Node.ELEMENT_NODE) {
             // An existing element was found, reuse it.
             partElem = (Element) xmlNode;
@@ -548,23 +562,44 @@ public class NoticeSaver {
         } else {
           // Create an XML element for the field.
           System.out.println(depthStr + " Creating tag=" + tag);
-          partElem = createElem(doc, tag);
-          partElem.setAttribute("temp", "temp");
+
+          if (tag.startsWith("@") && tag.length() > 1) {
+            // Example:
+            // @listName or @currencyID
+            // In the case we cannot create a new XML element.
+            // We have to add this attribute to the previous element.
+            previousElem.setAttribute(tag.substring(1), value);
+          } else {
+            partElem = createElem(doc, tag);
+            partElem.setAttribute("temp", "temp");
+          }
         }
 
-        previousElem.appendChild(partElem);
-
-        if (schemeNameOpt.isPresent()) {
-          partElem.setAttribute("schemeName", schemeNameOpt.get());
+        if (partElem != null) {
+          previousElem.appendChild(partElem);
+          if (schemeNameOpt.isPresent()) {
+            partElem.setAttribute("schemeName", schemeNameOpt.get());
+          }
+          previousElem = partElem;
         }
-
-        previousElem = partElem;
 
       } // End of for loop on parts.
 
       // The last element is a leaf, so it is a field in this case.
       final Element fieldElem = partElem;
-      Validate.notNull(fieldElem, "fieldElem is null for %s", fieldId);
+
+      if (xpathRel.contains("@")) {
+        final int lastIndexOfAmp = xpathRel.lastIndexOf("@");
+        // TODO this logic is good enough for now but not perfect.
+        if (!xpathRel.substring(lastIndexOfAmp + 1).contains("/")) {
+          // In this case we know the xpath ends with an attribute.
+          // Example: /@listName
+          // Example: /@currencyID
+          return;
+        }
+      }
+      Validate.notNull(fieldElem, "fieldElem is null for fieldId=%s, xpathRel=%s", fieldId,
+          xpathRel);
 
       if (onlyIfPriority && StringUtils.isBlank(fieldElem.getAttribute("schemeName"))) {
         // Remove created and appended child elements.
@@ -657,13 +692,31 @@ public class NoticeSaver {
 
       return nodeList;
     } catch (XPathExpressionException e) {
+      logger.error("Problem with xpathExpr={}", xpathExpr);
       throw new RuntimeException(e);
     }
   }
 
   private static String[] getXpathPartsArr(final String xpathAbs) {
     // TODO this fixes a few problems with this naive implementation.
-    return xpathAbs.replace("/@", XPATH_REPLACEMENT + "@").split("/");
+
+    String xpathAbs2 = xpathAbs;
+    if (xpathAbs.contains(":ID/text()=")) {
+      // Example:
+      // cac:ProcurementLegislationDocumentReference[not(cbc:ID/text()=('CrossBorderLaw',...
+      xpathAbs2 = xpathAbs.replace(":ID/text", ":ID" + XPATH_REPLACEMENT + "text");
+    }
+
+    if (xpathAbs.contains(":Name/text()=")) {
+      // Example:
+      // cac:SubsequentProcessTenderRequirement[cbc:Name/text()='buyer-categories']
+      xpathAbs2 = xpathAbs.replace(":Name/text()=", ":Name" + XPATH_REPLACEMENT + "text()=");
+    }
+
+    // /*/cac:ProcurementProjectLot[cbc:ID/@schemeName='Lot']/cac:ProcurementProject
+    xpathAbs2 = xpathAbs2.replace("/@", XPATH_REPLACEMENT + "@");
+
+    return xpathAbs2.split("/");
   }
 
   private static PhysicalXpath handleXpathPart(final String partParam) {
@@ -721,6 +774,9 @@ public class NoticeSaver {
   private static final Element createElem(final Document doc, final String tagName) {
     // This removes the xmlns="" that Saxon adds.
     try {
+      if (tagName.startsWith("@")) {
+        throw new RuntimeException(String.format("This is an attribute", tagName));
+      }
       return doc.createElementNS("", tagName);
     } catch (org.w3c.dom.DOMException ex) {
       logger.error("Problem creating element with tagName={}", tagName);

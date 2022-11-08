@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletResponse;
@@ -579,12 +580,19 @@ public class SdkService {
     }
 
     // Find the notice UUID ("notice-id").
-    final String noticeUuid;
-    {
-      final JsonNode visualItem = visualRoot.get("BT-701-notice-1");
-      noticeUuid = getTextStrict(visualItem, "value");
+    final UUID noticeUuid = parseNoticeUuid(visualRoot);
+    try {
+      saveXmlSubMethod(responseOpt, visualRoot, sdkVersionStr, noticeUuid);
+    } catch (final Exception e) {
+      // Catch any error, log some useful context and rethrow.
+      logger.error("Error for notice uuid={}, sdkVersion={}", noticeUuid, sdkVersionStr);
+      throw e;
     }
+  }
 
+  private void saveXmlSubMethod(final Optional<HttpServletResponse> responseOpt,
+      final JsonNode visualRoot, final String sdkVersionStr, final UUID noticeUuid)
+      throws ParserConfigurationException {
     // Load fields json depending of the correct SDK version.
     // I would like to load a precise version of the SDK.
     final SdkVersion sdkVersion = new SdkVersion(sdkVersionStr);
@@ -639,11 +647,40 @@ public class SdkService {
 
     final String xmlAsText = physicalModel.getXmlAsText(buildFields);
 
-    // TODO find a better filename.
-    final String filenameForDownload = String.format("notice-%s.xml", noticeUuid);
+    final String filenameForDownload = generateNoticeFilename(noticeUuid, sdkVersion);
     if (responseOpt.isPresent()) {
       serveSdkXmlStringAsDownload(responseOpt.get(), xmlAsText, filenameForDownload);
     }
+  }
+
+  private static UUID parseNoticeUuid(final JsonNode visualRoot) {
+    final JsonNode visualItem = visualRoot.get("BT-701-notice-1");
+    Validate.notNull(visualItem, "Json item holding notice UUID is null!");
+
+    final String uuidStr = getTextStrict(visualItem, "value");
+    Validate.notBlank(uuidStr, "The notice UUID is blank!");
+
+    final UUID uuidV4 = UUID.fromString(uuidStr);
+    // The UUID supports multiple versions but we are only interested in version 4.
+    // Instead of failing later, it is better to catch problems early!
+    final int version = uuidV4.version();
+    Validate.isTrue(version == 4, "Expecting notice UUID to be version 4 but found %s for %s",
+        version, uuidStr);
+
+    return uuidV4;
+  }
+
+  /**
+   * Generate the filename for the notice XML file.
+   *
+   * @param noticeUuid The UUID of this notice (a universally unique identifier)
+   * @param sdkVersion The version of the SDK
+   * @return The filename for the notice XML file
+   */
+  @SuppressWarnings("static-method")
+  private String generateNoticeFilename(final UUID noticeUuid, final SdkVersion sdkVersion) {
+    // Not sure about the filename, including the sdkVersion plus the notice UUID is good enough.
+    return String.format("notice-%s-%s.xml", sdkVersion, noticeUuid);
   }
 
   /**
