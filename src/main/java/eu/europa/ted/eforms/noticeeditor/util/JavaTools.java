@@ -42,5 +42,10 @@ public class JavaTools {
     // There are so many ways do to this in Java, this probably the best.
     return Files.write(pathToFile, text.getBytes(StandardCharsets.UTF_8));
   }
+
+  public static String listToString(final List<String> list) {
+    final String text = list.toString();
+    return text.substring(1, text.length() - 1);
+  }
 }
 

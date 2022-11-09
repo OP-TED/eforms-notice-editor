@@ -253,14 +253,6 @@ public class NoticeSaverTest {
     }
     {
       final ObjectNode node = mapper.createObjectNode();
-      nodeById.put("ND-OperationType", node);
-      node.put("parentId", "ND-Root");
-      node.put("xpathAbsolute", "/*/efac:NoticePurpose");
-      node.put("xpathRelative", "efac:NoticePurpose");
-      node.put("repeatable", false);
-    }
-    {
-      final ObjectNode node = mapper.createObjectNode();
       nodeById.put("ND-EuEntity", node);
       node.put("parentId", "ND-BusinessParty");
       node.put("xpathAbsolute",
@@ -268,17 +260,26 @@ public class NoticeSaverTest {
       node.put("xpathRelative", "cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']");
       node.put("repeatable", false);
     }
+    {
+      final ObjectNode node = mapper.createObjectNode();
+      nodeById.put("ND-OperationType", node);
+      node.put("parentId", "ND-Root");
+      node.put("xpathAbsolute", "/*/efac:NoticePurpose");
+      node.put("xpathRelative", "efac:NoticePurpose");
+      node.put("repeatable", false);
+    }
+
   }
 
   /**
    * This unit test relies on dummy data and only tests parts of X02 but enough to cover the basics.
    * It setups dummy fields and nodes data and notice-types data. It will be hard to maintain but is
    * fully self-contained, so it can also be used to quickly debug a problem by modification of the
-   * dummy data.
+   * dummy data. This was mostly based on X02 with added
    */
   @SuppressWarnings("static-method")
   @Test
-  public void testX02Dummy() throws ParserConfigurationException, IOException {
+  public void testDummy() throws ParserConfigurationException, IOException {
     final ObjectMapper mapper = new ObjectMapper();
 
     final String prefixedSdkVersion = "eforms-sdk-" + "1.1.0";
