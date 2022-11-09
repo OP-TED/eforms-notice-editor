@@ -272,10 +272,10 @@ public class NoticeSaverTest {
   }
 
   /**
-   * This unit test relies on dummy data and only tests parts of X02 but enough to cover the basics.
-   * It setups dummy fields and nodes data and notice-types data. It will be hard to maintain but is
-   * fully self-contained, so it can also be used to quickly debug a problem by modification of the
-   * dummy data. This was mostly based on X02 with added
+   * Based on X02 meta data. This unit test relies on test metadata and only tests parts of X02 but
+   * enough to cover the basics. It setups dummy fields and nodes metadata, notice-types metadata,
+   * and some notice data. It will be hard to maintain but is fully self-contained, so it can also
+   * be used to quickly debug a problem by modification of the dummy data or metadata.
    */
   @SuppressWarnings("static-method")
   @Test
@@ -333,7 +333,7 @@ public class NoticeSaverTest {
     //
     final boolean debug = true; // Adds field ids in the XML.
     final boolean buildFields = true;
-    SchemaInfo schemaInfo = SchemaToolsTest.getTestSchemaInfo();
+    final SchemaInfo schemaInfo = SchemaToolsTest.getTestSchemaInfo();
     final PhysicalModel pm = NoticeSaver.buildPhysicalModelXml(fieldsAndNodes, noticeInfoBySubtype,
         documentInfoByType, conceptualModel, debug, buildFields, schemaInfo);
 
@@ -367,13 +367,14 @@ public class NoticeSaverTest {
 
     // Check fields.
     assertTrue(xml.contains("OPP-070-notice\""));
-    assertTrue(xml.contains("BT-500-Business\""));
 
+    assertTrue(xml.contains("BT-500-Business\""));
     assertTrue(xml.contains("BT-501-Business-National\""));
     assertTrue(xml.contains("BT-501-Business-National\" schemeName=\"national\""));
 
     assertTrue(xml.contains("BT-501-Business-European\""));
     assertTrue(xml.contains("BT-501-Business-European\" schemeName=\"EU\""));
+    assertTrue(xml.contains("OPP-113-Business-European\""));
 
     assertTrue(xml.contains("OPP-100-Business\""));
 

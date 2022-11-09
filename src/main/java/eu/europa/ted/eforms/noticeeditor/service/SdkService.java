@@ -637,7 +637,6 @@ public class SdkService {
     final Path sdkXsdPath = readSdkPath(sdkVersion, SdkResource.SCHEMAS_MAINDOC, sdkXsdFile);
     final String rootElementTagName = docTypeInfo.getRootElementTagName();
     // final SchemaInfo schemaInfo = SchemaTools.getSchemaInfo(sdkXsdPath, rootElementTagName);
-
     final SchemaInfo schemaInfo = new SchemaInfo(new ArrayList<>());
 
     final boolean debug = true;

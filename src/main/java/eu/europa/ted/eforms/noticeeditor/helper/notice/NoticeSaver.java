@@ -71,6 +71,15 @@ public class NoticeSaver {
 
   private static final String XPATH_REPLACEMENT = "~"; // ONE CHAR ONLY!
 
+  /**
+   * For ids like ORG-0001, 0 is used to fill left of 1.
+   */
+  private static final String SCHEME_ID_PADDING_CHAR = "0";
+  /**
+   * For ids like ORG-0001, 0001 is 4 chars total.
+   */
+  private static final int SCHEME_ID_PADDING_SIZE = 4;
+
   public static Map<String, ConceptNode> buildConceptualModel(final FieldsAndNodes fieldsAndNodes,
       final JsonNode visualRoot) {
     Validate.notNull(visualRoot, "visualRoot");
@@ -379,12 +388,13 @@ public class NoticeSaver {
    * Build the nodes.
    *
    * @param fieldsAndNodes Field and node meta information (no form values)
-   * @param doc The XML document
+   * @param doc The XML document (w3c DOM)
    * @param conceptElem The current conceptual element
    * @param xmlNodeElem The current xml node element
-   * @param debug Adds extra debugging info in the XML if true
+   * @param debug Adds extra debugging info in the XML if true, for humans or unit tests, the XML
+   *        may become invalid
    * @param buildFields True if fields have to be built, false otherwise
-   * @param depth Passed for debugging and logging purposes
+   * @param depth The current depth level passed for debugging and logging purposes
    * @param xPathInst Allows to evaluate xpath expressions
    */
   private static void buildNodesAndFields(final FieldsAndNodes fieldsAndNodes, final Document doc,
@@ -404,29 +414,59 @@ public class NoticeSaver {
       // Get the node meta-data from the SDK.
       final JsonNode nodeMeta = fieldsAndNodes.getNodeById(nodeId);
 
+      //
       // Handle identifier field id of node.
+      //
       final Optional<NodeIdentifierFieldId> nodeIdentifierFieldIdOpt;
       final Optional<String> identifierFieldIdOpt =
           JsonUtils.getTextOpt(nodeMeta, NODE_IDENTIFIER_FIELD_ID);
       if (identifierFieldIdOpt.isPresent()) {
         // Example: "ND-Organization"
         // "repeatable" : true,
+
         // "identifierFieldId" : "OPT-200-Organization-Company"
         final String identifierFieldId = identifierFieldIdOpt.get();
+
         // Example: get meta info for "OPT-200-Organization-Company"
         final JsonNode fieldMeta = fieldsAndNodes.getFieldById(identifierFieldId);
         final String scheme = getTextStrict(fieldMeta, FIELD_ID_SCHEME);
+
+        // TODO tttt get counter value from the form.
+        // NOTE: this is relative to the context as TPO can be inside ORG and both repeat ...
+        // Example: for TPO, we are on the parent, so look for descendants having
+        // XML_ATTR_EDITOR_NODE_IDENTIFIER_FIELD_ID_SCHEME attribute being TPO.
+        // If one is found the last one and the XML_ATTR_EDITOR_NODE_IDENTIFIER_FIELD_ID_COUNTER
+        // count.
+        // Increment the highest count by one.
+        // All of this has to rely on the current context, so on the XML dom.
         final int counter = 1;
-        final String id = scheme + "-" + "0001"; // TODO tttt dynamically build counter.
+
+        // NODE PARTS SIZE: 1
+        // NODE PARTS: efac:TouchPoint
+        // tag=efac:TouchPoint
+        // xmlTag=efac:Organization
+        // ttttefac:TouchPoint
+        // ND-Touchpoint, xml=efac:TouchPoint
+        // --------------------------
+        // --- BUILD PHYSICAL 4
+        // --- -----------------------
+        // --- efac:TouchPoint, id=ND-Touchpoint
+        // --- -----------------------
+        // --- BUILD NODES AND FIELDS
+        // --- -----------------------
+        // --- NODE PARTS SIZE: 1
+        // --- NODE PARTS: cac:PostalAddress
+        // --- tag=cac:PostalAddress
+        // --- xmlTag=efac:TouchPoint
+        // --- ND-TouchpointAddress, xml=cac:PostalAddress
+
+        final String id = buildIdWithSchemeAndCount(scheme, counter);
         nodeIdentifierFieldIdOpt = Optional.of(new NodeIdentifierFieldId(id, scheme, counter));
       } else {
-        // No node
         nodeIdentifierFieldIdOpt = Optional.empty();
       }
 
-      // IMPORTANT: -------------------------------------- XPATH_RELATIVE correct if nodes correct!
       final String xpathRel = getTextStrict(nodeMeta, NODE_XPATH_RELATIVE);
-
       Element previousElem = xmlNodeElem;
       Element partElem = null;
 
@@ -448,7 +488,7 @@ public class NoticeSaver {
       for (final String partXpath : parts) {
         final PhysicalXpath px = handleXpathPart(partXpath);
         final Optional<String> schemeNameOpt = px.getSchemeNameOpt();
-        final String xpathExpr = px.getXpathExpr();
+        String xpathExpr = px.getXpathExpr();
         final String tag = px.getTag();
         if (debug) {
           System.out.println(depthStr + " tag=" + tag);
@@ -470,27 +510,29 @@ public class NoticeSaver {
         }
 
         if (nodeIdentifierFieldIdOpt.isPresent()) {
-          // TODO tttt modify xpathExpr to find only ORG-0001
           final NodeIdentifierFieldId nif = nodeIdentifierFieldIdOpt.get();
           String idWithCount = nif.getIdWithCount();
 
-          System.out.println("tttt" + xpathExpr);
-          final String adaptedXpathExpr =
-              String.format("@%s='%s'", XML_ATTR_EDITOR_NODE_IDENTIFIER_FIELD_ID, idWithCount);
-          System.out.println("tttt" + xpathExpr + "/" + adaptedXpathExpr);
+          // TODO tttt modify xpathExpr to find only ORG-0001
+          // cac:ProcurementProjectLot[cbc:ID/@schemeName='LotsGroup']/@editorIdentifierFieldId='GLO-0001'
+          final String predicate =
+              String.format("[@%s='%s']", XML_ATTR_EDITOR_NODE_IDENTIFIER_FIELD_ID, idWithCount);
+          xpathExpr = xpathExpr + predicate;
         }
         foundElements = evaluateXpath(xPathInst, previousElem, xpathExpr);
 
         if (foundElements.getLength() > 0) {
           assert foundElements.getLength() == 1;
+
+          // Node is a w3c dom node, nothing to do with the SDK node.
           final Node xmlNode = foundElements.item(0);
-          // ------------------------- Node is a w3c dom node, nothing to do with the SDK nodes.
-          if (xmlNode.getNodeType() == Node.ELEMENT_NODE) {
+          if (Node.ELEMENT_NODE == xmlNode.getNodeType()) {
             // An existing element was found, reuse it.
             partElem = (Element) xmlNode;
           } else {
             throw new RuntimeException(String.format("NodeType=%s not an Element", xmlNode));
           }
+
         } else {
           // Create an XML element for the node.
           if (debug) {
@@ -508,33 +550,58 @@ public class NoticeSaver {
 
       } // End of for loop on parts of relative xpath.
 
-      Validate.notNull(partElem, "partElem is null, conceptElem=%s", conceptElem.getId());
-
-      if (nodeIdentifierFieldIdOpt.isPresent()) {
-        final NodeIdentifierFieldId nif = nodeIdentifierFieldIdOpt.get();
-        partElem.setAttribute(XML_ATTR_EDITOR_NODE_IDENTIFIER_FIELD_ID, nif.getIdWithCount());
-        partElem.setAttribute(XML_ATTR_EDITOR_NODE_IDENTIFIER_FIELD_ID_SCHEME, nif.getScheme());
-        partElem.setAttribute(XML_ATTR_EDITOR_NODE_IDENTIFIER_FIELD_ID_COUNTER,
-            Integer.toString(nif.getCounter()));
-      }
+      // We arrived at the end of the relative xpath.
+      // We are interested in the last xml element as this represents the current node.
+      // For example:
+      // "id" : "ND-RegistrarAddress"
+      // "xpathRelative" : "cac:CorporateRegistrationScheme/cac:JurisdictionRegionAddress"
+      // The element nodeElem is cac:JurisdictionRegionAddress, so it is the node.
+      final Element nodeElem = partElem;
+      Validate.notNull(nodeElem, "partElem is null, conceptElem=%s", conceptElem.getId());
 
       // This could make the XML invalid, this is meant to be read by humans.
       if (debug) {
-        partElem.setAttribute(XML_ATTR_EDITOR_NODE_ID, nodeId);
+        nodeElem.setAttribute(XML_ATTR_EDITOR_NODE_ID, nodeId);
+      }
+
+      if (nodeIdentifierFieldIdOpt.isPresent()) {
+        final NodeIdentifierFieldId nif = nodeIdentifierFieldIdOpt.get();
+        nodeElem.setAttribute(XML_ATTR_EDITOR_NODE_IDENTIFIER_FIELD_ID, nif.getIdWithCount());
+        nodeElem.setAttribute(XML_ATTR_EDITOR_NODE_IDENTIFIER_FIELD_ID_SCHEME, nif.getScheme());
+        nodeElem.setAttribute(XML_ATTR_EDITOR_NODE_IDENTIFIER_FIELD_ID_COUNTER,
+            Integer.toString(nif.getCounter()));
       }
 
       // Build child nodes recursively.
-      buildPhysicalModelXmlRec(fieldsAndNodes, doc, conceptElemChild, partElem, debug, buildFields,
+      buildPhysicalModelXmlRec(fieldsAndNodes, doc, conceptElemChild, nodeElem, debug, buildFields,
           depth + 1, onlyIfPriority, xPathInst);
 
     } // End of for loop on concept nodes.
   }
 
   /**
+   * @return An identifier. Example: Padding ORG and 1 would return ORG-0001
+   */
+  private static String buildIdWithSchemeAndCount(final String scheme, final int counter) {
+    final String numStr = Integer.toString(counter);
+    final String padding =
+        StringUtils.leftPad(numStr, SCHEME_ID_PADDING_SIZE, SCHEME_ID_PADDING_CHAR);
+    return scheme + "-" + padding;
+  }
+
+  public static void main(String[] args) {
+    System.out.println(buildIdWithSchemeAndCount("ORG", 1));
+    System.out.println(buildIdWithSchemeAndCount("ORG", 10));
+    System.out.println(buildIdWithSchemeAndCount("ORG", 100));
+  }
+
+  /**
    * Builds the fields, some fields have nodes in their xpath, those will also be built. As a
    * side-effect the doc and the passed xml element will be modified.
    *
-   * @param depth
+   * @param debug special debug mode for humans and unit tests (XML may be invalid)
+   * @param onlyIfPriority add only elements that have priority
+   * @param depth The current depth level passed for debugging and logging purposes
    */
   private static void buildFields(final FieldsAndNodes fieldsAndNodes,
       final ConceptNode conceptElem, final Document doc, final XPath xPathInst,
@@ -567,6 +634,7 @@ public class NoticeSaver {
 
       // IMPORTANT: !!! The relative xpath of fields can contain intermediary xml elements !!!
       // Example: "cac:PayerParty/cac:PartyIdentification/cbc:ID" contains more than just the field.
+      // These intermediary elements are very simple items and have no nodeId.
       final String xpathRel = getTextStrict(fieldMeta, FIELD_XPATH_RELATIVE);
 
       final boolean fieldMetaRepeatable = JsonUtils.getBoolStrict(fieldMeta, FIELD_REPEATABLE);
@@ -583,16 +651,19 @@ public class NoticeSaver {
       }
 
       final String attrTemp = "temp";
-      boolean isAttribute = false;
       for (final String partXpath : parts) {
 
         final PhysicalXpath px = handleXpathPart(partXpath);
         final Optional<String> schemeNameOpt = px.getSchemeNameOpt();
         final String xpathExpr = fieldMetaRepeatable ? "somethingimpossible" : px.getXpathExpr();
         final String tagOrAttr = px.getTag();
-        if (tagOrAttr.startsWith("@") && tagOrAttr.length() > 1) {
-          isAttribute = true;
-        }
+
+        // In this case the field is an attribute of a field in the XML, technicall this makes a
+        // difference and we have to handle this with specific code.
+        // Example: "@listName"
+        // IDEA: "attribute" : "listName" in the fields.json for fields at are attributes in the
+        // XML.
+        final boolean isAttribute = tagOrAttr.startsWith("@") && tagOrAttr.length() > 1;
 
         final NodeList foundElements = evaluateXpath(xPathInst, previousElem, xpathExpr);
         if (!isAttribute && foundElements.getLength() > 0) {
@@ -607,32 +678,35 @@ public class NoticeSaver {
             xmlNode = foundElements.item(0);
           }
 
-          // ------------------------- Node is a w3c dom node, nothing to do with SDK nodes.
-          if (xmlNode.getNodeType() == Node.ELEMENT_NODE) {
+          // Node is a w3c dom node, nothing to do with SDK node.
+          if (Node.ELEMENT_NODE == xmlNode.getNodeType()) {
             // An existing element was found, reuse it.
             partElem = (Element) xmlNode;
-
           } else {
             throw new RuntimeException(String.format("NodeType=%s not an Element", xmlNode));
           }
 
         } else {
-          // Create an XML element for the field.
           if (isAttribute) {
+            // Set attribute on previous element.
             // Example:
             // @listName or @currencyID
             // In the case we cannot create a new XML element.
             // We have to add this attribute to the previous element.
             System.out.println(depthStr + " Creating attribute=" + tagOrAttr);
             previousElem.setAttribute(tagOrAttr.substring(1), value);
+            // partElem = ... NO we do not want to reassign the partElem. This ensures that after we
+            // exit the loop the partElem still points to the last XML element.
+            // We also cannot set an attribute on an attribute!
           } else {
+            // Create an XML element.
             System.out.println(depthStr + " Creating tag=" + tagOrAttr);
             partElem = createElemXml(doc, tagOrAttr);
             partElem.setAttribute(attrTemp, attrTemp);
           }
         }
 
-        // This check is to avoid a problem with attributes:
+        // This check is to avoid a problem with attributes.
         if (!isAttribute && partElem != null) {
           previousElem.appendChild(partElem);
           if (schemeNameOpt.isPresent()) {
@@ -644,11 +718,23 @@ public class NoticeSaver {
       } // End of for loop on parts of relative xpath.
 
       // We arrived at the end of the relative xpath.
-      // The last element is always a leaf, so it is a field in this case.
-      final Element fieldElem = partElem;
+      // By design of the above algorithm the last element is always a leaf: the current field.
+      final Element fieldElem = partElem != null ? partElem : previousElem;
 
       Validate.notNull(fieldElem, "fieldElem is null for fieldId=%s, xpathRel=%s", fieldId,
           xpathRel);
+
+      if (debug) {
+        // This could make the XML invalid, this is meant to be read by humans.
+        // These attributes are also useful in unit tests for easy checking of field by id.
+        fieldElem.setAttribute(XML_ATTR_EDITOR_FIELD_ID, fieldId);
+
+        fieldElem.setAttribute(XML_ATTR_EDITOR_COUNTER_SELF,
+            Integer.toString(conceptField.getCounter()));
+
+        fieldElem.setAttribute(XML_ATTR_EDITOR_COUNTER_PRNT,
+            Integer.toString(conceptField.getParentCounter()));
+      }
 
       if (onlyIfPriority && StringUtils.isBlank(fieldElem.getAttribute(XML_ATTR_SCHEME_NAME))) {
         // Remove created and appended child elements.
@@ -669,7 +755,7 @@ public class NoticeSaver {
         continue; // Skip, it will be added later.
 
       } else {
-        // Remove created and appended children.
+        // Remove temporary attribute.
         Element elem = fieldElem;
         while (true) {
           if (elem.hasAttribute(attrTemp)) {
@@ -690,15 +776,6 @@ public class NoticeSaver {
       Validate.notNull(value, "value is null for fieldId=%s", fieldId);
       fieldElem.setTextContent(value);
 
-      if (debug) {
-        // This could make the XML invalid, this is meant to be read by humans.
-        fieldElem.setAttribute(XML_ATTR_EDITOR_COUNTER_SELF,
-            Integer.toString(conceptField.getCounter()));
-
-        fieldElem.setAttribute(XML_ATTR_EDITOR_COUNTER_PRNT,
-            Integer.toString(conceptField.getParentCounter()));
-      }
-
       final String fieldType = JsonUtils.getTextStrict(fieldMeta, CONTENT_TYPE);
       if (fieldType == FIELD_TYPE_CODE) {
         // Convention: in the XML the codelist is set in the listName attribute.
@@ -709,11 +786,6 @@ public class NoticeSaver {
           listName = "sector";
         }
         fieldElem.setAttribute(XML_ATTR_LIST_NAME, listName);
-      }
-
-      if (debug) {
-        // This could make the XML invalid, this is meant to be read by humans.
-        fieldElem.setAttribute(XML_ATTR_EDITOR_FIELD_ID, fieldId);
       }
 
     } // End of for loop on concept fields.
