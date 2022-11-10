@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import eu.europa.ted.eforms.noticeeditor.service.SdkService;
+import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 
 public class NoticeSaverTest {
 
@@ -20,106 +21,97 @@ public class NoticeSaverTest {
       final String noticeSubTypeForTest) {
     final ObjectNode root = mapper.createObjectNode();
 
-    // NOTICE METADATA.
+    //
+    // DUMMY X02 NOTICE DATA (as if coming from a web form before we have the XML).
+    //
+
     {
       // SDK version.
       final ObjectNode vis = mapper.createObjectNode();
+      putDefault(vis);
       root.set("OPT-002-notice-1", vis);
       vis.put("contentId", "OPT-002-notice");
-      vis.put("type", "field");
       vis.put("value", fakeSdkForTest);
-      vis.put("contentCount", "1");
-      vis.put("contentParentCount", "1");
     }
     {
       // Notice sub type.
       final ObjectNode vis = mapper.createObjectNode();
+      putDefault(vis);
       root.set("OPP-070-notice-1", vis);
       vis.put("contentId", "OPP-070-notice");
-      vis.put("type", "field");
       vis.put("value", noticeSubTypeForTest);
-      vis.put("contentCount", "1");
-      vis.put("contentParentCount", "1");
     }
 
+    //
     // NOTICE CONTENT.
+    //
     {
       final ObjectNode vis = mapper.createObjectNode();
+      putDefault(vis);
       root.set("BT-505-Business-1", vis);
       vis.put("contentId", "BT-505-Business");
-      vis.put("type", "field");
       vis.put("value", "http://www.acme-solution.co.uk");
-      vis.put("contentCount", "1");
-      vis.put("contentParentCount", "1");
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
+      putDefault(vis);
       root.set("BT-501-Business-European-1", vis);
       vis.put("contentId", "BT-501-Business-European");
-      vis.put("type", "field");
       vis.put("value", "The EU registration number");
-      vis.put("contentCount", "1");
-      vis.put("contentParentCount", "1");
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
+      putDefault(vis);
       root.set("OPP-113-Business-European-1", vis);
       vis.put("contentId", "OPP-113-Business-European");
-      vis.put("type", "field");
       vis.put("value", "2020-11-14+01:00");
-      vis.put("contentCount", "1");
-      vis.put("contentParentCount", "1");
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
+      putDefault(vis);
       root.set("BT-500-Business-1", vis);
       vis.put("contentId", "BT-500-Business");
-      vis.put("type", "field");
       vis.put("value", "ACME Solution");
-      vis.put("contentCount", "1");
-      vis.put("contentParentCount", "1");
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
+      putDefault(vis);
       root.set("BT-501-Business-National-1", vis);
       vis.put("contentId", "BT-501-Business-National");
-      vis.put("type", "field");
       vis.put("value", "The national registration number");
-      vis.put("contentCount", "1");
-      vis.put("contentParentCount", "1");
     }
 
     // Repeating node for 'sector'.
     {
       final ObjectNode vis = mapper.createObjectNode();
+      putDefault(vis);
       root.set("OPP-105-Business-1", vis);
       vis.put("contentId", "OPP-105-Business");
-      vis.put("type", "field");
       vis.put("value", "education");
-      vis.put("contentCount", "1");
-      vis.put("contentParentCount", "1");
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
+      putDefault(vis);
       root.set("OPP-105-Business-2", vis);
       vis.put("contentId", "OPP-105-Business");
       vis.put("value", "health");
       vis.put("contentCount", "2");
-      vis.put("type", "field");
-      vis.put("contentParentCount", "1");
     }
-
     {
       final ObjectNode vis = mapper.createObjectNode();
+      putDefault(vis);
       root.set("OPP-100-Business-1", vis);
       vis.put("contentId", "OPP-100-Business");
-      vis.put("type", "field");
       vis.put("value", "reg");
-      vis.put("contentCount", "1");
-      vis.put("contentParentCount", "1");
     }
 
     return root;
+  }
+
+  private static void putDefault(final ObjectNode vis) {
+    vis.put("type", "field");
+    vis.put("contentCount", "1");
+    vis.put("contentParentCount", "1");
   }
 
   private static void setupFieldsJsonFields(final ObjectMapper mapper,
@@ -131,7 +123,7 @@ public class NoticeSaverTest {
       field.put("xpathAbsolute", "/*/cbc:CustomizationID");
       field.put("xpathRelative", "cbc:CustomizationID");
       field.put("type", "id");
-      field.put("repeatable", false);
+      fieldPutRepeatable(field, false);
     }
     {
       final ObjectNode field = mapper.createObjectNode();
@@ -141,7 +133,7 @@ public class NoticeSaverTest {
           "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension/efac:NoticeSubType/cbc:SubTypeCode");
       field.put("xpathRelative", "efac:NoticeSubType/cbc:SubTypeCode");
       field.put("type", "code");
-      field.put("repeatable", false);
+      fieldPutRepeatable(field, false);
       field.put("codeListId", "notice-subtype");
     }
     {
@@ -151,7 +143,7 @@ public class NoticeSaverTest {
       field.put("xpathAbsolute", "/*/cac:BusinessParty/cbc:WebsiteURI");
       field.put("xpathRelative", "cbc:WebsiteURI");
       field.put("type", "url");
-      field.put("repeatable", false);
+      fieldPutRepeatable(field, false);
     }
     {
       final ObjectNode field = mapper.createObjectNode();
@@ -161,7 +153,7 @@ public class NoticeSaverTest {
           "/*/cac:BusinessParty/cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName = 'EU')]/cbc:RegistrationName");
       field.put("xpathRelative", "cbc:RegistrationName");
       field.put("type", "text");
-      field.put("repeatable", false);
+      fieldPutRepeatable(field, false);
     }
     {
       final ObjectNode field = mapper.createObjectNode();
@@ -171,7 +163,7 @@ public class NoticeSaverTest {
           "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName = 'EU']/cbc:CompanyID[@schemeName = 'EU']");
       field.put("xpathRelative", "cbc:CompanyID[@schemeName = 'EU']");
       field.put("type", "id");
-      field.put("repeatable", false);
+      fieldPutRepeatable(field, false);
     }
     {
       final ObjectNode field = mapper.createObjectNode();
@@ -181,7 +173,7 @@ public class NoticeSaverTest {
           "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[not(@schemeName = 'EU')]/cbc:CompanyID[not(@schemeName = 'EU')]");
       field.put("xpathRelative", "cbc:CompanyID[not(@schemeName = 'EU')]");
       field.put("type", "id");
-      field.put("repeatable", false);
+      fieldPutRepeatable(field, false);
     }
     {
       final ObjectNode field = mapper.createObjectNode();
@@ -190,7 +182,7 @@ public class NoticeSaverTest {
       field.put("xpathAbsolute", "/*/cac:BusinessCapability/cbc:CapabilityTypeCode");
       field.put("xpathRelative", "cac:BusinessCapability/cbc:CapabilityTypeCode");
       field.put("type", "code");
-      field.put("repeatable", true);
+      fieldPutRepeatable(field, true);
       field.put("codeListId", "main-activity");
     }
     {
@@ -200,7 +192,7 @@ public class NoticeSaverTest {
       field.put("xpathAbsolute", "/*/efac:NoticePurpose/cbc:PurposeCode");
       field.put("xpathRelative", "cbc:PurposeCode");
       field.put("type", "code");
-      field.put("repeatable", false);
+      fieldPutRepeatable(field, false);
       field.put("codeListId", "notice-purpose");
     }
     {
@@ -211,8 +203,14 @@ public class NoticeSaverTest {
           "/*/cac:BusinessParty/cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']/cbc:RegistrationDate");
       field.put("xpathRelative", "cbc:RegistrationDate");
       field.put("type", "date");
-      field.put("repeatable", false);
+      fieldPutRepeatable(field, false);
     }
+  }
+
+  private static void fieldPutRepeatable(final ObjectNode field, final boolean repeatable) {
+    final ObjectNode prop = JsonUtils.createObjectNode();
+    prop.put("value", repeatable);
+    field.set("repeatable", prop);
   }
 
   private static void setupFieldsJsonXmlStructureNodes(final ObjectMapper mapper,
@@ -222,7 +220,7 @@ public class NoticeSaverTest {
       nodeById.put("ND-Root", node);
       node.put("xpathAbsolute", "/*");
       node.put("xpathRelative", "/*");
-      node.put("repeatable", false);
+      fieldPutRepeatable(node, false);
     }
     {
       final ObjectNode node = mapper.createObjectNode();
@@ -232,7 +230,7 @@ public class NoticeSaverTest {
           "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension");
       node.put("xpathRelative",
           "ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension");
-      node.put("repeatable", false);
+      fieldPutRepeatable(node, false);
     }
     {
       final ObjectNode node = mapper.createObjectNode();
@@ -240,7 +238,7 @@ public class NoticeSaverTest {
       node.put("parentId", "ND-Root");
       node.put("xpathAbsolute", "/*/cac:BusinessParty");
       node.put("xpathRelative", "cac:BusinessParty");
-      node.put("repeatable", false);
+      fieldPutRepeatable(node, false);
     }
     {
       final ObjectNode node = mapper.createObjectNode();
@@ -249,7 +247,7 @@ public class NoticeSaverTest {
       node.put("xpathAbsolute",
           "/*/cac:BusinessParty/cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName = 'EU')]");
       node.put("xpathRelative", "cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName = 'EU')]");
-      node.put("repeatable", false);
+      fieldPutRepeatable(node, false);
     }
     {
       final ObjectNode node = mapper.createObjectNode();
@@ -258,7 +256,7 @@ public class NoticeSaverTest {
       node.put("xpathAbsolute",
           "/*/cac:BusinessParty/cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']");
       node.put("xpathRelative", "cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']");
-      node.put("repeatable", false);
+      fieldPutRepeatable(node, false);
     }
     {
       final ObjectNode node = mapper.createObjectNode();
@@ -266,7 +264,7 @@ public class NoticeSaverTest {
       node.put("parentId", "ND-Root");
       node.put("xpathAbsolute", "/*/efac:NoticePurpose");
       node.put("xpathRelative", "efac:NoticePurpose");
-      node.put("repeatable", false);
+      fieldPutRepeatable(node, false);
     }
 
   }
@@ -342,52 +340,59 @@ public class NoticeSaverTest {
     final String xml = pm.getXmlAsText(false); // Not indented to avoid line breaks.
     System.out.println(pm.getXmlAsText(true));
 
-    assertTrue(xml.contains("encoding=\"UTF-8\""));
+    contains(xml, "encoding=\"UTF-8\"");
 
     // Check fields root node.
-    assertTrue(xml.contains("BusinessRegistrationInformationNotice"));
-    assertTrue(xml.contains("xmlns="));
+    contains(xml, "BusinessRegistrationInformationNotice");
+    contains(xml, "xmlns=");
+
+    // TODO it would be more maintainable to use xpath to check the XML instead of pure text.
 
     // Check some metadata.
-    assertTrue(xml.contains(noticeSubType));
-    assertTrue(xml.contains(prefixedSdkVersion));
-    expectCount(xml, 1, "<cbc:CustomizationID");
-    expectCount(xml, 1, "<cbc:SubTypeCode");
+    contains(xml, noticeSubType);
+    contains(xml, prefixedSdkVersion);
+    count(xml, 1, "<cbc:CustomizationID");
+    count(xml, 1, "<cbc:SubTypeCode");
 
     // Check nodes.
-    expectCount(xml, 1, "<BusinessRegistrationInformationNotice");
-    expectCount(xml, 1, "<ext:UBLExtensions>");
-    expectCount(xml, 1, "<cac:BusinessParty editorNodeId=\"ND-BusinessParty\"");
-    expectCount(xml, 1, "<efac:NoticePurpose editorNodeId=\"ND-OperationType\"");
+    count(xml, 1, "<BusinessRegistrationInformationNotice");
+    count(xml, 1, "<ext:UBLExtensions>");
+    count(xml, 1, "<cac:BusinessParty editorNodeId=\"ND-BusinessParty\"");
+    count(xml, 1, "<efac:NoticePurpose editorNodeId=\"ND-OperationType\"");
 
     // It is the same xml tag, but here we can even check the nodeId is originally correct.
     // Without debug true this editor intermediary information would otherwise be lost.
-    expectCount(xml, 1, "<cac:PartyLegalEntity editorNodeId=\"ND-EuEntity\"");
-    expectCount(xml, 1, "<cac:PartyLegalEntity editorNodeId=\"ND-LocalEntity\"");
+    count(xml, 1, "<cac:PartyLegalEntity editorNodeId=\"ND-EuEntity\"");
+    count(xml, 1, "<cac:PartyLegalEntity editorNodeId=\"ND-LocalEntity\"");
 
     // Check fields.
-    assertTrue(xml.contains("OPP-070-notice\""));
+    contains(xml, "OPP-070-notice\"");
 
-    assertTrue(xml.contains("BT-500-Business\""));
-    assertTrue(xml.contains("BT-501-Business-National\""));
-    assertTrue(xml.contains("BT-501-Business-National\" schemeName=\"national\""));
+    contains(xml, "BT-500-Business\"");
+    contains(xml, "BT-501-Business-National\"");
+    contains(xml, "BT-501-Business-National\" schemeName=\"national\"");
 
-    assertTrue(xml.contains("BT-501-Business-European\""));
-    assertTrue(xml.contains("BT-501-Business-European\" schemeName=\"EU\""));
-    assertTrue(xml.contains("OPP-113-Business-European\""));
+    contains(xml, "BT-501-Business-European\"");
+    contains(xml, "BT-501-Business-European\" schemeName=\"EU\"");
+    contains(xml, "OPP-113-Business-European\"");
 
-    assertTrue(xml.contains("OPP-100-Business\""));
+    contains(xml, "OPP-100-Business\"");
 
-    assertTrue(xml.contains("OPP-105-Business\""));
-    assertTrue(xml.contains(">education<"));
-    assertTrue(xml.contains(">health<"));
-
-    assertTrue(xml.contains("listName=\"sector\">education<"));
-    assertTrue(xml.contains("listName=\"sector\">health<"));
+    // Test repeatable field OPP-105-Business.
+    // Ensure the field is indeed repeatable so that the test itself is not broken.
+    assert fieldById.get("OPP-105-Business").get("repeatable").get("value").asBoolean();
+    contains(xml, "OPP-105-Business\"");
+    contains(xml, ">education<");
+    contains(xml, ">health<");
+    contains(xml, "OPP-105-Business\" listName=\"sector\">education<");
+    contains(xml, "OPP-105-Business\" listName=\"sector\">health<");
   }
 
-  private static final void expectCount(final String xml, final int expectedCount,
-      final String toMatch) {
+  private static final void contains(final String xml, final String text) {
+    assertTrue(xml.contains(text), text);
+  }
+
+  private static final void count(final String xml, final int expectedCount, final String toMatch) {
     assertEquals(expectedCount, StringUtils.countMatches(xml, toMatch), toMatch);
   }
 

@@ -45,13 +45,11 @@ public class NoticeSaver {
 
   private static final String NODE_PARENT_ID = "parentId";
   private static final String NODE_XPATH_RELATIVE = "xpathRelative";
-  public static final String NODE_REPEATABLE = "repeatable";
   private static final String NODE_IDENTIFIER_FIELD_ID = "identifierFieldId";
 
   private static final String FIELD_CODE_LIST_ID = "codeListId";
   private static final String FIELD_ID_SCHEME = "idScheme";
   private static final String FIELD_PARENT_NODE_ID = "parentNodeId";
-  private static final String FIELD_REPEATABLE = "repeatable";
   private static final String CONTENT_TYPE = "type";
   private static final String CONTENT_TYPE_FIELD = "field";
   private static final String FIELD_TYPE_CODE = "code";
@@ -411,6 +409,10 @@ public class NoticeSaver {
     final String nodeId = conceptNode.getId();
     final JsonNode nodeMeta = fieldsAndNodes.getNodeById(nodeId);
 
+    // If a field or node is repeatable, the the XML element to repeat is the first XML
+    // element in the xpathRelative.
+    final boolean nodeMetaRepeatable = FieldsAndNodes.isNodeRepeatable(nodeMeta);
+
     //
     // Handle identifier field id of node.
     //
@@ -635,7 +637,9 @@ public class NoticeSaver {
     // These intermediary elements are very simple items and have no nodeId.
     final String xpathRel = getTextStrict(fieldMeta, FIELD_XPATH_RELATIVE);
 
-    final boolean fieldMetaRepeatable = JsonUtils.getBoolStrict(fieldMeta, FIELD_REPEATABLE);
+    // If a field or node is repeatable, the the XML element to repeat is the first XML
+    // element in the xpathRelative.
+    final boolean fieldMetaRepeatable = FieldsAndNodes.isFieldRepeatable(fieldMeta);
 
     Element previousElem = xmlNodeElem;
     Element partElem = null;
@@ -653,7 +657,8 @@ public class NoticeSaver {
 
       final PhysicalXpath px = handleXpathPart(partXpath);
       final Optional<String> schemeNameOpt = px.getSchemeNameOpt();
-      final String xpathExpr = fieldMetaRepeatable ? "somethingimpossible" : px.getXpathExpr();
+      final Optional<String> xpathExprOpt =
+          fieldMetaRepeatable ? Optional.empty() : Optional.of(px.getXpathExpr());
       final String tagOrAttr = px.getTag();
 
       // In this case the field is an attribute of a field in the XML, technicall this makes a
@@ -663,11 +668,15 @@ public class NoticeSaver {
       // XML.
       final boolean isAttribute = tagOrAttr.startsWith("@") && tagOrAttr.length() > 1;
 
-      final NodeList foundElements = evaluateXpath(xPathInst, previousElem, xpathExpr);
-      if (!isAttribute && foundElements.getLength() > 0) {
-        // One or more pre-existing XML items were found. Try to reuse.
-        assert foundElements.getLength() == 1;
+      final Optional<NodeList> foundElementsOpt = !isAttribute && xpathExprOpt.isPresent()
+          ? Optional.of(evaluateXpath(xPathInst, previousElem, xpathExprOpt.get()))
+          : Optional.empty();
 
+      if (foundElementsOpt.isPresent() && foundElementsOpt.get().getLength() > 0) {
+        final NodeList foundElements = foundElementsOpt.get();
+        assert foundElements.getLength() == 1 : "foundElements length != 1";
+
+        // One or more pre-existing XML items were found. Try to reuse.
         final Node xmlNode;
         if (foundElements.getLength() > 1) {
           xmlNode = foundElements.item(0); // Which? 0, 1, ...???

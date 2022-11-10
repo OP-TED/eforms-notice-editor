@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.commons.lang3.Validate;
 import com.fasterxml.jackson.databind.JsonNode;
+import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.sdk.SdkConstants;
 
 /**
@@ -11,8 +12,11 @@ import eu.europa.ted.eforms.sdk.SdkConstants;
  */
 public class FieldsAndNodes {
 
-  private static final String JSONK_FIELDS_ID_KEY = "id";
-  private static final String JSONK_XML_STRUCTURE_ID_KEY = "id";
+  private static final String JSON_FIELDS_ID_KEY = "id";
+  private static final String JSON_XML_STRUCTURE_ID_KEY = "id";
+
+  private static final String JSON_FIELD_REPEATABLE = "repeatable";
+  private static final String JSON_NODE_REPEATABLE = "repeatable";
 
   private final Map<String, JsonNode> fieldById;
   private final Map<String, JsonNode> nodeById;
@@ -22,7 +26,7 @@ public class FieldsAndNodes {
       final JsonNode nodes = fieldsJsonRoot.get(SdkConstants.FIELDS_JSON_XML_STRUCTURE_KEY);
       final Map<String, JsonNode> nodesMap = new LinkedHashMap<>();
       for (final JsonNode node : nodes) {
-        nodesMap.put(node.get(JSONK_XML_STRUCTURE_ID_KEY).asText(), node);
+        nodesMap.put(node.get(JSON_XML_STRUCTURE_ID_KEY).asText(), node);
       }
       this.nodeById = nodesMap;
     }
@@ -30,13 +34,13 @@ public class FieldsAndNodes {
       final JsonNode fields = fieldsJsonRoot.get(SdkConstants.FIELDS_JSON_FIELDS_KEY);
       final Map<String, JsonNode> fieldsMap = new LinkedHashMap<>();
       for (final JsonNode field : fields) {
-        fieldsMap.put(field.get(JSONK_FIELDS_ID_KEY).asText(), field);
+        fieldsMap.put(field.get(JSON_FIELDS_ID_KEY).asText(), field);
       }
       this.fieldById = fieldsMap;
     }
   }
 
-  public FieldsAndNodes(Map<String, JsonNode> fields, Map<String, JsonNode> nodes) {
+  public FieldsAndNodes(final Map<String, JsonNode> fields, final Map<String, JsonNode> nodes) {
     this.fieldById = fields;
     this.nodeById = nodes;
   }
@@ -51,5 +55,30 @@ public class FieldsAndNodes {
     final JsonNode jsonNode = nodeById.get(nodeId);
     Validate.notNull(jsonNode, "Node not found for id=%s", nodeId);
     return jsonNode;
+  }
+
+  public static boolean getFieldPropertyValueBoolStrict(final JsonNode json, final String propKey) {
+    // Example:
+    // "repeatable" : {
+    // "value" : true, WE WANT THE BOOLEAN VALUE AND FAIL IF WE CANNOT HAVE IT
+    // "severity" : "ERROR"
+    // },
+    // As you can see this is not a flat property, you have to do two gets.
+    final JsonNode prop = getFieldProperty(json, propKey);
+    return JsonUtils.getBoolStrict(prop, "value");
+  }
+
+  public static JsonNode getFieldProperty(final JsonNode json, final String propKey) {
+    final JsonNode prop = json.get(propKey);
+    Validate.notNull(prop, "Property is null for propKey=%s", propKey);
+    return prop;
+  }
+
+  public static boolean isFieldRepeatable(final JsonNode json) {
+    return getFieldPropertyValueBoolStrict(json, JSON_FIELD_REPEATABLE);
+  }
+
+  public static boolean isNodeRepeatable(final JsonNode json) {
+    return JsonUtils.getBoolStrict(json, JSON_NODE_REPEATABLE);
   }
 }

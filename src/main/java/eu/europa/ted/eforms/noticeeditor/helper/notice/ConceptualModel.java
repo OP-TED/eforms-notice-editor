@@ -3,7 +3,6 @@ package eu.europa.ted.eforms.noticeeditor.helper.notice;
 import org.apache.commons.lang3.Validate;
 import com.fasterxml.jackson.databind.JsonNode;
 import eu.europa.ted.eforms.noticeeditor.util.GraphvizDotTool;
-import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 
 public class ConceptualModel {
 
@@ -51,11 +50,10 @@ public class ConceptualModel {
 
     // Include nodes in dot file.
     for (final ConceptNode c : cn.getConceptNodes()) {
-      final JsonNode jsonNode = fieldsAndNodes.getNodeById(c.getId());
-      Validate.notNull(jsonNode, "null for nodeId=%s", c.getId());
+      final JsonNode nodeMeta = fieldsAndNodes.getNodeById(c.getId());
+      Validate.notNull(nodeMeta, "null for nodeId=%s", c.getId());
 
-      final boolean nodeIsRepeatable =
-          JsonUtils.getBoolStrict(jsonNode, NoticeSaver.NODE_REPEATABLE);
+      final boolean nodeIsRepeatable = FieldsAndNodes.isNodeRepeatable(nodeMeta);
       final String color = nodeIsRepeatable ? "green" : "black";
 
       GraphvizDotTool.appendEdge("", color, cnId, c.getId(), sb);
