@@ -2,9 +2,6 @@ package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 import static eu.europa.ted.eforms.noticeeditor.util.JsonUtils.getIntStrict;
 import static eu.europa.ted.eforms.noticeeditor.util.JsonUtils.getTextStrict;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -56,7 +53,7 @@ public class NoticeSaver {
   public static final String FIELD_ID_NOTICE_SUB_TYPE = "OPP-070-notice";
 
   /**
-   * A special case that we have to solve.
+   * A special case that we have to solve. HARDCODED.
    */
   static final String NATIONAL = "national";
 
@@ -101,6 +98,14 @@ public class NoticeSaver {
    * For ids like ORG-0001, 0001 is 4 chars total.
    */
   private static final int SCHEME_ID_PADDING_SIZE = 4;
+
+  public static ConceptualModel buildConceptualModel2(final FieldsAndNodes fieldsAndNodes,
+      final JsonNode visualRoot) {
+    Validate.notNull(visualRoot, "visualRoot");
+
+    // TODO parse hierarchical visual model.
+    return null;
+  }
 
   public static Map<String, ConceptNode> buildConceptualModel(final FieldsAndNodes fieldsAndNodes,
       final JsonNode visualRoot) {
@@ -218,20 +223,20 @@ public class NoticeSaver {
     // buildFields,
     // 0, true, xPathInst);
 
-    if (debug) {
-      try {
-        // Generate dot file for the conceptual model.
-        // Visualizing it can help understand how it works or find problems.
-        final boolean includeFields = false;
-        final String dotText = concept.toDot(fieldsAndNodes, includeFields);
-        final Path pathToFolder = Path.of("target/dot/");
-        Files.createDirectories(pathToFolder);
-        final Path pathToFile = pathToFolder.resolve(concept.getNoticeSubType() + "-concept.dot");
-        JavaTools.writeTextFile(pathToFile, dotText);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
+    // if (debug) {
+    // try {
+    // // Generate dot file for the conceptual model.
+    // // Visualizing it can help understand how it works or find problems.
+    // final boolean includeFields = false;
+    // final String dotText = concept.toDot(fieldsAndNodes, includeFields);
+    // final Path pathToFolder = Path.of("target/dot/");
+    // Files.createDirectories(pathToFolder);
+    // final Path pathToFile = pathToFolder.resolve(concept.getNoticeSubType() + "-concept.dot");
+    // JavaTools.writeTextFile(pathToFile, dotText);
+    // } catch (IOException e) {
+    // throw new RuntimeException(e);
+    // }
+    // }
 
     // Recursion: start with the concept root.
     buildPhysicalModelXmlRec(fieldsAndNodes, xmlDoc, concept.getRoot(), xmlDocRoot, debug,
@@ -252,6 +257,7 @@ public class NoticeSaver {
   public static DocumentTypeInfo getDocumentTypeInfo(
       final Map<String, JsonNode> noticeInfoBySubtype,
       final Map<String, JsonNode> documentInfoByType, final ConceptualModel concept) {
+
     logger.debug("Attempting to read document type info.");
     final JsonNode noticeInfo = getNoticeSubTypeInfo(noticeInfoBySubtype, concept);
 
@@ -260,6 +266,7 @@ public class NoticeSaver {
         JsonUtils.getTextStrict(noticeInfo, SdkConstants.NOTICE_TYPES_JSON_DOCUMENT_TYPE_KEY);
 
     final JsonNode documentTypeInfo = documentInfoByType.get(documentType);
+
     return new DocumentTypeInfo(documentTypeInfo);
   }
 
@@ -873,6 +880,7 @@ public class NoticeSaver {
     final Optional<String> schemeNameOpt;
 
     if (tag.contains("[not(@schemeName = 'EU')]")) {
+      // HARDCODED
       // TODO This is a TEMPORARY FIX until we have a proper solution inside of the SDK. National is
       // only indirectly described by saying not EU, but the text itself is not given.
       tag = tag.replace("[not(@schemeName = 'EU')]", "[@schemeName = '" + NATIONAL + "']");

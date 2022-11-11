@@ -44,6 +44,7 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
     // DUMMY X02 NOTICE DATA (as if coming from a web form before we have the XML).
     //
 
+    // TODO update to hierarchical.
     {
       // SDK version.
       final ObjectNode vis = mapper.createObjectNode();
@@ -263,15 +264,12 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
    * and some notice data. It will be hard to maintain but is fully self-contained, so it can also
    * be used to quickly debug a problem by modification of the dummy data or metadata.
    */
-  @SuppressWarnings("static-method")
   @Test
   public void testDummy() throws ParserConfigurationException, IOException {
     final ObjectMapper mapper = new ObjectMapper();
 
     final String prefixedSdkVersion = "eforms-sdk-" + "1.3.0"; // A dummy 1.3.0, not real 1.3.0
     final String noticeSubType = NOTICE_SUB_TYPE_VALUE; // A dummy X02, not the real X02 of 1.3.0
-
-    final ObjectNode root = setupVisualModel(mapper, prefixedSdkVersion, noticeSubType);
 
     //
     // NODES from fields.json
@@ -306,11 +304,16 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
     }
 
     //
+    // BUILD VISUAL MODEL.
+    //
+    final ObjectNode visRoot = setupVisualModel(mapper, prefixedSdkVersion, noticeSubType);
+
+    //
     // BUILD CONCEPTUAL MODEL.
     //
     final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldById, nodeById);
     final Map<String, ConceptNode> conceptNodeById =
-        NoticeSaver.buildConceptualModel(fieldsAndNodes, root);
+        NoticeSaver.buildConceptualModel(fieldsAndNodes, visRoot);
     final ConceptNode conceptRoot = conceptNodeById.get(SdkService.ND_ROOT);
     final ConceptualModel conceptualModel = new ConceptualModel(conceptRoot);
 
@@ -368,7 +371,7 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
 
     // Test repeatable field OPP-105-Business.
     // Ensure the field is indeed repeatable so that the test itself is not broken.
-    assert fieldById.get(OPP_105_BUSINESS).get(KEY_REPEATABLE).get(KEY_VALUE).asBoolean();
+    assert fieldById.get(OPP_105_BUSINESS).get(KEY_FIELD_REPEATABLE).get(KEY_VALUE).asBoolean();
     contains(xml, OPP_105_BUSINESS + "\"");
     contains(xml, ">" + VALUE_EDUCATION + "<");
     contains(xml, ">" + VALUE_HEALTH + "<");

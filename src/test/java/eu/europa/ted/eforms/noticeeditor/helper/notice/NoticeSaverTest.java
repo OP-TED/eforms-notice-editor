@@ -21,6 +21,7 @@ public abstract class NoticeSaverTest {
   static final String VIS_CONTENT_PARENT_COUNT = NoticeSaver.VIS_CONTENT_PARENT_COUNT;
   static final String VIS_CONTENT_COUNT = NoticeSaver.VIS_CONTENT_COUNT;
   static final String VIS_CONTENT_ID = NoticeSaver.VIS_CONTENT_ID;
+  static final String VIS_NODE_ID = "visNodeId";
   static final String VIS_VALUE = NoticeSaver.VIS_VALUE;
   static final String VIS_FIRST = "-1";
   static final String VIS_SECOND = "-2";
@@ -37,7 +38,8 @@ public abstract class NoticeSaverTest {
   static final String KEY_NODE_PARENT_ID = "parentId";
   static final String KEY_XPATH_REL = "xpathRelative";
   static final String KEY_XPATH_ABS = "xpathAbsolute";
-  static final String KEY_REPEATABLE = "repeatable";
+  static final String KEY_FIELD_REPEATABLE = "repeatable";
+  static final String KEY_NODE_REPEATABLE = "repeatable";
   static final String KEY_VALUE = "value";
 
   static final String TYPE_DATE = "date";
@@ -73,11 +75,23 @@ public abstract class NoticeSaverTest {
   }
 
   static void fieldPutRepeatable(final ObjectNode field, final boolean repeatable) {
+    // It has to be done in two steps for the fields.
     final ObjectNode prop = JsonUtils.createObjectNode();
     prop.put(KEY_VALUE, repeatable);
-    field.set(KEY_REPEATABLE, prop);
+    field.set(KEY_FIELD_REPEATABLE, prop);
   }
 
+  static void nodePutRepeatable(final ObjectNode node, final boolean repeatable) {
+    // Very direct in this case.
+    node.put(KEY_NODE_REPEATABLE, repeatable);
+  }
+
+  /**
+   * Setup dummy node metadata.
+   *
+   * @param fieldById This map will be modified as a SIDE-EFFECT
+   */
+  @SuppressWarnings("static-method")
   protected void setupFieldsJsonXmlStructureNodes(final ObjectMapper mapper,
       final Map<String, JsonNode> nodeById) {
     {
@@ -104,6 +118,7 @@ public abstract class NoticeSaverTest {
    *
    * @param fieldById This map will be modified as a SIDE-EFFECT
    */
+  @SuppressWarnings("static-method")
   protected void setupFieldsJsonFields(final ObjectMapper mapper,
       final Map<String, JsonNode> fieldById) {
     {
