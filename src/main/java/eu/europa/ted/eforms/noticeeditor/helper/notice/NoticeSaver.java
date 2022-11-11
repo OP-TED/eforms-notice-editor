@@ -44,7 +44,16 @@ public class NoticeSaver {
 
   static final String ND_ROOT = "ND-Root";
   static final String ND_ROOT_EXTENSION = "ND-RootExtension";
-  static final String OPP_070_NOTICE = "OPP-070-notice";
+
+  /**
+   * Notice field id having the eformsSdkVersion as a value.
+   */
+  public static final String FIELD_ID_SDK_VERSION = "OPT-002-notice";
+
+  /**
+   * Notice field id having the notice sub type as a value.
+   */
+  static final String FIELD_ID_NOTICE_SUB_TYPE = "OPP-070-notice";
 
   /**
    * A special case that we have to solve.

@@ -89,11 +89,6 @@ public class SdkService {
    */
   public static final String MIME_TYPE_XML = "application/xml";
 
-  /**
-   * Notice field having the eformsSdkVersion as a value.
-   */
-  private static final String CBC_CUSTOMIZATION_ID_SDK_VERSION = "OPT-002-notice";
-
   private static final String SDK_NOTICE_TYPES_JSON = "notice-types.json";
   public static final String SDK_FIELDS_JSON = "fields.json";
   public static final String SDK_CODELISTS_JSON = "codelists.json";
@@ -563,7 +558,8 @@ public class SdkService {
     {
       // Example: the SDK value looks like "eforms-sdk-1.1.0".
       // We are only interested in 1.1.0 or just 1.1
-      final String fieldName = CBC_CUSTOMIZATION_ID_SDK_VERSION + "-1"; // "-1" (first field)
+      // The concatenated -1 means first field
+      final String fieldName = NoticeSaver.FIELD_ID_SDK_VERSION + "-1";
 
       final JsonNode visualField = visualRoot.get(fieldName);
       final String eFormsSdkVersion = getTextStrict(visualField, "value");

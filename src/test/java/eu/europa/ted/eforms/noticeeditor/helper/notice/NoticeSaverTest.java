@@ -4,11 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 
 /**
  * Abstract, common code for testing the notice saver.
  */
-public abstract class NoticeSaveTest {
+public abstract class NoticeSaverTest {
   // IDEA: reuse some common constants even with notice saver.
 
   //
@@ -54,5 +55,11 @@ public abstract class NoticeSaveTest {
 
   static final void count(final String xml, final int expectedCount, final String toMatch) {
     assertEquals(expectedCount, StringUtils.countMatches(xml, toMatch), toMatch);
+  }
+
+  static void fieldPutRepeatable(final ObjectNode field, final boolean repeatable) {
+    final ObjectNode prop = JsonUtils.createObjectNode();
+    prop.put(KEY_VALUE, repeatable);
+    field.set(KEY_REPEATABLE, prop);
   }
 }

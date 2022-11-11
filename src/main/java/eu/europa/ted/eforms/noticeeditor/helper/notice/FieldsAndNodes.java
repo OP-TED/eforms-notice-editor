@@ -8,7 +8,7 @@ import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.sdk.SdkConstants;
 
 /**
- * Equivalent to SDK "fields.json".
+ * Equivalent to the SDK "fields.json".
  */
 public class FieldsAndNodes {
 

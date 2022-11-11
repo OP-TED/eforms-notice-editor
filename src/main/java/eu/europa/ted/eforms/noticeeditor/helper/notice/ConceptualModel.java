@@ -21,7 +21,7 @@ public class ConceptualModel {
     final ConceptNode rootExtension = rootNode.getConceptNodes().stream()
         .filter(item -> item.getId().equals(NoticeSaver.ND_ROOT_EXTENSION)).findFirst().get();
     return rootExtension.getConceptFields().stream()
-        .filter(item -> item.getId().equals(NoticeSaver.OPP_070_NOTICE)).findFirst().get()
+        .filter(item -> item.getId().equals(NoticeSaver.FIELD_ID_NOTICE_SUB_TYPE)).findFirst().get()
         .getValue();
   }
 
