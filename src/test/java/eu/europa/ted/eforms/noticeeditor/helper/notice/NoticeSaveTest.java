@@ -24,8 +24,8 @@ public abstract class NoticeSaveTest {
   //
   // FIELDS JSON RELATED.
   //
-  static final String ND_ROOT = "ND-Root";
-  static final String ND_ROOT_EXTENSION = "ND-RootExtension";
+  static final String ND_ROOT = NoticeSaver.ND_ROOT;
+  static final String ND_ROOT_EXTENSION = NoticeSaver.ND_ROOT_EXTENSION;
 
   static final String KEY_CODE_LIST_ID = "codeListId";
   static final String KEY_TYPE = "type";

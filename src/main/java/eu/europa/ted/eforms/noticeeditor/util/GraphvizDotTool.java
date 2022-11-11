@@ -4,6 +4,10 @@ import org.apache.commons.lang3.StringUtils;
 
 public class GraphvizDotTool {
 
+  public static final String COLOR_BLACK = "black";
+  public static final String COLOR_GREEN = "green";
+  public static final String COLOR_RED = "red";
+
   public static void appendEdge(final String label, final String color, final String from,
       final String to, final StringBuilder sb) {
     sb.append(String.format("\"%s\" -> \"%s\"", from, to));

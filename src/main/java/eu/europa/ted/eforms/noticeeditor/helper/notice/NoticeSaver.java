@@ -40,8 +40,11 @@ import net.sf.saxon.lib.NamespaceConstant;
 
 public class NoticeSaver {
 
-
   private static final Logger logger = LoggerFactory.getLogger(NoticeSaver.class);
+
+  static final String ND_ROOT = "ND-Root";
+  static final String ND_ROOT_EXTENSION = "ND-RootExtension";
+  static final String OPP_070_NOTICE = "OPP-070-notice";
 
   /**
    * A special case that we have to solve.
@@ -57,6 +60,7 @@ public class NoticeSaver {
   static final String FIELD_PARENT_NODE_ID = "parentNodeId";
   static final String FIELD_TYPE_CODE = "code";
   static final String FIELD_XPATH_RELATIVE = "xpathRelative";
+  static final String FIELD_TYPE = "type";
 
   static final String VIS_TYPE = "type";
   static final String VIS_TYPE_FIELD = "field";
@@ -792,7 +796,7 @@ public class NoticeSaver {
     Validate.notNull(value, "value is null for fieldId=%s", fieldId);
     fieldElem.setTextContent(value);
 
-    final String fieldType = JsonUtils.getTextStrict(fieldMeta, VIS_TYPE);
+    final String fieldType = JsonUtils.getTextStrict(fieldMeta, FIELD_TYPE);
     if (fieldType == FIELD_TYPE_CODE) {
       // Convention: in the XML the codelist is set in the listName attribute.
       String listName = JsonUtils.getTextStrict(fieldMeta, FIELD_CODE_LIST_ID);

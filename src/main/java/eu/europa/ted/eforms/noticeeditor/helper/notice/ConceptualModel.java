@@ -6,9 +6,6 @@ import eu.europa.ted.eforms.noticeeditor.util.GraphvizDotTool;
 
 public class ConceptualModel {
 
-  private static final String ND_ROOT_EXTENSION = "ND-RootExtension";
-  private static final String OPP_070_NOTICE = "OPP-070-notice";
-
   private final ConceptNode rootNode;
 
   public ConceptualModel(final ConceptNode rootNode) {
@@ -22,9 +19,10 @@ public class ConceptualModel {
   public String getNoticeSubType() {
     // HARDCODED.
     final ConceptNode rootExtension = rootNode.getConceptNodes().stream()
-        .filter(item -> item.getId().equals(ND_ROOT_EXTENSION)).findFirst().get();
+        .filter(item -> item.getId().equals(NoticeSaver.ND_ROOT_EXTENSION)).findFirst().get();
     return rootExtension.getConceptFields().stream()
-        .filter(item -> item.getId().equals(OPP_070_NOTICE)).findFirst().get().getValue();
+        .filter(item -> item.getId().equals(NoticeSaver.OPP_070_NOTICE)).findFirst().get()
+        .getValue();
   }
 
   @Override
@@ -54,7 +52,8 @@ public class ConceptualModel {
       Validate.notNull(nodeMeta, "null for nodeId=%s", c.getId());
 
       final boolean nodeIsRepeatable = FieldsAndNodes.isNodeRepeatable(nodeMeta);
-      final String color = nodeIsRepeatable ? "green" : "black";
+      final String color =
+          nodeIsRepeatable ? GraphvizDotTool.COLOR_GREEN : GraphvizDotTool.COLOR_BLACK;
 
       GraphvizDotTool.appendEdge("", color, cnId, c.getId(), sb);
       toDotRec(fieldsAndNodes, sb, c, includeFields);
@@ -64,7 +63,7 @@ public class ConceptualModel {
     if (includeFields) {
       // This makes the tree a lot more bushy and can be hard to read.
       for (final ConceptField c : cn.getConceptFields()) {
-        GraphvizDotTool.appendEdge("", "black", cnId, c.getId(), sb);
+        GraphvizDotTool.appendEdge("", GraphvizDotTool.COLOR_BLACK, cnId, c.getId(), sb);
       }
     }
   }
