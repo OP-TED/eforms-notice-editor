@@ -53,7 +53,7 @@ public class NoticeSaver {
   /**
    * Notice field id having the notice sub type as a value.
    */
-  static final String FIELD_ID_NOTICE_SUB_TYPE = "OPP-070-notice";
+  public static final String FIELD_ID_NOTICE_SUB_TYPE = "OPP-070-notice";
 
   /**
    * A special case that we have to solve.
@@ -73,6 +73,7 @@ public class NoticeSaver {
 
   static final String VIS_TYPE = "type";
   static final String VIS_TYPE_FIELD = "field";
+  static final String VIS_TYPE_GROUP = "group";
   static final String VIS_VALUE = "value";
   static final String VIS_CONTENT_PARENT_COUNT = "contentParentCount";
   static final String VIS_CONTENT_COUNT = "contentCount";

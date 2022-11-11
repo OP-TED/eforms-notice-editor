@@ -33,9 +33,12 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
   private static final String VALUE_HEALTH = "health";
   private static final String VALUE_EDUCATION = "education";
 
+  /**
+   * Setup dummy test notice form data.
+   */
   private static ObjectNode setupVisualModel(final ObjectMapper mapper, final String fakeSdkForTest,
       final String noticeSubTypeForTest) {
-    final ObjectNode root = mapper.createObjectNode();
+    final ObjectNode visRoot = mapper.createObjectNode();
 
     //
     // DUMMY X02 NOTICE DATA (as if coming from a web form before we have the XML).
@@ -44,16 +47,16 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
     {
       // SDK version.
       final ObjectNode vis = mapper.createObjectNode();
-      putDefault(vis);
-      root.set(NoticeSaver.FIELD_ID_SDK_VERSION + VIS_FIRST, vis);
+      putFieldDef(vis);
+      visRoot.set(NoticeSaver.FIELD_ID_SDK_VERSION + VIS_FIRST, vis);
       vis.put(VIS_CONTENT_ID, NoticeSaver.FIELD_ID_SDK_VERSION);
       vis.put(VIS_VALUE, fakeSdkForTest);
     }
     {
       // Notice sub type.
       final ObjectNode vis = mapper.createObjectNode();
-      putDefault(vis);
-      root.set(NoticeSaver.FIELD_ID_NOTICE_SUB_TYPE + VIS_FIRST, vis);
+      putFieldDef(vis);
+      visRoot.set(NoticeSaver.FIELD_ID_NOTICE_SUB_TYPE + VIS_FIRST, vis);
       vis.put(VIS_CONTENT_ID, NoticeSaver.FIELD_ID_NOTICE_SUB_TYPE);
       vis.put(VIS_VALUE, noticeSubTypeForTest);
     }
@@ -63,36 +66,36 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
     //
     {
       final ObjectNode vis = mapper.createObjectNode();
-      putDefault(vis);
-      root.set(BT_505_BUSINESS + VIS_FIRST, vis);
+      putFieldDef(vis);
+      visRoot.set(BT_505_BUSINESS + VIS_FIRST, vis);
       vis.put(VIS_CONTENT_ID, BT_505_BUSINESS);
       vis.put(VIS_VALUE, "http://www.acme-solution.co.uk");
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
-      putDefault(vis);
-      root.set(BT_501_BUSINESS_EUROPEAN + VIS_FIRST, vis);
+      putFieldDef(vis);
+      visRoot.set(BT_501_BUSINESS_EUROPEAN + VIS_FIRST, vis);
       vis.put(VIS_CONTENT_ID, BT_501_BUSINESS_EUROPEAN);
       vis.put(VIS_VALUE, "The EU registration number");
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
-      putDefault(vis);
-      root.set(OPP_113_BUSINESS_EUROPEAN + VIS_FIRST, vis);
+      putFieldDef(vis);
+      visRoot.set(OPP_113_BUSINESS_EUROPEAN + VIS_FIRST, vis);
       vis.put(VIS_CONTENT_ID, OPP_113_BUSINESS_EUROPEAN);
       vis.put(VIS_VALUE, "2020-11-14+01:00");
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
-      putDefault(vis);
-      root.set(BT_500_BUSINESS + VIS_FIRST, vis);
+      putFieldDef(vis);
+      visRoot.set(BT_500_BUSINESS + VIS_FIRST, vis);
       vis.put(VIS_CONTENT_ID, BT_500_BUSINESS);
       vis.put(VIS_VALUE, "ACME Solution");
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
-      putDefault(vis);
-      root.set(BT_501_BUSINESS_NATIONAL + VIS_FIRST, vis);
+      putFieldDef(vis);
+      visRoot.set(BT_501_BUSINESS_NATIONAL + VIS_FIRST, vis);
       vis.put(VIS_CONTENT_ID, BT_501_BUSINESS_NATIONAL);
       vis.put(VIS_VALUE, "The national registration number");
     }
@@ -100,52 +103,89 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
     // Repeating node for 'sector'.
     {
       final ObjectNode vis = mapper.createObjectNode();
-      putDefault(vis);
-      root.set(OPP_105_BUSINESS + VIS_FIRST, vis);
+      putFieldDef(vis);
+      visRoot.set(OPP_105_BUSINESS + VIS_FIRST, vis);
       vis.put(VIS_CONTENT_ID, OPP_105_BUSINESS);
       vis.put(VIS_VALUE, VALUE_EDUCATION);
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
-      putDefault(vis);
-      root.set(OPP_105_BUSINESS + VIS_SECOND, vis);
+      putFieldDef(vis);
+      visRoot.set(OPP_105_BUSINESS + VIS_SECOND, vis);
       vis.put(VIS_CONTENT_ID, OPP_105_BUSINESS);
       vis.put(VIS_VALUE, VALUE_HEALTH);
       vis.put(VIS_CONTENT_COUNT, "2"); // Override default.
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
-      putDefault(vis);
-      root.set(OPP_100_BUSINESS + VIS_FIRST, vis);
+      putFieldDef(vis);
+      visRoot.set(OPP_100_BUSINESS + VIS_FIRST, vis);
       vis.put(VIS_CONTENT_ID, OPP_100_BUSINESS);
       vis.put(VIS_VALUE, "reg");
     }
 
-    return root;
+    return visRoot;
   }
 
-  private static void setupFieldsJsonFields(final ObjectMapper mapper,
+  /**
+   * Setup dummy node metadata.
+   *
+   * @param nodeById This map will be modified as a SIDE-EFFECT
+   */
+  @Override
+  protected void setupFieldsJsonXmlStructureNodes(final ObjectMapper mapper,
+      final Map<String, JsonNode> nodeById) {
+
+    super.setupFieldsJsonXmlStructureNodes(mapper, nodeById);
+
+    {
+      final ObjectNode node = mapper.createObjectNode();
+      nodeById.put(ND_BUSINESS_PARTY, node);
+      node.put(KEY_NODE_PARENT_ID, ND_ROOT);
+      node.put(KEY_XPATH_ABS, "/*/cac:BusinessParty");
+      node.put(KEY_XPATH_REL, "cac:BusinessParty");
+      NoticeSaverTest.fieldPutRepeatable(node, false);
+    }
+    {
+      final ObjectNode node = mapper.createObjectNode();
+      nodeById.put(ND_LOCAL_ENTITY, node);
+      node.put(KEY_NODE_PARENT_ID, ND_BUSINESS_PARTY);
+      node.put(KEY_XPATH_ABS,
+          "/*/cac:BusinessParty/cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName = 'EU')]");
+      node.put(KEY_XPATH_REL, "cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName = 'EU')]");
+      NoticeSaverTest.fieldPutRepeatable(node, false);
+    }
+    {
+      final ObjectNode node = mapper.createObjectNode();
+      nodeById.put(ND_EU_ENTITY, node);
+      node.put(KEY_NODE_PARENT_ID, ND_BUSINESS_PARTY);
+      node.put(KEY_XPATH_ABS,
+          "/*/cac:BusinessParty/cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']");
+      node.put(KEY_XPATH_REL, "cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']");
+      NoticeSaverTest.fieldPutRepeatable(node, false);
+    }
+    {
+      final ObjectNode node = mapper.createObjectNode();
+      nodeById.put(ND_OPERATION_TYPE, node);
+      node.put(KEY_NODE_PARENT_ID, ND_ROOT);
+      node.put(KEY_XPATH_ABS, "/*/efac:NoticePurpose");
+      node.put(KEY_XPATH_REL, "efac:NoticePurpose");
+      NoticeSaverTest.fieldPutRepeatable(node, false);
+    }
+
+  }
+
+  /**
+   * Setup dummy field metadata.
+   *
+   * @param fieldById This map will be modified as a SIDE-EFFECT
+   */
+  @Override
+  protected void setupFieldsJsonFields(final ObjectMapper mapper,
       final Map<String, JsonNode> fieldById) {
-    {
-      final ObjectNode field = mapper.createObjectNode();
-      fieldById.put(NoticeSaver.FIELD_ID_SDK_VERSION, field);
-      field.put(KEY_PARENT_NODE_ID, ND_ROOT);
-      field.put(KEY_XPATH_ABS, "/*/cbc:CustomizationID");
-      field.put(KEY_XPATH_REL, "cbc:CustomizationID");
-      field.put(KEY_TYPE, TYPE_ID);
-      NoticeSaverTest.fieldPutRepeatable(field, false);
-    }
-    {
-      final ObjectNode field = mapper.createObjectNode();
-      fieldById.put(NoticeSaver.FIELD_ID_NOTICE_SUB_TYPE, field);
-      field.put(KEY_PARENT_NODE_ID, ND_ROOT_EXTENSION);
-      field.put(KEY_XPATH_ABS,
-          "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension/efac:NoticeSubType/cbc:SubTypeCode");
-      field.put(KEY_XPATH_REL, "efac:NoticeSubType/cbc:SubTypeCode");
-      field.put(KEY_TYPE, TYPE_CODE);
-      NoticeSaverTest.fieldPutRepeatable(field, false);
-      field.put(KEY_CODE_LIST_ID, "notice-subtype");
-    }
+
+    super.setupFieldsJsonFields(mapper, fieldById);
+
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(BT_505_BUSINESS, field);
@@ -215,62 +255,6 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
       field.put(KEY_TYPE, TYPE_DATE);
       NoticeSaverTest.fieldPutRepeatable(field, false);
     }
-  }
-
-  private static void setupFieldsJsonXmlStructureNodes(final ObjectMapper mapper,
-      final Map<String, JsonNode> nodeById) {
-    {
-      final ObjectNode node = mapper.createObjectNode();
-      nodeById.put(ND_ROOT, node);
-      node.put(KEY_XPATH_ABS, "/*");
-      node.put(KEY_XPATH_REL, "/*");
-      NoticeSaverTest.fieldPutRepeatable(node, false);
-    }
-    {
-      final ObjectNode node = mapper.createObjectNode();
-      nodeById.put(ND_ROOT_EXTENSION, node);
-      node.put(KEY_NODE_PARENT_ID, ND_ROOT);
-      node.put(KEY_XPATH_ABS,
-          "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension");
-      node.put(KEY_XPATH_REL,
-          "ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension");
-      NoticeSaverTest.fieldPutRepeatable(node, false);
-    }
-    {
-      final ObjectNode node = mapper.createObjectNode();
-      nodeById.put(ND_BUSINESS_PARTY, node);
-      node.put(KEY_NODE_PARENT_ID, ND_ROOT);
-      node.put(KEY_XPATH_ABS, "/*/cac:BusinessParty");
-      node.put(KEY_XPATH_REL, "cac:BusinessParty");
-      NoticeSaverTest.fieldPutRepeatable(node, false);
-    }
-    {
-      final ObjectNode node = mapper.createObjectNode();
-      nodeById.put(ND_LOCAL_ENTITY, node);
-      node.put(KEY_NODE_PARENT_ID, ND_BUSINESS_PARTY);
-      node.put(KEY_XPATH_ABS,
-          "/*/cac:BusinessParty/cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName = 'EU')]");
-      node.put(KEY_XPATH_REL, "cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName = 'EU')]");
-      NoticeSaverTest.fieldPutRepeatable(node, false);
-    }
-    {
-      final ObjectNode node = mapper.createObjectNode();
-      nodeById.put(ND_EU_ENTITY, node);
-      node.put(KEY_NODE_PARENT_ID, ND_BUSINESS_PARTY);
-      node.put(KEY_XPATH_ABS,
-          "/*/cac:BusinessParty/cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']");
-      node.put(KEY_XPATH_REL, "cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']");
-      NoticeSaverTest.fieldPutRepeatable(node, false);
-    }
-    {
-      final ObjectNode node = mapper.createObjectNode();
-      nodeById.put(ND_OPERATION_TYPE, node);
-      node.put(KEY_NODE_PARENT_ID, ND_ROOT);
-      node.put(KEY_XPATH_ABS, "/*/efac:NoticePurpose");
-      node.put(KEY_XPATH_REL, "efac:NoticePurpose");
-      NoticeSaverTest.fieldPutRepeatable(node, false);
-    }
-
   }
 
   /**
