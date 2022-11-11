@@ -43,17 +43,27 @@ public class NoticeSaver {
 
   private static final Logger logger = LoggerFactory.getLogger(NoticeSaver.class);
 
-  private static final String NODE_PARENT_ID = "parentId";
-  private static final String NODE_XPATH_RELATIVE = "xpathRelative";
-  private static final String NODE_IDENTIFIER_FIELD_ID = "identifierFieldId";
+  /**
+   * A special case that we have to solve.
+   */
+  static final String NATIONAL = "national";
 
-  private static final String FIELD_CODE_LIST_ID = "codeListId";
-  private static final String FIELD_ID_SCHEME = "idScheme";
-  private static final String FIELD_PARENT_NODE_ID = "parentNodeId";
-  private static final String CONTENT_TYPE = "type";
-  private static final String CONTENT_TYPE_FIELD = "field";
-  private static final String FIELD_TYPE_CODE = "code";
-  private static final String FIELD_XPATH_RELATIVE = "xpathRelative";
+  static final String NODE_PARENT_ID = "parentId";
+  static final String NODE_XPATH_RELATIVE = "xpathRelative";
+  static final String NODE_IDENTIFIER_FIELD_ID = "identifierFieldId";
+
+  static final String FIELD_CODE_LIST_ID = "codeListId";
+  static final String FIELD_ID_SCHEME = "idScheme";
+  static final String FIELD_PARENT_NODE_ID = "parentNodeId";
+  static final String FIELD_TYPE_CODE = "code";
+  static final String FIELD_XPATH_RELATIVE = "xpathRelative";
+
+  static final String VIS_TYPE = "type";
+  static final String VIS_TYPE_FIELD = "field";
+  static final String VIS_VALUE = "value";
+  static final String VIS_CONTENT_PARENT_COUNT = "contentParentCount";
+  static final String VIS_CONTENT_COUNT = "contentCount";
+  static final String VIS_CONTENT_ID = "contentId";
 
   private static final String XML_ATTR_EDITOR_COUNTER_SELF = "editorCounterSelf";
   private static final String XML_ATTR_EDITOR_COUNTER_PRNT = "editorCounterPrnt";
@@ -86,19 +96,19 @@ public class NoticeSaver {
     final Map<String, ConceptNode> conceptNodeById = new HashMap<>();
 
     for (final JsonNode visualItem : visualRoot) {
-      final String type = getTextStrict(visualItem, CONTENT_TYPE);
-      if (CONTENT_TYPE_FIELD.equals(type)) {
+      final String type = getTextStrict(visualItem, VIS_TYPE);
+      if (VIS_TYPE_FIELD.equals(type)) {
 
         // Here we mostly care about the value and the field id.
 
         // If the type is field then the contentId is a field id.
-        final String fieldId = getTextStrict(visualItem, "contentId");
+        final String fieldId = getTextStrict(visualItem, VIS_CONTENT_ID);
         final JsonNode fieldMeta = fieldsAndNodes.getFieldById(fieldId);
         Validate.notNull(fieldMeta, "fieldMeta is null for fieldId=%s", fieldId);
 
-        final String value = JsonUtils.getTextMaybeBlank(visualItem, "value");
-        final int counter = getIntStrict(visualItem, "contentCount");
-        final int parentCounter = getIntStrict(visualItem, "contentParentCount");
+        final String value = JsonUtils.getTextMaybeBlank(visualItem, VIS_VALUE);
+        final int counter = getIntStrict(visualItem, VIS_CONTENT_COUNT);
+        final int parentCounter = getIntStrict(visualItem, VIS_CONTENT_PARENT_COUNT);
         final ConceptField conceptField = new ConceptField(fieldId, value, counter, parentCounter);
 
         // Build the parent hierarchy.
@@ -782,7 +792,7 @@ public class NoticeSaver {
     Validate.notNull(value, "value is null for fieldId=%s", fieldId);
     fieldElem.setTextContent(value);
 
-    final String fieldType = JsonUtils.getTextStrict(fieldMeta, CONTENT_TYPE);
+    final String fieldType = JsonUtils.getTextStrict(fieldMeta, VIS_TYPE);
     if (fieldType == FIELD_TYPE_CODE) {
       // Convention: in the XML the codelist is set in the listName attribute.
       String listName = JsonUtils.getTextStrict(fieldMeta, FIELD_CODE_LIST_ID);
@@ -849,8 +859,9 @@ public class NoticeSaver {
     final Optional<String> schemeNameOpt;
 
     if (tag.contains("[not(@schemeName = 'EU')]")) {
-      // TEMPORARY FIX until we have a proper solution inside of the SDK.
-      tag = tag.replace("[not(@schemeName = 'EU')]", "[@schemeName = 'national']");
+      // TODO This is a TEMPORARY FIX until we have a proper solution inside of the SDK. National is
+      // only indirectly described by saying not EU, but the text itself is not given.
+      tag = tag.replace("[not(@schemeName = 'EU')]", "[@schemeName = '" + NATIONAL + "']");
     }
 
     if (tag.contains("[@schemeName = '")) {
@@ -860,6 +871,7 @@ public class NoticeSaver {
       // Example:
       // "xpathAbsolute" : "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName =
       // 'EU']",
+
       // Example: Here we want to extract EU text.
       final int indexOfSchemeName = tag.indexOf("[@schemeName = '");
       String schemeName = tag.substring(indexOfSchemeName + "[@schemeName = '".length());

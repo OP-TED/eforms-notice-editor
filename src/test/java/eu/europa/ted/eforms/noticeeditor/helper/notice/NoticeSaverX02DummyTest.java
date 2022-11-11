@@ -1,13 +1,10 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.xml.parsers.ParserConfigurationException;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,16 +12,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import eu.europa.ted.eforms.noticeeditor.service.SdkService;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 
-public class NoticeSaverX02DummyTest {
+public class NoticeSaverX02DummyTest extends NoticeSaveTest {
 
   private static final String X02 = "X02";
   private static final String BRIN = "BRIN";
 
-  private static final String SECOND = "-2";
-  private static final String FIRST = "-1";
-
-  private static final String ND_ROOT = "ND-Root";
-  private static final String ND_ROOT_EXTENSION = "ND-RootExtension";
   private static final String ND_OPERATION_TYPE = "ND-OperationType";
   private static final String ND_EU_ENTITY = "ND-EuEntity";
   private static final String ND_LOCAL_ENTITY = "ND-LocalEntity";
@@ -41,6 +33,9 @@ public class NoticeSaverX02DummyTest {
   private static final String BT_501_BUSINESS_EUROPEAN = "BT-501-Business-European";
   private static final String BT_505_BUSINESS = "BT-505-Business";
 
+  private static final String VALUE_HEALTH = "health";
+  private static final String VALUE_EDUCATION = "education";
+
   private static ObjectNode setupVisualModel(final ObjectMapper mapper, final String fakeSdkForTest,
       final String noticeSubTypeForTest) {
     final ObjectNode root = mapper.createObjectNode();
@@ -53,17 +48,17 @@ public class NoticeSaverX02DummyTest {
       // SDK version.
       final ObjectNode vis = mapper.createObjectNode();
       putDefault(vis);
-      root.set(OPT_002_NOTICE + FIRST, vis);
-      vis.put("contentId", OPT_002_NOTICE);
-      vis.put("value", fakeSdkForTest);
+      root.set(OPT_002_NOTICE + VIS_FIRST, vis);
+      vis.put(VIS_CONTENT_ID, OPT_002_NOTICE);
+      vis.put(VIS_VALUE, fakeSdkForTest);
     }
     {
       // Notice sub type.
       final ObjectNode vis = mapper.createObjectNode();
       putDefault(vis);
-      root.set(OPP_070_NOTICE + FIRST, vis);
-      vis.put("contentId", OPP_070_NOTICE);
-      vis.put("value", noticeSubTypeForTest);
+      root.set(OPP_070_NOTICE + VIS_FIRST, vis);
+      vis.put(VIS_CONTENT_ID, OPP_070_NOTICE);
+      vis.put(VIS_VALUE, noticeSubTypeForTest);
     }
 
     //
@@ -72,70 +67,64 @@ public class NoticeSaverX02DummyTest {
     {
       final ObjectNode vis = mapper.createObjectNode();
       putDefault(vis);
-      root.set(BT_505_BUSINESS + FIRST, vis);
-      vis.put("contentId", BT_505_BUSINESS);
-      vis.put("value", "http://www.acme-solution.co.uk");
+      root.set(BT_505_BUSINESS + VIS_FIRST, vis);
+      vis.put(VIS_CONTENT_ID, BT_505_BUSINESS);
+      vis.put(VIS_VALUE, "http://www.acme-solution.co.uk");
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
       putDefault(vis);
-      root.set(BT_501_BUSINESS_EUROPEAN + FIRST, vis);
-      vis.put("contentId", BT_501_BUSINESS_EUROPEAN);
-      vis.put("value", "The EU registration number");
+      root.set(BT_501_BUSINESS_EUROPEAN + VIS_FIRST, vis);
+      vis.put(VIS_CONTENT_ID, BT_501_BUSINESS_EUROPEAN);
+      vis.put(VIS_VALUE, "The EU registration number");
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
       putDefault(vis);
-      root.set(OPP_113_BUSINESS_EUROPEAN + FIRST, vis);
-      vis.put("contentId", OPP_113_BUSINESS_EUROPEAN);
-      vis.put("value", "2020-11-14+01:00");
+      root.set(OPP_113_BUSINESS_EUROPEAN + VIS_FIRST, vis);
+      vis.put(VIS_CONTENT_ID, OPP_113_BUSINESS_EUROPEAN);
+      vis.put(VIS_VALUE, "2020-11-14+01:00");
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
       putDefault(vis);
-      root.set(BT_500_BUSINESS + FIRST, vis);
-      vis.put("contentId", BT_500_BUSINESS);
-      vis.put("value", "ACME Solution");
+      root.set(BT_500_BUSINESS + VIS_FIRST, vis);
+      vis.put(VIS_CONTENT_ID, BT_500_BUSINESS);
+      vis.put(VIS_VALUE, "ACME Solution");
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
       putDefault(vis);
-      root.set(BT_501_BUSINESS_NATIONAL + FIRST, vis);
-      vis.put("contentId", BT_501_BUSINESS_NATIONAL);
-      vis.put("value", "The national registration number");
+      root.set(BT_501_BUSINESS_NATIONAL + VIS_FIRST, vis);
+      vis.put(VIS_CONTENT_ID, BT_501_BUSINESS_NATIONAL);
+      vis.put(VIS_VALUE, "The national registration number");
     }
 
     // Repeating node for 'sector'.
     {
       final ObjectNode vis = mapper.createObjectNode();
       putDefault(vis);
-      root.set(OPP_105_BUSINESS + FIRST, vis);
-      vis.put("contentId", OPP_105_BUSINESS);
-      vis.put("value", "education");
+      root.set(OPP_105_BUSINESS + VIS_FIRST, vis);
+      vis.put(VIS_CONTENT_ID, OPP_105_BUSINESS);
+      vis.put(VIS_VALUE, VALUE_EDUCATION);
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
       putDefault(vis);
-      root.set(OPP_105_BUSINESS + SECOND, vis);
-      vis.put("contentId", OPP_105_BUSINESS);
-      vis.put("value", "health");
-      vis.put("contentCount", "2");
+      root.set(OPP_105_BUSINESS + VIS_SECOND, vis);
+      vis.put(VIS_CONTENT_ID, OPP_105_BUSINESS);
+      vis.put(VIS_VALUE, VALUE_HEALTH);
+      vis.put(VIS_CONTENT_COUNT, "2"); // Override default.
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
       putDefault(vis);
-      root.set(OPP_100_BUSINESS + FIRST, vis);
-      vis.put("contentId", OPP_100_BUSINESS);
-      vis.put("value", "reg");
+      root.set(OPP_100_BUSINESS + VIS_FIRST, vis);
+      vis.put(VIS_CONTENT_ID, OPP_100_BUSINESS);
+      vis.put(VIS_VALUE, "reg");
     }
 
     return root;
-  }
-
-  private static void putDefault(final ObjectNode vis) {
-    vis.put("type", "field");
-    vis.put("contentCount", "1");
-    vis.put("contentParentCount", "1");
   }
 
   private static void setupFieldsJsonFields(final ObjectMapper mapper,
@@ -143,98 +132,98 @@ public class NoticeSaverX02DummyTest {
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(OPT_002_NOTICE, field);
-      field.put("parentNodeId", ND_ROOT);
-      field.put("xpathAbsolute", "/*/cbc:CustomizationID");
-      field.put("xpathRelative", "cbc:CustomizationID");
-      field.put("type", "id");
+      field.put(KEY_PARENT_NODE_ID, ND_ROOT);
+      field.put(KEY_XPATH_ABS, "/*/cbc:CustomizationID");
+      field.put(KEY_XPATH_REL, "cbc:CustomizationID");
+      field.put(KEY_TYPE, TYPE_ID);
       fieldPutRepeatable(field, false);
     }
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(OPP_070_NOTICE, field);
-      field.put("parentNodeId", ND_ROOT_EXTENSION);
-      field.put("xpathAbsolute",
+      field.put(KEY_PARENT_NODE_ID, ND_ROOT_EXTENSION);
+      field.put(KEY_XPATH_ABS,
           "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension/efac:NoticeSubType/cbc:SubTypeCode");
-      field.put("xpathRelative", "efac:NoticeSubType/cbc:SubTypeCode");
-      field.put("type", "code");
+      field.put(KEY_XPATH_REL, "efac:NoticeSubType/cbc:SubTypeCode");
+      field.put(KEY_TYPE, TYPE_CODE);
       fieldPutRepeatable(field, false);
-      field.put("codeListId", "notice-subtype");
+      field.put(KEY_CODE_LIST_ID, "notice-subtype");
     }
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(BT_505_BUSINESS, field);
-      field.put("parentNodeId", ND_BUSINESS_PARTY);
-      field.put("xpathAbsolute", "/*/cac:BusinessParty/cbc:WebsiteURI");
-      field.put("xpathRelative", "cbc:WebsiteURI");
-      field.put("type", "url");
+      field.put(KEY_PARENT_NODE_ID, ND_BUSINESS_PARTY);
+      field.put(KEY_XPATH_ABS, "/*/cac:BusinessParty/cbc:WebsiteURI");
+      field.put(KEY_XPATH_REL, "cbc:WebsiteURI");
+      field.put(KEY_TYPE, TYPE_URL);
       fieldPutRepeatable(field, false);
     }
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(BT_500_BUSINESS, field);
-      field.put("parentNodeId", ND_LOCAL_ENTITY);
-      field.put("xpathAbsolute",
+      field.put(KEY_PARENT_NODE_ID, ND_LOCAL_ENTITY);
+      field.put(KEY_XPATH_ABS,
           "/*/cac:BusinessParty/cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName = 'EU')]/cbc:RegistrationName");
-      field.put("xpathRelative", "cbc:RegistrationName");
-      field.put("type", "text");
+      field.put(KEY_XPATH_REL, "cbc:RegistrationName");
+      field.put(KEY_TYPE, TYPE_TEXT);
       fieldPutRepeatable(field, false);
     }
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(BT_501_BUSINESS_EUROPEAN, field);
-      field.put("parentNodeId", ND_EU_ENTITY);
-      field.put("xpathAbsolute",
+      field.put(KEY_PARENT_NODE_ID, ND_EU_ENTITY);
+      field.put(KEY_XPATH_ABS,
           "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName = 'EU']/cbc:CompanyID[@schemeName = 'EU']");
-      field.put("xpathRelative", "cbc:CompanyID[@schemeName = 'EU']");
-      field.put("type", "id");
+      field.put(KEY_XPATH_REL, "cbc:CompanyID[@schemeName = 'EU']");
+      field.put(KEY_TYPE, TYPE_ID);
       fieldPutRepeatable(field, false);
     }
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(BT_501_BUSINESS_NATIONAL, field);
-      field.put("parentNodeId", ND_LOCAL_ENTITY);
-      field.put("xpathAbsolute",
+      field.put(KEY_PARENT_NODE_ID, ND_LOCAL_ENTITY);
+      field.put(KEY_XPATH_ABS,
           "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[not(@schemeName = 'EU')]/cbc:CompanyID[not(@schemeName = 'EU')]");
-      field.put("xpathRelative", "cbc:CompanyID[not(@schemeName = 'EU')]");
-      field.put("type", "id");
+      field.put(KEY_XPATH_REL, "cbc:CompanyID[not(@schemeName = 'EU')]");
+      field.put(KEY_TYPE, TYPE_ID);
       fieldPutRepeatable(field, false);
     }
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(OPP_105_BUSINESS, field);
-      field.put("parentNodeId", ND_ROOT);
-      field.put("xpathAbsolute", "/*/cac:BusinessCapability/cbc:CapabilityTypeCode");
-      field.put("xpathRelative", "cac:BusinessCapability/cbc:CapabilityTypeCode");
-      field.put("type", "code");
+      field.put(KEY_PARENT_NODE_ID, ND_ROOT);
+      field.put(KEY_XPATH_ABS, "/*/cac:BusinessCapability/cbc:CapabilityTypeCode");
+      field.put(KEY_XPATH_REL, "cac:BusinessCapability/cbc:CapabilityTypeCode");
+      field.put(KEY_TYPE, TYPE_CODE);
       fieldPutRepeatable(field, true);
-      field.put("codeListId", "main-activity");
+      field.put(KEY_CODE_LIST_ID, "main-activity");
     }
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(OPP_100_BUSINESS, field);
-      field.put("parentNodeId", ND_OPERATION_TYPE);
-      field.put("xpathAbsolute", "/*/efac:NoticePurpose/cbc:PurposeCode");
-      field.put("xpathRelative", "cbc:PurposeCode");
-      field.put("type", "code");
+      field.put(KEY_PARENT_NODE_ID, ND_OPERATION_TYPE);
+      field.put(KEY_XPATH_ABS, "/*/efac:NoticePurpose/cbc:PurposeCode");
+      field.put(KEY_XPATH_REL, "cbc:PurposeCode");
+      field.put(KEY_TYPE, TYPE_CODE);
       fieldPutRepeatable(field, false);
-      field.put("codeListId", "notice-purpose");
+      field.put(KEY_CODE_LIST_ID, "notice-purpose");
     }
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(OPP_113_BUSINESS_EUROPEAN, field);
-      field.put("parentNodeId", ND_EU_ENTITY);
-      field.put("xpathAbsolute",
+      field.put(KEY_PARENT_NODE_ID, ND_EU_ENTITY);
+      field.put(KEY_XPATH_ABS,
           "/*/cac:BusinessParty/cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']/cbc:RegistrationDate");
-      field.put("xpathRelative", "cbc:RegistrationDate");
-      field.put("type", "date");
+      field.put(KEY_XPATH_REL, "cbc:RegistrationDate");
+      field.put(KEY_TYPE, TYPE_DATE);
       fieldPutRepeatable(field, false);
     }
   }
 
   private static void fieldPutRepeatable(final ObjectNode field, final boolean repeatable) {
     final ObjectNode prop = JsonUtils.createObjectNode();
-    prop.put("value", repeatable);
-    field.set("repeatable", prop);
+    prop.put(KEY_VALUE, repeatable);
+    field.set(KEY_REPEATABLE, prop);
   }
 
   private static void setupFieldsJsonXmlStructureNodes(final ObjectMapper mapper,
@@ -242,52 +231,52 @@ public class NoticeSaverX02DummyTest {
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_ROOT, node);
-      node.put("xpathAbsolute", "/*");
-      node.put("xpathRelative", "/*");
+      node.put(KEY_XPATH_ABS, "/*");
+      node.put(KEY_XPATH_REL, "/*");
       fieldPutRepeatable(node, false);
     }
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_ROOT_EXTENSION, node);
-      node.put("parentId", ND_ROOT);
-      node.put("xpathAbsolute",
+      node.put(KEY_NODE_PARENT_ID, ND_ROOT);
+      node.put(KEY_XPATH_ABS,
           "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension");
-      node.put("xpathRelative",
+      node.put(KEY_XPATH_REL,
           "ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension");
       fieldPutRepeatable(node, false);
     }
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_BUSINESS_PARTY, node);
-      node.put("parentId", ND_ROOT);
-      node.put("xpathAbsolute", "/*/cac:BusinessParty");
-      node.put("xpathRelative", "cac:BusinessParty");
+      node.put(KEY_NODE_PARENT_ID, ND_ROOT);
+      node.put(KEY_XPATH_ABS, "/*/cac:BusinessParty");
+      node.put(KEY_XPATH_REL, "cac:BusinessParty");
       fieldPutRepeatable(node, false);
     }
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_LOCAL_ENTITY, node);
-      node.put("parentId", ND_BUSINESS_PARTY);
-      node.put("xpathAbsolute",
+      node.put(KEY_NODE_PARENT_ID, ND_BUSINESS_PARTY);
+      node.put(KEY_XPATH_ABS,
           "/*/cac:BusinessParty/cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName = 'EU')]");
-      node.put("xpathRelative", "cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName = 'EU')]");
+      node.put(KEY_XPATH_REL, "cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName = 'EU')]");
       fieldPutRepeatable(node, false);
     }
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_EU_ENTITY, node);
-      node.put("parentId", ND_BUSINESS_PARTY);
-      node.put("xpathAbsolute",
+      node.put(KEY_NODE_PARENT_ID, ND_BUSINESS_PARTY);
+      node.put(KEY_XPATH_ABS,
           "/*/cac:BusinessParty/cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']");
-      node.put("xpathRelative", "cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']");
+      node.put(KEY_XPATH_REL, "cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']");
       fieldPutRepeatable(node, false);
     }
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_OPERATION_TYPE, node);
-      node.put("parentId", ND_ROOT);
-      node.put("xpathAbsolute", "/*/efac:NoticePurpose");
-      node.put("xpathRelative", "efac:NoticePurpose");
+      node.put(KEY_NODE_PARENT_ID, ND_ROOT);
+      node.put(KEY_XPATH_ABS, "/*/efac:NoticePurpose");
+      node.put(KEY_XPATH_REL, "efac:NoticePurpose");
       fieldPutRepeatable(node, false);
     }
 
@@ -304,8 +293,8 @@ public class NoticeSaverX02DummyTest {
   public void testDummy() throws ParserConfigurationException, IOException {
     final ObjectMapper mapper = new ObjectMapper();
 
-    final String prefixedSdkVersion = "eforms-sdk-" + "1.1.0";
-    final String noticeSubType = X02;
+    final String prefixedSdkVersion = "eforms-sdk-" + "1.1.0"; // A dummy 1.1.0, not real 1.1.0
+    final String noticeSubType = X02; // A dummy X02, not the real X02 of 1.1.0
 
     final ObjectNode root = setupVisualModel(mapper, prefixedSdkVersion, noticeSubType);
 
@@ -360,7 +349,6 @@ public class NoticeSaverX02DummyTest {
         documentInfoByType, conceptualModel, debug, buildFields, schemaInfo);
 
     System.out.println("XML as text:");
-
     final String xml = pm.getXmlAsText(false); // Not indented to avoid line breaks.
     System.out.println(pm.getXmlAsText(true));
 
@@ -394,7 +382,7 @@ public class NoticeSaverX02DummyTest {
 
     contains(xml, BT_500_BUSINESS + "\"");
     contains(xml, BT_501_BUSINESS_NATIONAL + "\"");
-    contains(xml, BT_501_BUSINESS_NATIONAL + "\" schemeName=\"national\"");
+    contains(xml, BT_501_BUSINESS_NATIONAL + "\" schemeName=\"" + NoticeSaver.NATIONAL + "\"");
 
     contains(xml, BT_501_BUSINESS_EUROPEAN + "\"");
     contains(xml, BT_501_BUSINESS_EUROPEAN + "\" schemeName=\"EU\"");
@@ -404,20 +392,12 @@ public class NoticeSaverX02DummyTest {
 
     // Test repeatable field OPP-105-Business.
     // Ensure the field is indeed repeatable so that the test itself is not broken.
-    assert fieldById.get(OPP_105_BUSINESS).get("repeatable").get("value").asBoolean();
+    assert fieldById.get(OPP_105_BUSINESS).get(KEY_REPEATABLE).get(KEY_VALUE).asBoolean();
     contains(xml, OPP_105_BUSINESS + "\"");
-    contains(xml, ">education<");
-    contains(xml, ">health<");
-    contains(xml, OPP_105_BUSINESS + "\" listName=\"sector\">education<");
-    contains(xml, OPP_105_BUSINESS + "\" listName=\"sector\">health<");
-  }
-
-  private static final void contains(final String xml, final String text) {
-    assertTrue(xml.contains(text), text);
-  }
-
-  private static final void count(final String xml, final int expectedCount, final String toMatch) {
-    assertEquals(expectedCount, StringUtils.countMatches(xml, toMatch), toMatch);
+    contains(xml, ">" + VALUE_EDUCATION + "<");
+    contains(xml, ">" + VALUE_HEALTH + "<");
+    contains(xml, OPP_105_BUSINESS + "\" listName=\"sector\">" + VALUE_EDUCATION + "<");
+    contains(xml, OPP_105_BUSINESS + "\" listName=\"sector\">" + VALUE_HEALTH + "<");
   }
 
 }
