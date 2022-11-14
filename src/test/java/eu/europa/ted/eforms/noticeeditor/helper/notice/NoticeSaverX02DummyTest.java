@@ -1,20 +1,17 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.xml.parsers.ParserConfigurationException;
 import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import eu.europa.ted.eforms.noticeeditor.service.SdkService;
 
 public class NoticeSaverX02DummyTest extends NoticeSaverTest {
 
   private static final String NOTICE_SUB_TYPE_VALUE = "X02";
-  private static final String BRIN = "BRIN";
+  private static final String NOTICE_DOCUMENT_TYPE = "BRIN";
 
   private static final String ND_OPERATION_TYPE = "ND-OperationType";
   private static final String ND_EU_ENTITY = "ND-EuEntity";
@@ -272,59 +269,15 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
     final String noticeSubType = NOTICE_SUB_TYPE_VALUE; // A dummy X02, not the real X02 of 1.3.0
 
     //
-    // NODES from fields.json
-    //
-    final Map<String, JsonNode> nodeById = new LinkedHashMap<>();
-    setupFieldsJsonXmlStructureNodes(mapper, nodeById);
-
-    //
-    // FIELDS from fields.json
-    //
-    final Map<String, JsonNode> fieldById = new LinkedHashMap<>();
-    setupFieldsJsonFields(mapper, fieldById);
-
-    //
-    // OTHER from notice-types.json
-    //
-    // Setup dummy notice-types.json info that we need for the XML generation.
-    final Map<String, JsonNode> noticeInfoBySubtype = new HashMap<>();
-    {
-      final ObjectNode info = mapper.createObjectNode();
-      info.put("documentType", BRIN);
-      noticeInfoBySubtype.put(noticeSubType, info);
-    }
-
-    final Map<String, JsonNode> documentInfoByType = new HashMap<>();
-    {
-      final ObjectNode info = mapper.createObjectNode();
-      info.put("namespace",
-          "http://data.europa.eu/p27/eforms-business-registration-information-notice/1");
-      info.put("rootElement", "BusinessRegistrationInformationNotice");
-      documentInfoByType.put(BRIN, info);
-    }
-
-    //
     // BUILD VISUAL MODEL.
     //
     final ObjectNode visRoot = setupVisualModel(mapper, prefixedSdkVersion, noticeSubType);
 
     //
-    // BUILD CONCEPTUAL MODEL.
-    //
-    final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldById, nodeById);
-    final Map<String, ConceptNode> conceptNodeById =
-        NoticeSaver.buildConceptualModel(fieldsAndNodes, visRoot);
-    final ConceptNode conceptRoot = conceptNodeById.get(SdkService.ND_ROOT);
-    final ConceptualModel conceptualModel = new ConceptualModel(conceptRoot);
-
-    //
     // BUILD PHYSICAL MODEL.
     //
-    final boolean debug = true; // Adds field ids in the XML.
-    final boolean buildFields = true;
-    final SchemaInfo schemaInfo = SchemaToolsTest.getTestSchemaInfo();
-    final PhysicalModel pm = NoticeSaver.buildPhysicalModelXml(fieldsAndNodes, noticeInfoBySubtype,
-        documentInfoByType, conceptualModel, debug, buildFields, schemaInfo);
+    final PhysicalModel pm =
+        setupPhysicalModel(mapper, noticeSubType, NOTICE_DOCUMENT_TYPE, visRoot);
 
     System.out.println("XML as text:");
     final String xml = pm.getXmlAsText(false); // Not indented to avoid line breaks.
@@ -371,7 +324,10 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
 
     // Test repeatable field OPP-105-Business.
     // Ensure the field is indeed repeatable so that the test itself is not broken.
-    assert fieldById.get(OPP_105_BUSINESS).get(KEY_FIELD_REPEATABLE).get(KEY_VALUE).asBoolean();
+    final FieldsAndNodes fieldsAndNodes = pm.getFieldsAndNodes();
+    assert fieldsAndNodes.getFieldById(OPP_105_BUSINESS).get(KEY_FIELD_REPEATABLE).get(KEY_VALUE)
+        .asBoolean();
+
     contains(xml, OPP_105_BUSINESS + "\"");
     contains(xml, ">" + VALUE_EDUCATION + "<");
     contains(xml, ">" + VALUE_HEALTH + "<");

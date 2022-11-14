@@ -4,17 +4,22 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
 
-public class ConceptNode {
-  private final String id;
+public class ConceptNode extends ConceptItem {
   private final List<ConceptField> conceptFields = new ArrayList<>();
   private final List<ConceptNode> conceptNodes = new ArrayList<>();
 
-  public ConceptNode(final String id) {
-    this.id = id;
+  public ConceptNode(final String id, final int counter, final int parentCounter) {
+    super(id, counter, parentCounter);
   }
 
-  public String getId() {
-    return id;
+  public final void addConceptItem(final ConceptItem item) {
+    if (item instanceof ConceptNode) {
+      addConceptNode((ConceptNode) item);
+    } else if (item instanceof ConceptField) {
+      addConceptField((ConceptField) item);
+    } else {
+      throw new RuntimeException("Unexpected item type");
+    }
   }
 
   public final void addConceptField(final ConceptField conceptField) {
@@ -24,6 +29,12 @@ public class ConceptNode {
 
   public final void addConceptNode(final ConceptNode conceptNode) {
     Validate.notNull(conceptNode);
+    if (conceptNode.getId().equals(this.getId())) {
+      // Detect cycle, we have a tree, we do not want a graph, cannot self reference!
+      throw new RuntimeException(
+          String.format("Cannot have child=%s that is same as parent=%s (cycle), self reference.",
+              conceptNode.getId(), this.getId()));
+    }
     conceptNodes.add(conceptNode);
   }
 
@@ -37,7 +48,7 @@ public class ConceptNode {
 
   @Override
   public String toString() {
-    return "ConceptNode [id=" + id + ", conceptFields=" + conceptFields + ", conceptNodes="
-        + conceptNodes + "]";
+    return "ConceptNode [id=" + this.getId() + ", conceptFields=" + conceptFields
+        + ", conceptNodes=" + conceptNodes + "]";
   }
 }

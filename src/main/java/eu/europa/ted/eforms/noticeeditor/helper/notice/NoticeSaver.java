@@ -2,6 +2,9 @@ package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 import static eu.europa.ted.eforms.noticeeditor.util.JsonUtils.getIntStrict;
 import static eu.europa.ted.eforms.noticeeditor.util.JsonUtils.getTextStrict;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -160,13 +163,14 @@ public class NoticeSaver {
     ConceptNode conceptNode = conceptNodeById.get(nodeId);
     if (conceptNode == null) {
       // It does not exist, create it.
-      conceptNode = new ConceptNode(nodeId);
+      conceptNode = new ConceptNode(nodeId, 1, 1);
       conceptNodeById.put(nodeId, conceptNode);
       final Optional<String> parentNodeIdOpt = JsonUtils.getTextOpt(nodeMeta, NODE_PARENT_ID);
       if (parentNodeIdOpt.isPresent()) {
+        final String parentNodeId = parentNodeIdOpt.get();
         // This node has a parent. Build the parent until the root is reached.
         final ConceptNode parentConceptNode =
-            buildAncestryRec(conceptNodeById, parentNodeIdOpt.get(), fieldsAndNodes);
+            buildAncestryRec(conceptNodeById, parentNodeId, fieldsAndNodes);
         // Add it to the parent.
         parentConceptNode.addConceptNode(conceptNode);
       }
@@ -223,20 +227,20 @@ public class NoticeSaver {
     // buildFields,
     // 0, true, xPathInst);
 
-    // if (debug) {
-    // try {
-    // // Generate dot file for the conceptual model.
-    // // Visualizing it can help understand how it works or find problems.
-    // final boolean includeFields = false;
-    // final String dotText = concept.toDot(fieldsAndNodes, includeFields);
-    // final Path pathToFolder = Path.of("target/dot/");
-    // Files.createDirectories(pathToFolder);
-    // final Path pathToFile = pathToFolder.resolve(concept.getNoticeSubType() + "-concept.dot");
-    // JavaTools.writeTextFile(pathToFile, dotText);
-    // } catch (IOException e) {
-    // throw new RuntimeException(e);
-    // }
-    // }
+    if (debug) {
+      try {
+        // Generate dot file for the conceptual model.
+        // Visualizing it can help understand how it works or find problems.
+        final boolean includeFields = false;
+        final String dotText = concept.toDot(fieldsAndNodes, includeFields);
+        final Path pathToFolder = Path.of("target/dot/");
+        Files.createDirectories(pathToFolder);
+        final Path pathToFile = pathToFolder.resolve(concept.getNoticeSubType() + "-concept.dot");
+        JavaTools.writeTextFile(pathToFile, dotText);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
 
     // Recursion: start with the concept root.
     buildPhysicalModelXmlRec(fieldsAndNodes, xmlDoc, concept.getRoot(), xmlDocRoot, debug,
@@ -245,7 +249,7 @@ public class NoticeSaver {
     // Reorder the physical model.
     reorderPhysicalModel(xmlDocRoot, xPathInst, schemaInfo);
 
-    return new PhysicalModel(xmlDoc);
+    return new PhysicalModel(xmlDoc, fieldsAndNodes);
   }
 
   /**
@@ -287,7 +291,7 @@ public class NoticeSaver {
       final SchemaInfo schemaInfo) {
     final List<String> rootOrder = schemaInfo.getRootOrder();
     for (final String tagName : rootOrder) {
-      final NodeList elementsFound = evaluateXpath(xPathInst, rootElem, tagName);
+      final NodeList elementsFound = evaluateXpath(xPathInst, rootElem, tagName, tagName);
       for (int i = 0; i < elementsFound.getLength(); i++) {
         final Node elem = elementsFound.item(i);
         rootElem.removeChild(elem);
@@ -481,7 +485,7 @@ public class NoticeSaver {
       // NODE PARTS: efac:TouchPoint
       // tag=efac:TouchPoint
       // xmlTag=efac:Organization
-      // ttttefac:TouchPoint
+      // efac:TouchPoint
       // ND-Touchpoint, xml=efac:TouchPoint
       // --------------------------
       // --- BUILD PHYSICAL 4
@@ -523,6 +527,8 @@ public class NoticeSaver {
     }
 
     for (final String partXpath : parts) {
+      Validate.notBlank(partXpath, "partXpath is blank for nodeId=%s, xmlNodeElem=%s", nodeId,
+          xmlNodeElem);
       final PhysicalXpath px = handleXpathPart(partXpath);
       final Optional<String> schemeNameOpt = px.getSchemeNameOpt();
       String xpathExpr = px.getXpathExpr();
@@ -556,7 +562,7 @@ public class NoticeSaver {
             String.format("[@%s='%s']", XML_ATTR_EDITOR_NODE_IDENTIFIER_FIELD_ID, idWithCount);
         xpathExpr = xpathExpr + predicate;
       }
-      foundElements = evaluateXpath(xPathInst, previousElem, xpathExpr);
+      foundElements = evaluateXpath(xPathInst, previousElem, xpathExpr, nodeId);
 
       if (foundElements.getLength() > 0) {
         assert foundElements.getLength() == 1;
@@ -700,7 +706,7 @@ public class NoticeSaver {
       final boolean isAttribute = tagOrAttr.startsWith("@") && tagOrAttr.length() > 1;
 
       final Optional<NodeList> foundElementsOpt = !isAttribute && xpathExprOpt.isPresent()
-          ? Optional.of(evaluateXpath(xPathInst, previousElem, xpathExprOpt.get()))
+          ? Optional.of(evaluateXpath(xPathInst, previousElem, xpathExprOpt.get(), fieldId))
           : Optional.empty();
 
       if (foundElementsOpt.isPresent() && foundElementsOpt.get().getLength() > 0) {
@@ -833,11 +839,12 @@ public class NoticeSaver {
    * @param xPathInst The XPath instance (reusable)
    * @param contextElem The XML context element in which the xpath is evaluated
    * @param xpathExpr The XPath expression relative to the passed context
+   * @param idForError
    * @return The result of evaluating the XPath expression as a NodeList
    */
   static NodeList evaluateXpath(final XPath xPathInst, final Object contextElem,
-      final String xpathExpr) {
-    Validate.notBlank(xpathExpr, "xpathExpr is blank for %s", contextElem);
+      final String xpathExpr, String idForError) {
+    Validate.notBlank(xpathExpr, "xpathExpr is blank for %s, %s", contextElem, idForError);
     try {
       // A potential optimization would be to reuse some of the compiled xpath.
       // final NodeList nodeList =
@@ -848,7 +855,7 @@ public class NoticeSaver {
 
       return nodeList;
     } catch (XPathExpressionException e) {
-      logger.error("Problem with xpathExpr={}", xpathExpr);
+      logger.error("Problem with xpathExpr={}, %s", xpathExpr, idForError);
       throw new RuntimeException(e);
     }
   }
@@ -874,6 +881,8 @@ public class NoticeSaver {
   }
 
   private static PhysicalXpath handleXpathPart(final String partParam) {
+    Validate.notBlank(partParam, "partParam is blank");
+
     // NOTE: ideally we would want to fully avoid using xpath.
     String tag = partParam;
 
@@ -924,6 +933,7 @@ public class NoticeSaver {
     // For the xpath expression keep the original param, only do the replacement.
     final String xpathExpr = partParam.replaceAll(XPATH_REPLACEMENT, "/");
 
+    Validate.notBlank(xpathExpr, "xpathExpr is blank for tag=%s, partParam=%s", tag, partParam);
     return new PhysicalXpath(xpathExpr, tag, schemeNameOpt);
   }
 

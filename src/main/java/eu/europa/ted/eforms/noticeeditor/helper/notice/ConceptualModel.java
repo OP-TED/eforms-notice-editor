@@ -9,6 +9,7 @@ public class ConceptualModel {
   private final ConceptNode rootNode;
 
   public ConceptualModel(final ConceptNode rootNode) {
+    Validate.isTrue(NoticeSaver.ND_ROOT.equals(rootNode.getId()));
     this.rootNode = rootNode;
   }
 
@@ -31,14 +32,17 @@ public class ConceptualModel {
   }
 
   public String toDot(final FieldsAndNodes fieldsAndNodes, final boolean includeFields) {
+
     final StringBuilder sb = new StringBuilder();
     final ConceptNode root = this.getRoot();
     toDotRec(fieldsAndNodes, sb, root, includeFields);
+
     final StringBuilder sbDot = new StringBuilder();
     final String noticeSubType = this.getNoticeSubType();
     final String title = noticeSubType;
     GraphvizDotTool.appendDiGraph(sb.toString(), sbDot, title,
         "Conceptual model of " + noticeSubType, false, true);
+
     return sbDot.toString();
   }
 

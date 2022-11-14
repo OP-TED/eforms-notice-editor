@@ -8,14 +8,21 @@ import eu.europa.ted.eforms.noticeeditor.util.EditorXmlUtils;
  */
 public class PhysicalModel {
   private final Document domDocument;
+  private final FieldsAndNodes fieldsAndNodes;
 
-  public PhysicalModel(final Document document) {
+  public PhysicalModel(final Document document, final FieldsAndNodes fieldsAndNodes) {
     this.domDocument = document;
+    this.fieldsAndNodes = fieldsAndNodes;
   }
 
   public Document getDomDocument() {
     return domDocument;
   }
+
+  public FieldsAndNodes getFieldsAndNodes() {
+    return fieldsAndNodes;
+  }
+
 
   /**
    * @param indented True if the xml text should be indented, false otherwise.

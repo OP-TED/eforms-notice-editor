@@ -42,8 +42,7 @@ public class XmlAndXpathTest {
     assertEquals(1, evalLength(xPathInst, rootElement, "cbc:CustomizationID"));
   }
 
-  private static int evalLength(final XPath xPathInst, final Element rootElement,
-      final String xpathExpr) {
-    return NoticeSaver.evaluateXpath(xPathInst, rootElement, xpathExpr).getLength();
+  private static int evalLength(final XPath xPathInst, final Element elem, final String xpathExpr) {
+    return NoticeSaver.evaluateXpath(xPathInst, elem, xpathExpr, elem.getTagName()).getLength();
   }
 }

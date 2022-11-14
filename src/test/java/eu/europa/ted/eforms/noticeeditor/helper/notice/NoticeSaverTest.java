@@ -2,11 +2,16 @@ package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import javax.xml.parsers.ParserConfigurationException;
 import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import eu.europa.ted.eforms.noticeeditor.service.SdkService;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 
 /**
@@ -15,6 +20,7 @@ import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 public abstract class NoticeSaverTest {
   // IDEA: reuse some common constants even with notice saver.
 
+  private static final String CODELIST_NOTICE_SUBTYPE = "notice-subtype";
   //
   // UI FORM RELATED.
   //
@@ -139,7 +145,63 @@ public abstract class NoticeSaverTest {
       field.put(KEY_XPATH_REL, "efac:NoticeSubType/cbc:SubTypeCode");
       field.put(KEY_TYPE, TYPE_CODE);
       NoticeSaverTest.fieldPutRepeatable(field, false);
-      field.put(KEY_CODE_LIST_ID, "notice-subtype");
+      field.put(KEY_CODE_LIST_ID, CODELIST_NOTICE_SUBTYPE);
     }
+  }
+
+  protected PhysicalModel setupPhysicalModel(final ObjectMapper mapper, final String noticeSubType,
+      final String documentType, final JsonNode visRoot)
+      throws IOException, ParserConfigurationException {
+    //
+    // NODES from fields.json
+    //
+    final Map<String, JsonNode> nodeById = new LinkedHashMap<>();
+    setupFieldsJsonXmlStructureNodes(mapper, nodeById);
+
+    //
+    // FIELDS from fields.json
+    //
+    final Map<String, JsonNode> fieldById = new LinkedHashMap<>();
+    setupFieldsJsonFields(mapper, fieldById);
+
+    //
+    // OTHER from notice-types.json
+    //
+    // Setup dummy notice-types.json info that we need for the XML generation.
+    final Map<String, JsonNode> noticeInfoBySubtype = new HashMap<>();
+    {
+      final ObjectNode info = mapper.createObjectNode();
+      info.put("documentType", documentType);
+      noticeInfoBySubtype.put(noticeSubType, info);
+    }
+
+    final Map<String, JsonNode> documentInfoByType = new HashMap<>();
+    {
+      final ObjectNode info = mapper.createObjectNode();
+      info.put("namespace",
+          "http://data.europa.eu/p27/eforms-business-registration-information-notice/1");
+      info.put("rootElement", "BusinessRegistrationInformationNotice");
+      documentInfoByType.put(documentType, info);
+    }
+
+    //
+    // BUILD CONCEPTUAL MODEL.
+    //
+    final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldById, nodeById);
+    final Map<String, ConceptNode> conceptNodeById =
+        NoticeSaver.buildConceptualModel(fieldsAndNodes, visRoot);
+    final ConceptNode conceptRoot = conceptNodeById.get(SdkService.ND_ROOT);
+    final ConceptualModel conceptualModel = new ConceptualModel(conceptRoot);
+
+    //
+    // BUILD PHYSICAL MODEL.
+    //
+    final boolean debug = true; // Adds field ids in the XML.
+    final boolean buildFields = true;
+    final SchemaInfo schemaInfo = SchemaToolsTest.getTestSchemaInfo();
+    final PhysicalModel pm = NoticeSaver.buildPhysicalModelXml(fieldsAndNodes, noticeInfoBySubtype,
+        documentInfoByType, conceptualModel, debug, buildFields, schemaInfo);
+
+    return pm;
   }
 }
