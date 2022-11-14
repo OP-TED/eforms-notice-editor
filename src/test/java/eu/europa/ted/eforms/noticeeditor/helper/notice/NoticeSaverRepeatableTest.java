@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.commons.lang3.Validate;
 import org.junit.jupiter.api.Test;
@@ -11,6 +12,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 
 public class NoticeSaverRepeatableTest extends NoticeSaverTest {
 
@@ -22,6 +24,8 @@ public class NoticeSaverRepeatableTest extends NoticeSaverTest {
 
   private static final String ND_A = "ND_A";
   private static final String ND_B = "ND_B";
+
+  private static final String BT_FIELD_123 = "BT-field-123";
 
   private static ObjectNode setupVisualModel(final ObjectMapper mapper, final String fakeSdkForTest,
       final String noticeSubTypeForTest) {
@@ -102,11 +106,33 @@ public class NoticeSaverRepeatableTest extends NoticeSaverTest {
       visRootChildren.add(visGroupA2);
       final ArrayNode a2Children = visGroupA2.putArray(VIS_CHILDREN);
 
+      // Add B1 in A2.
       final ObjectNode visGroupB1 = mapper.createObjectNode();
       putGroupDef(visGroupB1);
       visGroupB1.put(VIS_CONTENT_ID, "GR-A2-B1");
       visGroupB1.put(VIS_NODE_ID, ND_B);
       a2Children.add(visGroupB1);
+      final ArrayNode b1Children = visGroupB1.putArray(VIS_CHILDREN);
+
+      // Add C in A2 B1.
+      final ObjectNode visGroupC = mapper.createObjectNode();
+      putGroupDef(visGroupC);
+      visGroupC.put(VIS_CONTENT_ID, "GR-A2-B1-C1");
+      b1Children.add(visGroupC);
+      final ArrayNode groupcChildren = visGroupC.putArray(VIS_CHILDREN);
+
+      // Add dummy field in C.
+      final ObjectNode visGroupcField1 = mapper.createObjectNode();
+      putFieldDef(visGroupcField1);
+      visGroupcField1.put(VIS_CONTENT_ID, BT_FIELD_123);
+      visGroupcField1.put(VIS_VALUE, "value-of-field-c1");
+      groupcChildren.add(visGroupcField1);
+
+      final ObjectNode visGroupcField2 = mapper.createObjectNode();
+      putFieldDef(visGroupcField2);
+      visGroupcField2.put(VIS_CONTENT_ID, BT_FIELD_123);
+      visGroupcField2.put(VIS_VALUE, "value-of-field-c2");
+      groupcChildren.add(visGroupcField2);
     }
 
     return visRoot;
@@ -152,7 +178,16 @@ public class NoticeSaverRepeatableTest extends NoticeSaverTest {
 
     super.setupFieldsJsonFields(mapper, fieldById);
 
-    // TODO Maybe a repeatable field here later on.
+    {
+      // Add a repeatable field to also cover field repeatability.
+      final ObjectNode field = mapper.createObjectNode();
+      fieldById.put(BT_FIELD_123, field);
+      field.put(KEY_PARENT_NODE_ID, ND_ROOT_EXTENSION);
+      field.put(KEY_XPATH_ABS, "/*/a/b/c");
+      field.put(KEY_XPATH_REL, "c");
+      field.put(KEY_TYPE, TYPE_TEXT);
+      NoticeSaverTest.fieldPutRepeatable(field, true);
+    }
   }
 
 
@@ -206,7 +241,7 @@ public class NoticeSaverRepeatableTest extends NoticeSaverTest {
 
     // final ConceptualModel conceptualModel = NoticeSaver.buildConceptualModel2(fieldsAndNodes,
     // visRoot);
-    final ConceptualModel conceptualModel = parseVisualModel(visRoot);
+    final ConceptualModel conceptualModel = buildConceptualModel(visRoot);
 
     //
     // BUILD PHYSICAL MODEL.
@@ -233,74 +268,120 @@ public class NoticeSaverRepeatableTest extends NoticeSaverTest {
     count(xml, 1, "<cbc:CustomizationID");
     // count(xml, 1, "<cbc:SubTypeCode");
 
+    // Verify repeatable nodes at top level.
     count(xml, 2, "<a");
     count(xml, 2, "editorNodeId=\"ND_A\"");
 
+    // Verify nested repeatable nodes.
     count(xml, 3, "<b");
     count(xml, 3, "editorNodeId=\"ND_B\"");
+
+    // Verify repeatable field.
+    count(xml, 1, "editorFieldId=\"BT-field-123\">value-of-field-c1</c>");
+    count(xml, 1, "editorFieldId=\"BT-field-123\">value-of-field-c2</c>");
   }
 
+  /**
+   * Build the conceptual model from the visual model.
+   *
+   * @param visRoot The root of the visual model
+   * @return The conceptual model
+   */
+  private static final ConceptualModel buildConceptualModel(final ObjectNode visRoot) {
+    Validate.isTrue(visRoot.get(VIS_NODE_ID).asText(null).equals(ND_ROOT));
 
-  private static final ConceptualModel parseVisualModel(final ObjectNode visRoot) {
-    //
-    // ITERATE ON CONTENT.
-    //
-    final ConceptNode rootNode = (ConceptNode) parseVisualModelRec(visRoot);
-
-    //
-    // ITERATE ON METADATA.
-    //
-    // final JsonNode visMetadata = visRoot.get(THE_METADATA);
-    // final ConceptNode metadata = parseVisualModelRec(visMetadata);
-    // rootNode.addConceptNode(metadata);
+    final Optional<ConceptItem> conceptItemOpt = parseVisualModelRec(visRoot, null);
+    if (!conceptItemOpt.isPresent()) {
+      throw new RuntimeException("Expecting concept item at root level.");
+    }
+    final ConceptNode rootNode = (ConceptNode) conceptItemOpt.get();
+    final String idForDebug = JsonUtils.getTextStrict(visRoot, VIS_CONTENT_ID);
 
     // HARDCODED: add notice sub type.
-    final ConceptNode rootExtension = new ConceptNode(NoticeSaver.ND_ROOT_EXTENSION, 1, 1);
+    final ConceptNode rootExtension =
+        new ConceptNode(NoticeSaver.ND_ROOT_EXTENSION, idForDebug, 1, 1);
     rootNode.addConceptNode(rootExtension);
-    rootExtension.addConceptField(
-        new ConceptField(NoticeSaver.FIELD_ID_NOTICE_SUB_TYPE, NOTICE_SUB_TYPE_VALUE, 1, 1));
+    final String fieldId = NoticeSaver.FIELD_ID_NOTICE_SUB_TYPE;
+    rootExtension.addConceptField(new ConceptField(fieldId, fieldId, NOTICE_SUB_TYPE_VALUE, 1, 1));
 
     // TODO more work is required for the full metadata.
 
     return new ConceptualModel(rootNode);
   }
 
-  private static ConceptItem parseVisualModelRec(final JsonNode jsonNode) {
-    Validate.notNull(jsonNode, "jsonNode is null, jsonNode=%s", jsonNode);
+  /**
+   * Visit the tree of the visual model and build the visual model.
+   *
+   * @param jsonItem The current visual json item
+   * @return An optional concept item, if present it is to be appended outside of the call,
+   *         otherwise no action should be taken in the caller
+   */
+  private static Optional<ConceptItem> parseVisualModelRec(final JsonNode jsonItem,
+      final ConceptNode closestParentNode) {
+    Validate.notNull(jsonItem, "jsonNode is null, jsonNode=%s", jsonItem);
 
-    final JsonNode jsonType = jsonNode.get(NoticeSaver.VIS_TYPE);
-    Validate.notNull(jsonType, "jsonType is null, jsonNode=%s", jsonNode);
+    final JsonNode jsonType = jsonItem.get(NoticeSaver.VIS_TYPE);
+    Validate.notNull(jsonType, "jsonType is null, jsonNode=%s", jsonItem);
 
-    final int counter = jsonNode.get(VIS_CONTENT_COUNT).asInt(-1);
-    final int parentCounter = jsonNode.get(VIS_CONTENT_PARENT_COUNT).asInt(-1);
+    final int counter = jsonItem.get(VIS_CONTENT_COUNT).asInt(-1);
+    final int parentCounter = jsonItem.get(VIS_CONTENT_PARENT_COUNT).asInt(-1);
 
-    if (jsonType.asText(null) == NoticeSaver.VIS_TYPE_FIELD) {
-      // This is a field (leaf of tree).
-      return new ConceptField(jsonNode.get(VIS_CONTENT_ID).asText(null),
-          jsonNode.get(VIS_VALUE).asText(null), counter, parentCounter);
-    } else {
-      // This is a node.
+    final String visualType = jsonType.asText(null);
 
-      final JsonNode nodeIdItem = jsonNode.get(VIS_NODE_ID);
-      Validate.notNull(nodeIdItem, "nodeIdItem is null, jsonNode=%s", jsonNode);
-
-      final String nodeId = nodeIdItem.asText(null);
-      final ConceptNode conceptNode =
-          new ConceptNode(nodeId, jsonNode.get(VIS_CONTENT_COUNT).asInt(-1),
-              jsonNode.get(VIS_CONTENT_PARENT_COUNT).asInt(-1));
-
-      // Not a leaf of the tree: recursion on children:
-      final JsonNode maybeNull = jsonNode.get(VIS_CHILDREN);
-      if (maybeNull != null) {
-        final ArrayNode visChildren = (ArrayNode) maybeNull;
-        for (final JsonNode visChild : visChildren) {
-          final ConceptItem item = parseVisualModelRec(visChild);
-          conceptNode.addConceptItem(item);
-        }
-      }
-      return conceptNode;
+    if (visualType == NoticeSaver.VIS_TYPE_FIELD) {
+      // This is a field (leaf of the tree).
+      final String id = JsonUtils.getTextStrict(jsonItem, VIS_CONTENT_ID);
+      final ConceptField field = new ConceptField(id, id + "-" + Math.round(Math.random() * 1000),
+          jsonItem.get(VIS_VALUE).asText(null), counter, parentCounter);
+      return Optional.of(field);
     }
 
-  }
+    if (visualType == NoticeSaver.VIS_TYPE_GROUP) {
+      // This is a node.
+      final JsonNode nodeIdItem = jsonItem.get(VIS_NODE_ID);
+      if (nodeIdItem == null) {
 
+        // This is a group which has no nodeId.
+        // In that case we want the children to be moved up to the nearest node, flattening the
+        // tree.
+        final JsonNode maybeNull = jsonItem.get(VIS_CHILDREN);
+        if (maybeNull != null) {
+          final ArrayNode visChildren = (ArrayNode) maybeNull;
+          for (final JsonNode visChild : visChildren) {
+            final Optional<ConceptItem> itemToAppendOpt =
+                parseVisualModelRec(visChild, closestParentNode);
+            if (itemToAppendOpt.isPresent()) {
+              Validate.notNull(closestParentNode, "closestParentNode is null");
+              closestParentNode.addConceptItem(itemToAppendOpt.get());
+            }
+          }
+        }
+        return Optional.empty(); // Cannot return anything to append.
+
+      } else {
+        // This is a group which references a node.
+        final String nodeId = nodeIdItem.asText(null);
+        final ConceptNode conceptNode = new ConceptNode(nodeId,
+            jsonItem.get(VIS_CONTENT_ID).asText(null), jsonItem.get(VIS_CONTENT_COUNT).asInt(-1),
+            jsonItem.get(VIS_CONTENT_PARENT_COUNT).asInt(-1));
+
+        // Not a leaf of the tree: recursion on children:
+        final JsonNode maybeNull = jsonItem.get(VIS_CHILDREN);
+        if (maybeNull != null) {
+          final ArrayNode visChildren = (ArrayNode) maybeNull;
+          for (final JsonNode visChild : visChildren) {
+            final Optional<ConceptItem> itemToAppendOpt =
+                parseVisualModelRec(visChild, conceptNode);
+            if (itemToAppendOpt.isPresent()) {
+              // Append field or node.
+              conceptNode.addConceptItem(itemToAppendOpt.get());
+            }
+          }
+        }
+        return Optional.of(conceptNode);
+      }
+    }
+
+    throw new RuntimeException(String.format("Unsupported visual type %s", visualType));
+  }
 }

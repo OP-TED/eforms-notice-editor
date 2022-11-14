@@ -48,26 +48,35 @@ public class ConceptualModel {
 
   public static void toDotRec(final FieldsAndNodes fieldsAndNodes, final StringBuilder sb,
       final ConceptNode cn, final boolean includeFields) {
-    final String cnId = cn.getId();
+    final String cnIdIsNodeId = cn.getNodeId();
+    final String cnIdForDebug = cn.getIdForDebug();
 
     // Include nodes in dot file.
-    for (final ConceptNode c : cn.getConceptNodes()) {
-      final JsonNode nodeMeta = fieldsAndNodes.getNodeById(c.getId());
-      Validate.notNull(nodeMeta, "null for nodeId=%s", c.getId());
+    for (final ConceptNode childNode : cn.getConceptNodes()) {
+      final JsonNode nodeMeta = fieldsAndNodes.getNodeById(childNode.getId());
+      Validate.notNull(nodeMeta, "null for nodeId=%s", childNode.getId());
 
       final boolean nodeIsRepeatable = FieldsAndNodes.isNodeRepeatable(nodeMeta);
       final String color =
           nodeIsRepeatable ? GraphvizDotTool.COLOR_GREEN : GraphvizDotTool.COLOR_BLACK;
 
-      GraphvizDotTool.appendEdge("", color, cnId, c.getId(), sb);
-      toDotRec(fieldsAndNodes, sb, c, includeFields);
+      GraphvizDotTool.appendEdge(cnIdIsNodeId, color,
+
+          cnIdForDebug, childNode.getIdForDebug(), // node -> node
+
+          sb);
+      toDotRec(fieldsAndNodes, sb, childNode, includeFields);
     }
 
-    // Include fields in dot file.
+    // Include fields in dot file?
     if (includeFields) {
       // This makes the tree a lot more bushy and can be hard to read.
-      for (final ConceptField c : cn.getConceptFields()) {
-        GraphvizDotTool.appendEdge("", GraphvizDotTool.COLOR_BLACK, cnId, c.getId(), sb);
+      for (final ConceptField cf : cn.getConceptFields()) {
+        GraphvizDotTool.appendEdge(cnIdIsNodeId, GraphvizDotTool.COLOR_BLUE,
+
+            cnIdForDebug, cf.getIdForDebug() + "=" + cf.getValue(), // node -> field
+
+            sb);
       }
     }
   }

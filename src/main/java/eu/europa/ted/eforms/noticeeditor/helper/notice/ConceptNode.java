@@ -8,8 +8,9 @@ public class ConceptNode extends ConceptItem {
   private final List<ConceptField> conceptFields = new ArrayList<>();
   private final List<ConceptNode> conceptNodes = new ArrayList<>();
 
-  public ConceptNode(final String id, final int counter, final int parentCounter) {
-    super(id, counter, parentCounter);
+  public ConceptNode(final String id, final String idForDebug, final int counter,
+      final int parentCounter) {
+    super(id, idForDebug, counter, parentCounter);
   }
 
   public final void addConceptItem(final ConceptItem item) {
@@ -20,6 +21,13 @@ public class ConceptNode extends ConceptItem {
     } else {
       throw new RuntimeException("Unexpected item type");
     }
+  }
+
+  /**
+   * For convenience and to make it clear that the id is the node id in this case.
+   */
+  public String getNodeId() {
+    return getId();
   }
 
   public final void addConceptField(final ConceptField conceptField) {

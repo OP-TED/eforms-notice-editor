@@ -131,7 +131,10 @@ public class NoticeSaver {
         final String value = JsonUtils.getTextMaybeBlank(visualItem, VIS_VALUE);
         final int counter = getIntStrict(visualItem, VIS_CONTENT_COUNT);
         final int parentCounter = getIntStrict(visualItem, VIS_CONTENT_PARENT_COUNT);
-        final ConceptField conceptField = new ConceptField(fieldId, value, counter, parentCounter);
+        final String idForDebug = getTextStrict(visualItem, VIS_CONTENT_ID);
+
+        final ConceptField conceptField =
+            new ConceptField(fieldId, idForDebug, value, counter, parentCounter);
 
         // Build the parent hierarchy.
         final String parentNodeId = getTextStrict(fieldMeta, FIELD_PARENT_NODE_ID);
@@ -163,7 +166,7 @@ public class NoticeSaver {
     ConceptNode conceptNode = conceptNodeById.get(nodeId);
     if (conceptNode == null) {
       // It does not exist, create it.
-      conceptNode = new ConceptNode(nodeId, 1, 1);
+      conceptNode = new ConceptNode(nodeId, nodeId + "-" + Math.round(Math.random() * 1000), 1, 1);
       conceptNodeById.put(nodeId, conceptNode);
       final Optional<String> parentNodeIdOpt = JsonUtils.getTextOpt(nodeMeta, NODE_PARENT_ID);
       if (parentNodeIdOpt.isPresent()) {
@@ -231,7 +234,7 @@ public class NoticeSaver {
       try {
         // Generate dot file for the conceptual model.
         // Visualizing it can help understand how it works or find problems.
-        final boolean includeFields = false;
+        final boolean includeFields = true;
         final String dotText = concept.toDot(fieldsAndNodes, includeFields);
         final Path pathToFolder = Path.of("target/dot/");
         Files.createDirectories(pathToFolder);
