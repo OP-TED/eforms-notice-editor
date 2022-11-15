@@ -13,7 +13,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class NoticeSaverX02DummyTest extends NoticeSaverTest {
 
-  private static final String NOTICE_SUB_TYPE_VALUE = "X02";
   private static final String NOTICE_DOCUMENT_TYPE = "BRIN";
 
   private static final String ND_OPERATION_TYPE = "ND-OperationType";
@@ -43,77 +42,80 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
 
     // Setup root of the visual model.
     final ObjectNode visRoot = mapper.createObjectNode();
-    putGroupDef(visRoot);
-    visRoot.put(VIS_CONTENT_ID, "the_visual_root");
-    visRoot.put(VIS_NODE_ID, NoticeSaver.ND_ROOT);
-    final ArrayNode visRootChildren = visRoot.putArray(VIS_CHILDREN);
+    final ArrayNode visRootChildren =
+        VisualModel.setupVisualRootForTest(mapper, fakeSdkForTest, noticeSubTypeForTest, visRoot);
 
-    //
-    // DUMMY X02 NOTICE DATA (as if coming from a web form before we have the XML).
-    //
+    final ObjectNode visBusinessParty = mapper.createObjectNode();
+    visRootChildren.add(visBusinessParty);
+    putGroupDef(visBusinessParty);
+    visBusinessParty.put(VIS_CONTENT_ID, "the_business_party");
+    visBusinessParty.put(VIS_NODE_ID, ND_BUSINESS_PARTY);
+    final ArrayNode visBusinessPartyChildren = visBusinessParty.putArray(VIS_CHILDREN);
 
-    // TODO update to hierarchical.
-    {
-      // SDK version.
-      final ObjectNode vis = mapper.createObjectNode();
-      putFieldDef(vis);
-      vis.put(VIS_CONTENT_ID, NoticeSaver.FIELD_ID_SDK_VERSION);
-      vis.put(VIS_VALUE, fakeSdkForTest);
-      visRootChildren.add(vis);
-    }
-    {
-      final ObjectNode visRootExtension = mapper.createObjectNode();
-      putGroupDef(visRootExtension);
-      visRootExtension.put(VIS_CONTENT_ID, "the_visual_root");
-      visRootExtension.put(VIS_NODE_ID, ND_ROOT_EXTENSION);
-      final ArrayNode visRootExtChildren = visRootExtension.putArray(VIS_CHILDREN);
-      visRootChildren.add(visRootExtension);
+    final ObjectNode visEuEntity = mapper.createObjectNode();
+    visBusinessPartyChildren.add(visEuEntity);
+    putGroupDef(visEuEntity);
+    visEuEntity.put(VIS_CONTENT_ID, "the_eu_entity");
+    visEuEntity.put(VIS_NODE_ID, ND_EU_ENTITY);
+    final ArrayNode visEuEntityChildren = visEuEntity.putArray(VIS_CHILDREN);
 
-      // Notice sub type.
-      final ObjectNode vis = mapper.createObjectNode();
-      putFieldDef(vis);
-      vis.put(VIS_CONTENT_ID, NoticeSaver.FIELD_ID_NOTICE_SUB_TYPE);
-      vis.put(VIS_VALUE, noticeSubTypeForTest);
-      visRootExtChildren.add(vis);
-    }
+    final ObjectNode visLocalEntity = mapper.createObjectNode();
+    visBusinessPartyChildren.add(visLocalEntity);
+    putGroupDef(visLocalEntity);
+    visLocalEntity.put(VIS_CONTENT_ID, "the_local_entity");
+    visLocalEntity.put(VIS_NODE_ID, ND_LOCAL_ENTITY);
+    final ArrayNode visLocalEntityChildren = visLocalEntity.putArray(VIS_CHILDREN);
+
+    final ObjectNode visOperationType = mapper.createObjectNode();
+    visRootChildren.add(visOperationType);
+    putGroupDef(visOperationType);
+    visOperationType.put(VIS_CONTENT_ID, "the_operation_type");
+    visOperationType.put(VIS_NODE_ID, ND_OPERATION_TYPE);
+    final ArrayNode visOperationTypeChildren = visOperationType.putArray(VIS_CHILDREN);
 
     //
     // NOTICE CONTENT.
     //
+
+    // Business party.
     {
       final ObjectNode vis = mapper.createObjectNode();
       putFieldDef(vis);
       vis.put(VIS_CONTENT_ID, BT_505_BUSINESS);
       vis.put(VIS_VALUE, "http://www.acme-solution.co.uk");
-      visRootChildren.add(vis);
+      visBusinessPartyChildren.add(vis);
     }
+
+    // EU.
     {
       final ObjectNode vis = mapper.createObjectNode();
       putFieldDef(vis);
       vis.put(VIS_CONTENT_ID, BT_501_BUSINESS_EUROPEAN);
       vis.put(VIS_VALUE, "The EU registration number");
-      visRootChildren.add(vis);
+      visEuEntityChildren.add(vis);
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
       putFieldDef(vis);
       vis.put(VIS_CONTENT_ID, OPP_113_BUSINESS_EUROPEAN);
       vis.put(VIS_VALUE, "2020-11-14+01:00");
-      visRootChildren.add(vis);
+      visEuEntityChildren.add(vis);
     }
+
+    // Local.
     {
       final ObjectNode vis = mapper.createObjectNode();
       putFieldDef(vis);
       vis.put(VIS_CONTENT_ID, BT_500_BUSINESS);
       vis.put(VIS_VALUE, "ACME Solution");
-      visRootChildren.add(vis);
+      visLocalEntityChildren.add(vis);
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
       putFieldDef(vis);
       vis.put(VIS_CONTENT_ID, BT_501_BUSINESS_NATIONAL);
       vis.put(VIS_VALUE, "The national registration number");
-      visRootChildren.add(vis);
+      visLocalEntityChildren.add(vis);
     }
 
     // Repeating node for 'sector'.
@@ -127,17 +129,18 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
     {
       final ObjectNode vis = mapper.createObjectNode();
       putFieldDef(vis);
-      visRootChildren.add(vis);
       vis.put(VIS_CONTENT_ID, OPP_105_BUSINESS);
       vis.put(VIS_VALUE, VALUE_HEALTH);
       vis.put(VIS_CONTENT_COUNT, "2"); // Override default.
+      visRootChildren.add(vis);
     }
+
     {
       final ObjectNode vis = mapper.createObjectNode();
       putFieldDef(vis);
-      visRootChildren.add(vis);
       vis.put(VIS_CONTENT_ID, OPP_100_BUSINESS);
       vis.put(VIS_VALUE, "reg");
+      visOperationTypeChildren.add(vis);
     }
 
     return new VisualModel(visRoot);
@@ -279,7 +282,7 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
     final ObjectMapper mapper = new ObjectMapper();
 
     final String prefixedSdkVersion = "eforms-sdk-" + "1.3.0"; // A dummy 1.3.0, not real 1.3.0
-    final String noticeSubType = NOTICE_SUB_TYPE_VALUE; // A dummy X02, not the real X02 of 1.3.0
+    final String noticeSubType = "X02"; // A dummy X02, not the real X02 of 1.3.0
 
     //
     // BUILD VISUAL MODEL.
@@ -314,12 +317,6 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
     count(xml, 1, "<BusinessRegistrationInformationNotice");
     count(xml, 1, "<ext:UBLExtensions>");
 
-    // As the algorithm was heavily modified this currently does not fully pass and is commented
-    // out.
-    // testMore(physicalModel, xml);
-  }
-
-  private void testMore(final PhysicalModel physicalModel, final String xml) {
     count(xml, 1, String.format("<cac:BusinessParty editorNodeId=\"%s\"", ND_BUSINESS_PARTY));
     count(xml, 1, String.format("<efac:NoticePurpose editorNodeId=\"%s\"", ND_OPERATION_TYPE));
 
@@ -346,7 +343,7 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
     // Ensure the field is indeed repeatable so that the test itself is not broken.
     final FieldsAndNodes fieldsAndNodes = physicalModel.getFieldsAndNodes();
     assert fieldsAndNodes.getFieldById(OPP_105_BUSINESS).get(KEY_FIELD_REPEATABLE).get(KEY_VALUE)
-        .asBoolean();
+        .asBoolean() : OPP_105_BUSINESS + " should be repeatable";
 
     contains(xml, OPP_105_BUSINESS + "\"");
     contains(xml, ">" + VALUE_EDUCATION + "<");

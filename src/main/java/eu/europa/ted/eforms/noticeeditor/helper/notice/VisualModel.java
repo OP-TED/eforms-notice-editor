@@ -5,6 +5,7 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
@@ -45,6 +46,7 @@ public class VisualModel {
     final String expected = NoticeSaver.ND_ROOT;
     Validate.isTrue(expected.equals(rootNodeId), "Visual model root must be %s", expected);
     this.visRoot = visRoot;
+    this.getNoticeSubType(); // This must not crash.
   }
 
   public JsonNode getVisRoot() {
@@ -68,6 +70,46 @@ public class VisualModel {
     vis.put(VIS_CONTENT_COUNT, "1");
     vis.put(VIS_CONTENT_PARENT_COUNT, "1");
   }
+
+  public static ArrayNode setupVisualRootForTest(final ObjectMapper mapper,
+      final String fakeSdkForTest, final String noticeSubTypeForTest, final ObjectNode visRoot) {
+
+    putGroupDef(visRoot);
+    visRoot.put(VIS_CONTENT_ID, "the_visual_root");
+    visRoot.put(VIS_NODE_ID, NoticeSaver.ND_ROOT);
+    final ArrayNode visRootChildren = visRoot.putArray(VIS_CHILDREN);
+
+    //
+    // DUMMY NOTICE METADATA (as if coming from a web form before we have the XML).
+    //
+    {
+      // SDK version.
+      final ObjectNode visSdkVersion = mapper.createObjectNode();
+      visRootChildren.add(visSdkVersion);
+      putFieldDef(visSdkVersion);
+      visSdkVersion.put(VIS_CONTENT_ID, NoticeSaver.FIELD_ID_SDK_VERSION);
+      visSdkVersion.put(VIS_VALUE, fakeSdkForTest);
+    }
+
+    // Root xtension.
+    {
+      final ObjectNode visRootExtension = mapper.createObjectNode();
+      visRootChildren.add(visRootExtension);
+      putGroupDef(visRootExtension);
+      visRootExtension.put(VIS_CONTENT_ID, "the_root_extension");
+      visRootExtension.put(VIS_NODE_ID, NoticeSaver.ND_ROOT_EXTENSION);
+      final ArrayNode visRootExtChildren = visRootExtension.putArray(VIS_CHILDREN);
+
+      // Notice sub type.
+      final ObjectNode visNoticeSubType = mapper.createObjectNode();
+      visRootExtChildren.add(visNoticeSubType);
+      putFieldDef(visNoticeSubType);
+      visNoticeSubType.put(VIS_CONTENT_ID, NoticeSaver.FIELD_ID_NOTICE_SUB_TYPE);
+      visNoticeSubType.put(VIS_VALUE, noticeSubTypeForTest);
+    }
+    return visRootChildren;
+  }
+
 
   public String getNoticeSubType() {
     final JsonNode rootExt = findByNodeId(visRoot, NoticeSaver.ND_ROOT_EXTENSION);

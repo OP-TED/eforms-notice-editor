@@ -30,40 +30,10 @@ public class NoticeSaverRepeatableTest extends NoticeSaverTest {
   private static VisualModel setupVisualModel(final ObjectMapper mapper,
       final String fakeSdkForTest, final String noticeSubTypeForTest) {
 
+    // Setup root of the visual model.
     final ObjectNode visRoot = mapper.createObjectNode();
-    putGroupDef(visRoot);
-    visRoot.put(VIS_CONTENT_ID, "the_visual_root");
-    visRoot.put(VIS_NODE_ID, ND_ROOT);
-    final ArrayNode visRootChildren = visRoot.putArray(VIS_CHILDREN);
-
-    {
-      //
-      // DUMMY NOTICE METADATA (as if coming from a web form before we have the XML).
-      //
-      {
-        // SDK version.
-        final ObjectNode vis = mapper.createObjectNode();
-        putFieldDef(vis);
-        vis.put(VIS_CONTENT_ID, NoticeSaver.FIELD_ID_SDK_VERSION);
-        vis.put(VIS_VALUE, fakeSdkForTest);
-        visRootChildren.add(vis);
-      }
-      {
-        final ObjectNode visRootExtension = mapper.createObjectNode();
-        putGroupDef(visRootExtension);
-        visRootExtension.put(VIS_CONTENT_ID, "the_visual_root");
-        visRootExtension.put(VIS_NODE_ID, ND_ROOT_EXTENSION);
-        final ArrayNode visRootExtChildren = visRootExtension.putArray(VIS_CHILDREN);
-        visRootChildren.add(visRootExtension);
-
-        // Notice sub type.
-        final ObjectNode vis = mapper.createObjectNode();
-        putFieldDef(vis);
-        vis.put(VIS_CONTENT_ID, NoticeSaver.FIELD_ID_NOTICE_SUB_TYPE);
-        vis.put(VIS_VALUE, noticeSubTypeForTest);
-        visRootExtChildren.add(vis);
-      }
-    }
+    final ArrayNode visRootChildren =
+        VisualModel.setupVisualRootForTest(mapper, fakeSdkForTest, noticeSubTypeForTest, visRoot);
 
     //
     // NOTICE CONTENT.
@@ -86,24 +56,24 @@ public class NoticeSaverRepeatableTest extends NoticeSaverTest {
     // ---------------------------
     {
       final ObjectNode visGroupA1 = mapper.createObjectNode();
+      visRootChildren.add(visGroupA1);
       putGroupDef(visGroupA1);
       visGroupA1.put(VIS_CONTENT_ID, "GR-A1");
       visGroupA1.put(VIS_NODE_ID, ND_A);
-      visRootChildren.add(visGroupA1);
       final ArrayNode a1Children = visGroupA1.putArray(VIS_CHILDREN);
 
       final ObjectNode visGroupB1 = mapper.createObjectNode();
+      a1Children.add(visGroupB1);
       putGroupDef(visGroupB1);
       visGroupB1.put(VIS_CONTENT_ID, "GR-A1-B1");
       visGroupB1.put(VIS_NODE_ID, ND_B);
-      a1Children.add(visGroupB1);
 
       final ObjectNode visGroupB2 = mapper.createObjectNode();
+      a1Children.add(visGroupB2);
       putGroupDef(visGroupB2);
       visGroupB2.put(VIS_CONTENT_ID, "GR-A1-B2");
       visGroupB2.put(VIS_NODE_ID, ND_B);
       visGroupB2.put(VIS_CONTENT_COUNT, "2"); // Override default.
-      a1Children.add(visGroupB2);
     }
 
     // ---------------------------
@@ -111,41 +81,41 @@ public class NoticeSaverRepeatableTest extends NoticeSaverTest {
     // ---------------------------
     {
       final ObjectNode visGroupA2 = mapper.createObjectNode();
+      visRootChildren.add(visGroupA2);
       putGroupDef(visGroupA2);
       visGroupA2.put(VIS_CONTENT_ID, "GR-A2");
       visGroupA2.put(VIS_NODE_ID, ND_A);
       visGroupA2.put(VIS_CONTENT_COUNT, "2"); // Override default.
-      visRootChildren.add(visGroupA2);
       final ArrayNode a2Children = visGroupA2.putArray(VIS_CHILDREN);
 
       // Add B1 in A2.
       final ObjectNode visGroupB1 = mapper.createObjectNode();
+      a2Children.add(visGroupB1);
       putGroupDef(visGroupB1);
       visGroupB1.put(VIS_CONTENT_ID, "GR-A2-B1");
       visGroupB1.put(VIS_NODE_ID, ND_B);
-      a2Children.add(visGroupB1);
       final ArrayNode b1Children = visGroupB1.putArray(VIS_CHILDREN);
 
       // Add C in A2 B1.
       final ObjectNode visGroupC = mapper.createObjectNode();
+      b1Children.add(visGroupC);
       putGroupDef(visGroupC);
       visGroupC.put(VIS_CONTENT_ID, "GR-A2-B1-C1");
-      b1Children.add(visGroupC);
       final ArrayNode groupcChildren = visGroupC.putArray(VIS_CHILDREN);
 
       // Add dummy field in C.
       final ObjectNode visGroupcField1 = mapper.createObjectNode();
+      groupcChildren.add(visGroupcField1);
       putFieldDef(visGroupcField1);
       visGroupcField1.put(VIS_CONTENT_ID, BT_FIELD_123);
       visGroupcField1.put(VIS_VALUE, "value-of-field-c1");
-      groupcChildren.add(visGroupcField1);
 
       final ObjectNode visGroupcField2 = mapper.createObjectNode();
+      groupcChildren.add(visGroupcField2);
       putFieldDef(visGroupcField2);
       visGroupcField2.put(VIS_CONTENT_ID, BT_FIELD_123);
       visGroupcField2.put(VIS_VALUE, "value-of-field-c2");
       visGroupcField2.put(VIS_CONTENT_COUNT, "2"); // Override default.
-      groupcChildren.add(visGroupcField2);
     }
 
     return new VisualModel(visRoot);

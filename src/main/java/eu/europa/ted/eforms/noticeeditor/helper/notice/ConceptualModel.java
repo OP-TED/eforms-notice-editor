@@ -19,6 +19,7 @@ public class ConceptualModel {
 
   public String getNoticeSubType() {
     // HARDCODED LOGIC.
+    System.out.println(rootNode);
     final ConceptNode rootExtension = rootNode.getConceptNodes().stream()
         .filter(item -> item.getId().equals(NoticeSaver.ND_ROOT_EXTENSION)).findFirst().get();
     return rootExtension.getConceptFields().stream()
