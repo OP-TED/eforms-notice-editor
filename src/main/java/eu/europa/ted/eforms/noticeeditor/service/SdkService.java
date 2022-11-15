@@ -49,13 +49,13 @@ import eu.europa.ted.eforms.noticeeditor.domain.Language;
 import eu.europa.ted.eforms.noticeeditor.genericode.CustomGenericodeMarshaller;
 import eu.europa.ted.eforms.noticeeditor.genericode.GenericodeTools;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
-import eu.europa.ted.eforms.noticeeditor.helper.notice.ConceptNode;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.ConceptualModel;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.DocumentTypeInfo;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.NoticeSaver;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.PhysicalModel;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.SchemaInfo;
+import eu.europa.ted.eforms.noticeeditor.helper.notice.VisualModel;
 import eu.europa.ted.eforms.noticeeditor.util.IntuitiveStringComparator;
 import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
@@ -595,8 +595,7 @@ public class SdkService {
 
     final JsonNode fieldsJson = readSdkJsonFile(sdkVersion, SdkResource.FIELDS, SDK_FIELDS_JSON);
     final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldsJson);
-    final Map<String, ConceptNode> buildConceptualModel =
-        NoticeSaver.buildConceptualModel(fieldsAndNodes, visualRoot);
+    final VisualModel visualModel = new VisualModel(visualRoot);
 
     final JsonNode noticeTypesJson =
         readSdkJsonFile(sdkVersion, SdkResource.NOTICE_TYPES, SDK_NOTICE_TYPES_JSON);
@@ -623,25 +622,26 @@ public class SdkService {
       }
     }
 
-    final ConceptNode conceptRoot = buildConceptualModel.get(ND_ROOT);
-    final ConceptualModel concept = new ConceptualModel(conceptRoot);
-
+    // Go from visual model to conceptual model.
+    final ConceptualModel conceptModel = visualModel.toConceptualModel(fieldsAndNodes);
     final DocumentTypeInfo docTypeInfo =
-        NoticeSaver.getDocumentTypeInfo(noticeInfoBySubtype, documentInfoByType, concept);
+        NoticeSaver.getDocumentTypeInfo(noticeInfoBySubtype, documentInfoByType, conceptModel);
 
+    // Get schema info.
     final String sdkXsdFile = docTypeInfo.getXsdFile();
     final Path sdkXsdPath = readSdkPath(sdkVersion, SdkResource.SCHEMAS_MAINDOC, sdkXsdFile);
-    final String rootElementTagName = docTypeInfo.getRootElementTagName();
+    // final String rootElementTagName = docTypeInfo.getRootElementTagName();
     // final SchemaInfo schemaInfo = SchemaTools.getSchemaInfo(sdkXsdPath, rootElementTagName);
     final SchemaInfo schemaInfo = new SchemaInfo(new ArrayList<>());
 
+    // Build physical model.
     final boolean debug = true;
     final boolean buildFields = true;
     final PhysicalModel physicalModel = NoticeSaver.buildPhysicalModelXml(fieldsAndNodes,
-        noticeInfoBySubtype, documentInfoByType, concept, debug, buildFields, schemaInfo);
+        noticeInfoBySubtype, documentInfoByType, conceptModel, debug, buildFields, schemaInfo);
 
+    // Build physical model as XML.
     final String xmlAsText = physicalModel.getXmlAsText(buildFields);
-
     final String filenameForDownload = generateNoticeFilename(noticeUuid, sdkVersion);
     if (responseOpt.isPresent()) {
       serveSdkXmlStringAsDownload(responseOpt.get(), xmlAsText, filenameForDownload);

@@ -11,7 +11,6 @@ import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import eu.europa.ted.eforms.noticeeditor.service.SdkService;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 
 /**
@@ -24,11 +23,11 @@ public abstract class NoticeSaverTest {
   //
   // UI FORM RELATED.
   //
-  static final String VIS_CONTENT_PARENT_COUNT = NoticeSaver.VIS_CONTENT_PARENT_COUNT;
-  static final String VIS_CONTENT_COUNT = NoticeSaver.VIS_CONTENT_COUNT;
-  static final String VIS_CONTENT_ID = NoticeSaver.VIS_CONTENT_ID;
+  static final String VIS_CONTENT_PARENT_COUNT = VisualModel.VIS_CONTENT_PARENT_COUNT;
+  static final String VIS_CONTENT_COUNT = VisualModel.VIS_CONTENT_COUNT;
+  static final String VIS_CONTENT_ID = VisualModel.VIS_CONTENT_ID;
+  static final String VIS_VALUE = VisualModel.VIS_VALUE;
   static final String VIS_NODE_ID = "visNodeId";
-  static final String VIS_VALUE = NoticeSaver.VIS_VALUE;
   static final String VIS_FIRST = "-1";
   static final String VIS_SECOND = "-2";
 
@@ -53,24 +52,6 @@ public abstract class NoticeSaverTest {
   static final String TYPE_URL = "url";
   static final String TYPE_CODE = "code";
   static final String TYPE_ID = "id";
-
-  /**
-   * Set default field info.
-   */
-  static void putFieldDef(final ObjectNode vis) {
-    vis.put(NoticeSaver.VIS_TYPE, NoticeSaver.VIS_TYPE_FIELD);
-    vis.put(VIS_CONTENT_COUNT, "1");
-    vis.put(VIS_CONTENT_PARENT_COUNT, "1");
-  }
-
-  /**
-   * Set default group info.
-   */
-  static void putGroupDef(final ObjectNode vis) {
-    vis.put(NoticeSaver.VIS_TYPE, NoticeSaver.VIS_TYPE_GROUP);
-    vis.put(VIS_CONTENT_COUNT, "1");
-    vis.put(VIS_CONTENT_PARENT_COUNT, "1");
-  }
 
   static final void contains(final String xml, final String text) {
     assertTrue(xml.contains(text), text);
@@ -98,8 +79,8 @@ public abstract class NoticeSaverTest {
    * @param fieldById This map will be modified as a SIDE-EFFECT
    */
   @SuppressWarnings("static-method")
-  protected void setupFieldsJsonXmlStructureNodes(final ObjectMapper mapper,
-      final Map<String, JsonNode> nodeById) {
+  protected Map<String, JsonNode> setupFieldsJsonXmlStructureNodes(final ObjectMapper mapper) {
+    final Map<String, JsonNode> nodeById = new LinkedHashMap<>(512);
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_ROOT, node);
@@ -117,6 +98,7 @@ public abstract class NoticeSaverTest {
           "ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension");
       NoticeSaverTest.fieldPutRepeatable(node, false);
     }
+    return nodeById;
   }
 
   /**
@@ -125,8 +107,8 @@ public abstract class NoticeSaverTest {
    * @param fieldById This map will be modified as a SIDE-EFFECT
    */
   @SuppressWarnings("static-method")
-  protected void setupFieldsJsonFields(final ObjectMapper mapper,
-      final Map<String, JsonNode> fieldById) {
+  protected Map<String, JsonNode> setupFieldsJsonFields(final ObjectMapper mapper) {
+    final Map<String, JsonNode> fieldById = new LinkedHashMap<>(1024);
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(NoticeSaver.FIELD_ID_SDK_VERSION, field);
@@ -147,22 +129,21 @@ public abstract class NoticeSaverTest {
       NoticeSaverTest.fieldPutRepeatable(field, false);
       field.put(KEY_CODE_LIST_ID, CODELIST_NOTICE_SUBTYPE);
     }
+    return fieldById;
   }
 
   protected PhysicalModel setupPhysicalModel(final ObjectMapper mapper, final String noticeSubType,
-      final String documentType, final JsonNode visRoot)
+      final String documentType, final VisualModel visModel)
       throws IOException, ParserConfigurationException {
     //
     // NODES from fields.json
     //
-    final Map<String, JsonNode> nodeById = new LinkedHashMap<>();
-    setupFieldsJsonXmlStructureNodes(mapper, nodeById);
+    final Map<String, JsonNode> nodeById = setupFieldsJsonXmlStructureNodes(mapper);
 
     //
     // FIELDS from fields.json
     //
-    final Map<String, JsonNode> fieldById = new LinkedHashMap<>();
-    setupFieldsJsonFields(mapper, fieldById);
+    final Map<String, JsonNode> fieldById = setupFieldsJsonFields(mapper);
 
     //
     // OTHER from notice-types.json
@@ -188,10 +169,7 @@ public abstract class NoticeSaverTest {
     // BUILD CONCEPTUAL MODEL.
     //
     final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldById, nodeById);
-    final Map<String, ConceptNode> conceptNodeById =
-        NoticeSaver.buildConceptualModel(fieldsAndNodes, visRoot);
-    final ConceptNode conceptRoot = conceptNodeById.get(SdkService.ND_ROOT);
-    final ConceptualModel conceptualModel = new ConceptualModel(conceptRoot);
+    final ConceptualModel conceptualModel = visModel.toConceptualModel(fieldsAndNodes);
 
     //
     // BUILD PHYSICAL MODEL.

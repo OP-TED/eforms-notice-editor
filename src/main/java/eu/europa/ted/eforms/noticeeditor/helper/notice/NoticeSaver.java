@@ -1,13 +1,11 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
-import static eu.europa.ted.eforms.noticeeditor.util.JsonUtils.getIntStrict;
 import static eu.europa.ted.eforms.noticeeditor.util.JsonUtils.getTextStrict;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -71,14 +69,6 @@ public class NoticeSaver {
   static final String FIELD_XPATH_RELATIVE = "xpathRelative";
   static final String FIELD_TYPE = "type";
 
-  static final String VIS_TYPE = "type";
-  static final String VIS_TYPE_FIELD = "field";
-  static final String VIS_TYPE_GROUP = "group";
-  static final String VIS_VALUE = "value";
-  static final String VIS_CONTENT_PARENT_COUNT = "contentParentCount";
-  static final String VIS_CONTENT_COUNT = "contentCount";
-  static final String VIS_CONTENT_ID = "contentId";
-
   private static final String XML_ATTR_EDITOR_COUNTER_SELF = "editorCounterSelf";
   private static final String XML_ATTR_EDITOR_COUNTER_PRNT = "editorCounterPrnt";
   private static final String XML_ATTR_EDITOR_FIELD_ID = "editorFieldId";
@@ -101,85 +91,6 @@ public class NoticeSaver {
    * For ids like ORG-0001, 0001 is 4 chars total.
    */
   private static final int SCHEME_ID_PADDING_SIZE = 4;
-
-  public static ConceptualModel buildConceptualModel2(final FieldsAndNodes fieldsAndNodes,
-      final JsonNode visualRoot) {
-    Validate.notNull(visualRoot, "visualRoot");
-
-    // TODO parse hierarchical visual model.
-    return null;
-  }
-
-  public static Map<String, ConceptNode> buildConceptualModel(final FieldsAndNodes fieldsAndNodes,
-      final JsonNode visualRoot) {
-    Validate.notNull(visualRoot, "visualRoot");
-
-    logger.info("Attempting to build conceptual model.");
-    final Map<String, ConceptNode> conceptNodeById = new HashMap<>();
-
-    for (final JsonNode visualItem : visualRoot) {
-      final String type = getTextStrict(visualItem, VIS_TYPE);
-      if (VIS_TYPE_FIELD.equals(type)) {
-
-        // Here we mostly care about the value and the field id.
-
-        // If the type is field then the contentId is a field id.
-        final String fieldId = getTextStrict(visualItem, VIS_CONTENT_ID);
-        final JsonNode fieldMeta = fieldsAndNodes.getFieldById(fieldId);
-        Validate.notNull(fieldMeta, "fieldMeta is null for fieldId=%s", fieldId);
-
-        final String value = JsonUtils.getTextMaybeBlank(visualItem, VIS_VALUE);
-        final int counter = getIntStrict(visualItem, VIS_CONTENT_COUNT);
-        final int parentCounter = getIntStrict(visualItem, VIS_CONTENT_PARENT_COUNT);
-        final String idForDebug = getTextStrict(visualItem, VIS_CONTENT_ID);
-
-        final ConceptField conceptField =
-            new ConceptField(fieldId, idForDebug, value, counter, parentCounter);
-
-        // Build the parent hierarchy.
-        final String parentNodeId = getTextStrict(fieldMeta, FIELD_PARENT_NODE_ID);
-        final ConceptNode conceptNode =
-            buildAncestryRec(conceptNodeById, parentNodeId, fieldsAndNodes);
-
-        conceptNode.addConceptField(conceptField);
-
-      } else {
-        // TODO 'group' later for repeatability of groups ??
-        logger.warn("TODO type=" + type);
-      }
-    }
-    return conceptNodeById;
-  }
-
-  /**
-   * Builds the node and the parents until the root is reached.
-   *
-   * @param conceptNodeById is populated as a side effect
-   * @param nodeId The node identifier
-   * @param fieldsAndNodes Information about SDK fields and nodes
-   *
-   * @return The concept node
-   */
-  private static ConceptNode buildAncestryRec(final Map<String, ConceptNode> conceptNodeById,
-      final String nodeId, final FieldsAndNodes fieldsAndNodes) {
-    final JsonNode nodeMeta = fieldsAndNodes.getNodeById(nodeId);
-    ConceptNode conceptNode = conceptNodeById.get(nodeId);
-    if (conceptNode == null) {
-      // It does not exist, create it.
-      conceptNode = new ConceptNode(nodeId, nodeId + "-" + Math.round(Math.random() * 1000), 1, 1);
-      conceptNodeById.put(nodeId, conceptNode);
-      final Optional<String> parentNodeIdOpt = JsonUtils.getTextOpt(nodeMeta, NODE_PARENT_ID);
-      if (parentNodeIdOpt.isPresent()) {
-        final String parentNodeId = parentNodeIdOpt.get();
-        // This node has a parent. Build the parent until the root is reached.
-        final ConceptNode parentConceptNode =
-            buildAncestryRec(conceptNodeById, parentNodeId, fieldsAndNodes);
-        // Add it to the parent.
-        parentConceptNode.addConceptNode(conceptNode);
-      }
-    }
-    return conceptNode;
-  }
 
   /**
    * Builds the physical model.

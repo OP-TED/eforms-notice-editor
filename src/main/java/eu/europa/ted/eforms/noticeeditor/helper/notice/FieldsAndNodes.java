@@ -1,5 +1,6 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.commons.lang3.Validate;
@@ -21,28 +22,39 @@ public class FieldsAndNodes {
   private final Map<String, JsonNode> fieldById;
   private final Map<String, JsonNode> nodeById;
 
+  /**
+   * This constructor is meant to be used to read from fields.json data.
+   *
+   * @param fieldsJsonRoot The root of the SDK fields.json file
+   */
   public FieldsAndNodes(final JsonNode fieldsJsonRoot) {
+    // SDK nodes.
     {
       final JsonNode nodes = fieldsJsonRoot.get(SdkConstants.FIELDS_JSON_XML_STRUCTURE_KEY);
-      final Map<String, JsonNode> nodesMap = new LinkedHashMap<>();
+      final Map<String, JsonNode> nodesMap = new LinkedHashMap<>(256);
       for (final JsonNode node : nodes) {
         nodesMap.put(node.get(NODE_ID_KEY).asText(), node);
       }
-      this.nodeById = nodesMap;
+      this.nodeById = Collections.unmodifiableMap(nodesMap);
     }
+
+    // SDK fields.
     {
       final JsonNode fields = fieldsJsonRoot.get(SdkConstants.FIELDS_JSON_FIELDS_KEY);
-      final Map<String, JsonNode> fieldsMap = new LinkedHashMap<>();
+      final Map<String, JsonNode> fieldsMap = new LinkedHashMap<>(1028);
       for (final JsonNode field : fields) {
         fieldsMap.put(field.get(FIELD_ID_KEY).asText(), field);
       }
-      this.fieldById = fieldsMap;
+      this.fieldById = Collections.unmodifiableMap(fieldsMap);
     }
   }
 
-  public FieldsAndNodes(final Map<String, JsonNode> fields, final Map<String, JsonNode> nodes) {
-    this.fieldById = fields;
-    this.nodeById = nodes;
+  /**
+   * This constructor is meant to be used by unit tests.
+   */
+  FieldsAndNodes(final Map<String, JsonNode> fieldById, final Map<String, JsonNode> nodeById) {
+    this.fieldById = fieldById;
+    this.nodeById = nodeById;
   }
 
   public JsonNode getFieldById(final String fieldId) {
@@ -58,12 +70,12 @@ public class FieldsAndNodes {
   }
 
   public static boolean getFieldPropertyValueBoolStrict(final JsonNode json, final String propKey) {
+    // As you can see this is not a flat property, you have to do "get" two times:
     // Example:
     // "repeatable" : {
     // "value" : true, WE WANT THE BOOLEAN VALUE AND FAIL IF WE CANNOT HAVE IT
     // "severity" : "ERROR"
     // },
-    // As you can see this is not a flat property, you have to do two gets.
     final JsonNode prop = getFieldProperty(json, propKey);
     return JsonUtils.getBoolStrict(prop, "value");
   }
