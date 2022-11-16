@@ -519,6 +519,12 @@ public class NoticeSaver {
     // This could make the XML invalid, this is meant to be read by humans.
     if (debug) {
       nodeElem.setAttribute(XML_ATTR_EDITOR_NODE_ID, nodeId);
+
+      nodeElem.setAttribute(XML_ATTR_EDITOR_COUNTER_SELF,
+          Integer.toString(conceptNode.getCounter()));
+
+      nodeElem.setAttribute(XML_ATTR_EDITOR_COUNTER_PRNT,
+          Integer.toString(conceptNode.getParentCounter()));
     }
 
     if (nodeIdentifierFieldIdOpt.isPresent()) {

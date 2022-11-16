@@ -299,17 +299,17 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
     final String xml = physicalModel.getXmlAsText(false); // Not indented to avoid line breaks.
     System.out.println(physicalModel.getXmlAsText(true));
 
-    contains(xml, "encoding=\"UTF-8\"");
+    count(xml, 1, "encoding=\"UTF-8\"");
 
     // Check fields root node.
-    contains(xml, "BusinessRegistrationInformationNotice");
+    count(xml, 2, "BusinessRegistrationInformationNotice");
     contains(xml, "xmlns=");
 
     // TODO it would be more maintainable to use xpath to check the XML instead of pure text.
 
     // Check some metadata.
-    contains(xml, noticeSubType);
-    contains(xml, prefixedSdkVersion);
+    count(xml, 1, noticeSubType);
+    count(xml, 1, prefixedSdkVersion);
     count(xml, 1, "<cbc:CustomizationID");
     count(xml, 1, "<cbc:SubTypeCode");
 
@@ -317,13 +317,21 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
     count(xml, 1, "<BusinessRegistrationInformationNotice");
     count(xml, 1, "<ext:UBLExtensions>");
 
-    count(xml, 1, String.format("<cac:BusinessParty editorNodeId=\"%s\"", ND_BUSINESS_PARTY));
-    count(xml, 1, String.format("<efac:NoticePurpose editorNodeId=\"%s\"", ND_OPERATION_TYPE));
+    count(xml, 1, String.format(
+        "<cac:BusinessParty editorCounterPrnt=\"1\" editorCounterSelf=\"1\" editorNodeId=\"%s\"",
+        ND_BUSINESS_PARTY));
+    count(xml, 1, String.format(
+        "<efac:NoticePurpose editorCounterPrnt=\"1\" editorCounterSelf=\"1\" editorNodeId=\"%s\"",
+        ND_OPERATION_TYPE));
 
     // It is the same xml tag, but here we can even check the nodeId is originally correct.
     // Without debug true this editor intermediary information would otherwise be lost.
-    count(xml, 1, String.format("<cac:PartyLegalEntity editorNodeId=\"%s\"", ND_EU_ENTITY));
-    count(xml, 1, String.format("<cac:PartyLegalEntity editorNodeId=\"%s\"", ND_LOCAL_ENTITY));
+    count(xml, 1, String.format(
+        "<cac:PartyLegalEntity editorCounterPrnt=\"1\" editorCounterSelf=\"1\" editorNodeId=\"%s\"",
+        ND_EU_ENTITY));
+    count(xml, 1, String.format(
+        "<cac:PartyLegalEntity editorCounterPrnt=\"1\" editorCounterSelf=\"1\" editorNodeId=\"%s\"",
+        ND_LOCAL_ENTITY));
 
     // Check fields.
     contains(xml, NoticeSaver.FIELD_ID_NOTICE_SUB_TYPE + "\"");

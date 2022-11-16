@@ -170,7 +170,6 @@ public class NoticeSaverRepeatableTest extends NoticeSaverTest {
     return fieldById;
   }
 
-
   @Test
   public final void test() throws IOException, ParserConfigurationException {
     final ObjectMapper mapper = new ObjectMapper();
@@ -178,17 +177,17 @@ public class NoticeSaverRepeatableTest extends NoticeSaverTest {
     final String noticeSubType = "X02"; // A dummy X02, not the real X02 of 1.3.0
 
     //
-    // NODES from fields.json
+    // NODES like in fields.json
     //
     final Map<String, JsonNode> nodeById = setupFieldsJsonXmlStructureNodes(mapper);
 
     //
-    // FIELDS from fields.json
+    // FIELDS like in fields.json
     //
     final Map<String, JsonNode> fieldById = setupFieldsJsonFields(mapper);
 
     //
-    // OTHER from notice-types.json
+    // Some data like notice-types.json
     //
     // Setup dummy notice-types.json info that we need for the XML generation.
     final Map<String, JsonNode> noticeInfoBySubtype = new HashMap<>();
@@ -231,14 +230,14 @@ public class NoticeSaverRepeatableTest extends NoticeSaverTest {
     final String xml = pm.getXmlAsText(false); // Not indented to avoid line breaks.
     System.out.println(pm.getXmlAsText(true));
 
-    contains(xml, "encoding=\"UTF-8\"");
+    count(xml, 1, "encoding=\"UTF-8\"");
 
     // Check fields root node.
     contains(xml, "xmlns=");
 
     // Check some metadata.
-    contains(xml, noticeSubType);
-    contains(xml, prefixedSdkVersion);
+    count(xml, 1, noticeSubType);
+    count(xml, 1, prefixedSdkVersion);
 
     count(xml, 1, "<cbc:CustomizationID");
     count(xml, 1, "<cbc:SubTypeCode");
@@ -248,12 +247,20 @@ public class NoticeSaverRepeatableTest extends NoticeSaverTest {
     count(xml, 2, "editorNodeId=\"ND_A\"");
 
     // Verify nested repeatable nodes.
-    count(xml, 3, "<b");
-    count(xml, 3, "editorNodeId=\"ND_B\"");
+    count(xml, 3, "<b"); // 3 in total
+    count(xml, 3, "editorNodeId=\"ND_B\""); // 3 in total
+    count(xml, 2, "editorCounterSelf=\"1\" editorNodeId=\"ND_B\"");
+    count(xml, 1, "editorCounterSelf=\"2\" editorNodeId=\"ND_B\"");
 
     // Verify repeatable field.
+
+    // c1
     count(xml, 1, "editorFieldId=\"BT-field-123\">value-of-field-c1</c>");
+    count(xml, 1, "editorCounterSelf=\"1\" editorFieldId=\"BT-field-123\">value-of-field-c1</c>");
+
+    // c2
     count(xml, 1, "editorFieldId=\"BT-field-123\">value-of-field-c2</c>");
+    count(xml, 1, "editorCounterSelf=\"2\" editorFieldId=\"BT-field-123\">value-of-field-c2</c>");
   }
 
 }

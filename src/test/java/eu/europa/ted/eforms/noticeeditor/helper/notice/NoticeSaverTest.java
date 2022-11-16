@@ -136,17 +136,17 @@ public abstract class NoticeSaverTest {
       final String documentType, final VisualModel visModel)
       throws IOException, ParserConfigurationException {
     //
-    // NODES from fields.json
+    // NODES like in fields.json
     //
     final Map<String, JsonNode> nodeById = setupFieldsJsonXmlStructureNodes(mapper);
 
     //
-    // FIELDS from fields.json
+    // FIELDS like in fields.json
     //
     final Map<String, JsonNode> fieldById = setupFieldsJsonFields(mapper);
 
     //
-    // OTHER from notice-types.json
+    // OTHER like in notice-types.json
     //
     // Setup dummy notice-types.json info that we need for the XML generation.
     final Map<String, JsonNode> noticeInfoBySubtype = new HashMap<>();
