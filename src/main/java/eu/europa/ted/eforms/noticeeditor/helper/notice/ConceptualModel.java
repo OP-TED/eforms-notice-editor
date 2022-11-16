@@ -73,8 +73,8 @@ public class ConceptualModel {
 
   public static void toDotRec(final FieldsAndNodes fieldsAndNodes, final StringBuilder sb,
       final ConceptTreeNode cn, final boolean includeFields) {
-    final String cnIdIsNodeId = cn.getNodeId();
     final String cnIdUnique = cn.getIdUnique();
+    final String edgeLabel = cn.getNodeId();
 
     // Include nodes in dot file.
     for (final ConceptTreeNode childNode : cn.getConceptNodes()) {
@@ -85,7 +85,7 @@ public class ConceptualModel {
       final String color =
           nodeIsRepeatable ? GraphvizDotTool.COLOR_GREEN : GraphvizDotTool.COLOR_BLACK;
 
-      GraphvizDotTool.appendEdge(cnIdIsNodeId, color,
+      GraphvizDotTool.appendEdge(edgeLabel, color,
 
           cnIdUnique, childNode.getIdUnique(), // concept node -> concept node
 
@@ -98,7 +98,7 @@ public class ConceptualModel {
     if (includeFields) {
       // This makes the tree a lot more bushy and can be hard to read.
       for (final ConceptTreeField cf : cn.getConceptFields()) {
-        GraphvizDotTool.appendEdge(cnIdIsNodeId, GraphvizDotTool.COLOR_BLUE,
+        GraphvizDotTool.appendEdge(edgeLabel, GraphvizDotTool.COLOR_BLUE,
 
             cnIdUnique, cf.getIdUnique() + "=" + cf.getValue(), // node -> field
 

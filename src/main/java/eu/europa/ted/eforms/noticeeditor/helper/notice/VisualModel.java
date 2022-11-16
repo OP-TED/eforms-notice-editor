@@ -198,7 +198,8 @@ public class VisualModel {
     if (visualType == VIS_TYPE_FIELD) {
       // This is a field (leaf of the tree).
       final String idInSdkFieldsJson = JsonUtils.getTextStrict(jsonItem, VIS_FIELD_ID);
-      final String idUnique = idInSdkFieldsJson + "-" + childCounter;
+      // final String idUnique = idInSdkFieldsJson + "-" + childCounter;
+      final String idUnique = jsonItem.get(VIS_CONTENT_ID).asText(null);
       final ConceptTreeField field = new ConceptTreeField(idUnique, idInSdkFieldsJson,
           jsonItem.get(VIS_VALUE).asText(null), counter, parentCounter);
       return Optional.of(field); // Leaf of tree: just return.
@@ -216,10 +217,10 @@ public class VisualModel {
         // Could be "null if empty" depending on how the JSON is constructed.
         if (maybeNull != null) {
           final ArrayNode visChildren = (ArrayNode) maybeNull;
-          int childCounter2 = 1;
+          int childCounterB = 1;
           for (final JsonNode visChild : visChildren) {
             final Optional<ConceptTreeItem> itemToAppendOpt =
-                parseVisualModelRec(fieldsAndNodes, visChild, closestParentNode, childCounter2++);
+                parseVisualModelRec(fieldsAndNodes, visChild, closestParentNode, childCounterB++);
             if (itemToAppendOpt.isPresent()) {
               Validate.notNull(closestParentNode, "closestParentNode is null");
               closestParentNode.addConceptItem(itemToAppendOpt.get());
@@ -232,8 +233,8 @@ public class VisualModel {
 
       // This is a group which references a node.
       final String idInSdkFieldsJson = nodeIdItem.asText(null);
-      final String idUnique = idInSdkFieldsJson + "-" + childCounter;
-      // final String idUnique = jsonItem.get(VIS_CONTENT_ID).asText(null);
+      // final String idUnique = idInSdkFieldsJson + "-" + childCounter;
+      final String idUnique = jsonItem.get(VIS_CONTENT_ID).asText(null);
       final ConceptTreeNode conceptNode = new ConceptTreeNode(idUnique, idInSdkFieldsJson,
           jsonItem.get(VIS_CONTENT_COUNT).asInt(-1),
           jsonItem.get(VIS_CONTENT_PARENT_COUNT).asInt(-1));
@@ -243,9 +244,9 @@ public class VisualModel {
       if (maybeNull != null) {
         final ArrayNode visChildren = (ArrayNode) maybeNull;
         for (final JsonNode visChild : visChildren) {
-          int childCounter3 = 1;
+          int childCounterC = 1;
           final Optional<ConceptTreeItem> itemToAppendOpt =
-              parseVisualModelRec(fieldsAndNodes, visChild, conceptNode, childCounter3++);
+              parseVisualModelRec(fieldsAndNodes, visChild, conceptNode, childCounterC++);
           if (itemToAppendOpt.isPresent()) {
             // Append field or node.
             conceptNode.addConceptItem(itemToAppendOpt.get());
