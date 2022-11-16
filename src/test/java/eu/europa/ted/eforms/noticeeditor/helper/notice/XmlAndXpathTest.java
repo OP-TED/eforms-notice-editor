@@ -29,7 +29,7 @@ public class XmlAndXpathTest {
 
     // Add some test data.
     final String namespaceUriRoot = "test";
-    final XPath xPathInst = NoticeSaver.setXmlNamespaces(namespaceUriRoot, rootElement);
+    final XPath xPathInst = PhysicalModel.setXmlNamespaces(namespaceUriRoot, rootElement);
     rootElement.appendChild(doc.createElement("ext:UBLExtensions"));
     rootElement.appendChild(doc.createElement("cbc:CustomizationID"));
 
@@ -43,6 +43,6 @@ public class XmlAndXpathTest {
   }
 
   private static int evalLength(final XPath xPathInst, final Element elem, final String xpathExpr) {
-    return NoticeSaver.evaluateXpath(xPathInst, elem, xpathExpr, elem.getTagName()).getLength();
+    return PhysicalModel.evaluateXpath(xPathInst, elem, xpathExpr, elem.getTagName()).getLength();
   }
 }

@@ -52,7 +52,6 @@ import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.ConceptualModel;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.DocumentTypeInfo;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
-import eu.europa.ted.eforms.noticeeditor.helper.notice.NoticeSaver;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.PhysicalModel;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.SchemaInfo;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.VisualModel;
@@ -559,7 +558,7 @@ public class SdkService {
       // Example: the SDK value looks like "eforms-sdk-1.1.0".
       // We are only interested in 1.1.0 or just 1.1
       // The concatenated -1 means first field
-      final String fieldName = NoticeSaver.FIELD_ID_SDK_VERSION + "-1";
+      final String fieldName = ConceptualModel.FIELD_ID_SDK_VERSION + "-1";
 
       final JsonNode visualField = visualRoot.get(fieldName);
       final String eFormsSdkVersion = getTextStrict(visualField, "value");
@@ -625,7 +624,7 @@ public class SdkService {
     // Go from visual model to conceptual model.
     final ConceptualModel conceptModel = visualModel.toConceptualModel(fieldsAndNodes);
     final DocumentTypeInfo docTypeInfo =
-        NoticeSaver.getDocumentTypeInfo(noticeInfoBySubtype, documentInfoByType, conceptModel);
+        PhysicalModel.getDocumentTypeInfo(noticeInfoBySubtype, documentInfoByType, conceptModel);
 
     // Get schema info.
     final String sdkXsdFile = docTypeInfo.getXsdFile();
@@ -637,8 +636,8 @@ public class SdkService {
     // Build physical model.
     final boolean debug = true;
     final boolean buildFields = true;
-    final PhysicalModel physicalModel = NoticeSaver.buildPhysicalModelXml(fieldsAndNodes,
-        noticeInfoBySubtype, documentInfoByType, conceptModel, debug, buildFields, schemaInfo);
+    final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptModel,
+        fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields, schemaInfo);
 
     // Build physical model as XML.
     final String xmlAsText = physicalModel.getXmlAsText(buildFields);

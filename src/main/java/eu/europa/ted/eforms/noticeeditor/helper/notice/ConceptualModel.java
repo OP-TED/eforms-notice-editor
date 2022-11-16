@@ -6,10 +6,24 @@ import eu.europa.ted.eforms.noticeeditor.util.GraphvizDotTool;
 
 public class ConceptualModel {
 
+  static final String ND_ROOT = "ND-Root";
+  static final String ND_ROOT_EXTENSION = "ND-RootExtension";
+
+  /**
+   * Notice field id having the eformsSdkVersion as a value.
+   */
+  public static final String FIELD_ID_SDK_VERSION = "OPT-002-notice";
+
+  /**
+   * Notice field id having the notice sub type as a value.
+   */
+  public static final String FIELD_ID_NOTICE_SUB_TYPE = "OPP-070-notice";
+
+
   private final ConceptNode rootNode;
 
   public ConceptualModel(final ConceptNode rootNode) {
-    Validate.isTrue(NoticeSaver.ND_ROOT.equals(rootNode.getId()));
+    Validate.isTrue(ND_ROOT.equals(rootNode.getId()));
     this.rootNode = rootNode;
   }
 
@@ -21,10 +35,9 @@ public class ConceptualModel {
     // HARDCODED LOGIC.
     System.out.println(rootNode);
     final ConceptNode rootExtension = rootNode.getConceptNodes().stream()
-        .filter(item -> item.getId().equals(NoticeSaver.ND_ROOT_EXTENSION)).findFirst().get();
+        .filter(item -> item.getId().equals(ND_ROOT_EXTENSION)).findFirst().get();
     return rootExtension.getConceptFields().stream()
-        .filter(item -> item.getId().equals(NoticeSaver.FIELD_ID_NOTICE_SUB_TYPE)).findFirst().get()
-        .getValue();
+        .filter(item -> item.getId().equals(FIELD_ID_NOTICE_SUB_TYPE)).findFirst().get().getValue();
   }
 
   @Override

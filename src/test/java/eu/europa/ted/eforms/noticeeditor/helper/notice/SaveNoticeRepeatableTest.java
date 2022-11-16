@@ -2,6 +2,7 @@ package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 import static eu.europa.ted.eforms.noticeeditor.helper.notice.VisualModel.putFieldDef;
 import static eu.europa.ted.eforms.noticeeditor.helper.notice.VisualModel.putGroupDef;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -16,7 +17,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 /**
  * A test with focus on repeatability, including nested repeatable groups.
  */
-public class NoticeSaverRepeatableTest extends NoticeSaverTest {
+public class SaveNoticeRepeatableTest extends SaveNoticeTest {
 
   private static final String NOTICE_DOCUMENT_TYPE = "BRIN";
 
@@ -135,7 +136,7 @@ public class NoticeSaverRepeatableTest extends NoticeSaverTest {
       node.put(KEY_NODE_PARENT_ID, ND_ROOT);
       node.put(KEY_XPATH_ABS, "/*/a");
       node.put(KEY_XPATH_REL, "a");
-      NoticeSaverTest.fieldPutRepeatable(node, false);
+      SaveNoticeTest.fieldPutRepeatable(node, false);
     }
     {
       final ObjectNode node = mapper.createObjectNode();
@@ -143,7 +144,7 @@ public class NoticeSaverRepeatableTest extends NoticeSaverTest {
       node.put(KEY_NODE_PARENT_ID, ND_ROOT);
       node.put(KEY_XPATH_ABS, "/*/a/b");
       node.put(KEY_XPATH_REL, "b");
-      NoticeSaverTest.fieldPutRepeatable(node, false);
+      SaveNoticeTest.fieldPutRepeatable(node, false);
     }
     return Collections.unmodifiableMap(nodeById);
   }
@@ -164,7 +165,7 @@ public class NoticeSaverRepeatableTest extends NoticeSaverTest {
       field.put(KEY_XPATH_ABS, "/*/a/b/c");
       field.put(KEY_XPATH_REL, "c");
       field.put(KEY_TYPE, TYPE_TEXT);
-      NoticeSaverTest.fieldPutRepeatable(field, true);
+      SaveNoticeTest.fieldPutRepeatable(field, true);
     }
     // Setup more fields here ...?
     return fieldById;
@@ -217,6 +218,9 @@ public class NoticeSaverRepeatableTest extends NoticeSaverTest {
     final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldById, nodeById);
     final ConceptualModel conceptModel = visualModel.toConceptualModel(fieldsAndNodes);
 
+    assertEquals(noticeSubType, conceptModel.getNoticeSubType());
+    assertEquals(ConceptualModel.ND_ROOT, conceptModel.getRoot().getId());
+
     //
     // BUILD PHYSICAL MODEL.
     //
@@ -224,8 +228,8 @@ public class NoticeSaverRepeatableTest extends NoticeSaverTest {
     final boolean buildFields = true;
     final SchemaInfo schemaInfo = SchemaToolsTest.getTestSchemaInfo();
 
-    final PhysicalModel pm = NoticeSaver.buildPhysicalModelXml(fieldsAndNodes, noticeInfoBySubtype,
-        documentInfoByType, conceptModel, debug, buildFields, schemaInfo);
+    final PhysicalModel pm = PhysicalModel.buildPhysicalModel(conceptModel, fieldsAndNodes,
+        noticeInfoBySubtype, documentInfoByType, debug, buildFields, schemaInfo);
 
     final String xml = pm.getXmlAsText(false); // Not indented to avoid line breaks.
     System.out.println(pm.getXmlAsText(true));

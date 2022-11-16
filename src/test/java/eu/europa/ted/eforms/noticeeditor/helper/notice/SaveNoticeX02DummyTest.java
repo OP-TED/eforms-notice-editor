@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class NoticeSaverX02DummyTest extends NoticeSaverTest {
+public class SaveNoticeX02DummyTest extends SaveNoticeTest {
 
   private static final String NOTICE_DOCUMENT_TYPE = "BRIN";
 
@@ -160,7 +160,7 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
       node.put(KEY_NODE_PARENT_ID, ND_ROOT);
       node.put(KEY_XPATH_ABS, "/*/cac:BusinessParty");
       node.put(KEY_XPATH_REL, "cac:BusinessParty");
-      NoticeSaverTest.fieldPutRepeatable(node, false);
+      SaveNoticeTest.fieldPutRepeatable(node, false);
     }
     {
       final ObjectNode node = mapper.createObjectNode();
@@ -169,7 +169,7 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
       node.put(KEY_XPATH_ABS,
           "/*/cac:BusinessParty/cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName = 'EU')]");
       node.put(KEY_XPATH_REL, "cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName = 'EU')]");
-      NoticeSaverTest.fieldPutRepeatable(node, false);
+      SaveNoticeTest.fieldPutRepeatable(node, false);
     }
     {
       final ObjectNode node = mapper.createObjectNode();
@@ -178,7 +178,7 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
       node.put(KEY_XPATH_ABS,
           "/*/cac:BusinessParty/cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']");
       node.put(KEY_XPATH_REL, "cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']");
-      NoticeSaverTest.fieldPutRepeatable(node, false);
+      SaveNoticeTest.fieldPutRepeatable(node, false);
     }
     {
       final ObjectNode node = mapper.createObjectNode();
@@ -186,7 +186,7 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
       node.put(KEY_NODE_PARENT_ID, ND_ROOT);
       node.put(KEY_XPATH_ABS, "/*/efac:NoticePurpose");
       node.put(KEY_XPATH_REL, "efac:NoticePurpose");
-      NoticeSaverTest.fieldPutRepeatable(node, false);
+      SaveNoticeTest.fieldPutRepeatable(node, false);
     }
     return nodeById;
   }
@@ -206,7 +206,7 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
       field.put(KEY_XPATH_ABS, "/*/cac:BusinessParty/cbc:WebsiteURI");
       field.put(KEY_XPATH_REL, "cbc:WebsiteURI");
       field.put(KEY_TYPE, TYPE_URL);
-      NoticeSaverTest.fieldPutRepeatable(field, false);
+      SaveNoticeTest.fieldPutRepeatable(field, false);
     }
     {
       final ObjectNode field = mapper.createObjectNode();
@@ -216,7 +216,7 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
           "/*/cac:BusinessParty/cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName = 'EU')]/cbc:RegistrationName");
       field.put(KEY_XPATH_REL, "cbc:RegistrationName");
       field.put(KEY_TYPE, TYPE_TEXT);
-      NoticeSaverTest.fieldPutRepeatable(field, false);
+      SaveNoticeTest.fieldPutRepeatable(field, false);
     }
     {
       final ObjectNode field = mapper.createObjectNode();
@@ -226,7 +226,7 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
           "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName = 'EU']/cbc:CompanyID[@schemeName = 'EU']");
       field.put(KEY_XPATH_REL, "cbc:CompanyID[@schemeName = 'EU']");
       field.put(KEY_TYPE, TYPE_ID);
-      NoticeSaverTest.fieldPutRepeatable(field, false);
+      SaveNoticeTest.fieldPutRepeatable(field, false);
     }
     {
       final ObjectNode field = mapper.createObjectNode();
@@ -236,7 +236,7 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
           "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[not(@schemeName = 'EU')]/cbc:CompanyID[not(@schemeName = 'EU')]");
       field.put(KEY_XPATH_REL, "cbc:CompanyID[not(@schemeName = 'EU')]");
       field.put(KEY_TYPE, TYPE_ID);
-      NoticeSaverTest.fieldPutRepeatable(field, false);
+      SaveNoticeTest.fieldPutRepeatable(field, false);
     }
     {
       final ObjectNode field = mapper.createObjectNode();
@@ -245,7 +245,7 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
       field.put(KEY_XPATH_ABS, "/*/cac:BusinessCapability/cbc:CapabilityTypeCode");
       field.put(KEY_XPATH_REL, "cac:BusinessCapability/cbc:CapabilityTypeCode");
       field.put(KEY_TYPE, TYPE_CODE);
-      NoticeSaverTest.fieldPutRepeatable(field, true);
+      SaveNoticeTest.fieldPutRepeatable(field, true);
       field.put(KEY_CODE_LIST_ID, "main-activity");
     }
     {
@@ -255,7 +255,7 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
       field.put(KEY_XPATH_ABS, "/*/efac:NoticePurpose/cbc:PurposeCode");
       field.put(KEY_XPATH_REL, "cbc:PurposeCode");
       field.put(KEY_TYPE, TYPE_CODE);
-      NoticeSaverTest.fieldPutRepeatable(field, false);
+      SaveNoticeTest.fieldPutRepeatable(field, false);
       field.put(KEY_CODE_LIST_ID, "notice-purpose");
     }
     {
@@ -266,7 +266,7 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
           "/*/cac:BusinessParty/cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']/cbc:RegistrationDate");
       field.put(KEY_XPATH_REL, "cbc:RegistrationDate");
       field.put(KEY_TYPE, TYPE_DATE);
-      NoticeSaverTest.fieldPutRepeatable(field, false);
+      SaveNoticeTest.fieldPutRepeatable(field, false);
     }
     return fieldById;
   }
@@ -334,12 +334,12 @@ public class NoticeSaverX02DummyTest extends NoticeSaverTest {
         ND_LOCAL_ENTITY));
 
     // Check fields.
-    contains(xml, NoticeSaver.FIELD_ID_NOTICE_SUB_TYPE + "\"");
-    contains(xml, NoticeSaver.FIELD_ID_SDK_VERSION + "\"");
+    contains(xml, ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE + "\"");
+    contains(xml, ConceptualModel.FIELD_ID_SDK_VERSION + "\"");
 
     contains(xml, BT_500_BUSINESS + "\"");
     contains(xml, BT_501_BUSINESS_NATIONAL + "\"");
-    contains(xml, BT_501_BUSINESS_NATIONAL + "\" schemeName=\"" + NoticeSaver.NATIONAL + "\"");
+    contains(xml, BT_501_BUSINESS_NATIONAL + "\" schemeName=\"" + PhysicalModel.NATIONAL + "\"");
 
     contains(xml, BT_501_BUSINESS_EUROPEAN + "\"");
     contains(xml, BT_501_BUSINESS_EUROPEAN + "\" schemeName=\"EU\"");

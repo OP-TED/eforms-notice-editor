@@ -16,7 +16,7 @@ import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 /**
  * Abstract, common code for testing the notice saver.
  */
-public abstract class NoticeSaverTest {
+public abstract class SaveNoticeTest {
   // IDEA: reuse some common constants even with notice saver.
 
   private static final String CODELIST_NOTICE_SUBTYPE = "notice-subtype";
@@ -34,8 +34,8 @@ public abstract class NoticeSaverTest {
   //
   // FIELDS JSON RELATED.
   //
-  static final String ND_ROOT = NoticeSaver.ND_ROOT;
-  static final String ND_ROOT_EXTENSION = NoticeSaver.ND_ROOT_EXTENSION;
+  static final String ND_ROOT = ConceptualModel.ND_ROOT;
+  static final String ND_ROOT_EXTENSION = ConceptualModel.ND_ROOT_EXTENSION;
 
   static final String KEY_CODE_LIST_ID = "codeListId";
   static final String KEY_TYPE = "type";
@@ -86,7 +86,7 @@ public abstract class NoticeSaverTest {
       nodeById.put(ND_ROOT, node);
       node.put(KEY_XPATH_ABS, "/*");
       node.put(KEY_XPATH_REL, "/*");
-      NoticeSaverTest.fieldPutRepeatable(node, false);
+      SaveNoticeTest.fieldPutRepeatable(node, false);
     }
     {
       final ObjectNode node = mapper.createObjectNode();
@@ -96,7 +96,7 @@ public abstract class NoticeSaverTest {
           "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension");
       node.put(KEY_XPATH_REL,
           "ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension");
-      NoticeSaverTest.fieldPutRepeatable(node, false);
+      SaveNoticeTest.fieldPutRepeatable(node, false);
     }
     return nodeById;
   }
@@ -111,22 +111,22 @@ public abstract class NoticeSaverTest {
     final Map<String, JsonNode> fieldById = new LinkedHashMap<>(1024);
     {
       final ObjectNode field = mapper.createObjectNode();
-      fieldById.put(NoticeSaver.FIELD_ID_SDK_VERSION, field);
+      fieldById.put(ConceptualModel.FIELD_ID_SDK_VERSION, field);
       field.put(KEY_PARENT_NODE_ID, ND_ROOT);
       field.put(KEY_XPATH_ABS, "/*/cbc:CustomizationID");
       field.put(KEY_XPATH_REL, "cbc:CustomizationID");
       field.put(KEY_TYPE, TYPE_ID);
-      NoticeSaverTest.fieldPutRepeatable(field, false);
+      SaveNoticeTest.fieldPutRepeatable(field, false);
     }
     {
       final ObjectNode field = mapper.createObjectNode();
-      fieldById.put(NoticeSaver.FIELD_ID_NOTICE_SUB_TYPE, field);
+      fieldById.put(ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE, field);
       field.put(KEY_PARENT_NODE_ID, ND_ROOT_EXTENSION);
       field.put(KEY_XPATH_ABS,
           "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension/efac:NoticeSubType/cbc:SubTypeCode");
       field.put(KEY_XPATH_REL, "efac:NoticeSubType/cbc:SubTypeCode");
       field.put(KEY_TYPE, TYPE_CODE);
-      NoticeSaverTest.fieldPutRepeatable(field, false);
+      SaveNoticeTest.fieldPutRepeatable(field, false);
       field.put(KEY_CODE_LIST_ID, CODELIST_NOTICE_SUBTYPE);
     }
     return fieldById;
@@ -177,8 +177,8 @@ public abstract class NoticeSaverTest {
     final boolean debug = true; // Adds field ids in the XML.
     final boolean buildFields = true;
     final SchemaInfo schemaInfo = SchemaToolsTest.getTestSchemaInfo();
-    final PhysicalModel pm = NoticeSaver.buildPhysicalModelXml(fieldsAndNodes, noticeInfoBySubtype,
-        documentInfoByType, conceptualModel, debug, buildFields, schemaInfo);
+    final PhysicalModel pm = PhysicalModel.buildPhysicalModel(conceptualModel, fieldsAndNodes,
+        noticeInfoBySubtype, documentInfoByType, debug, buildFields, schemaInfo);
 
     return pm;
   }

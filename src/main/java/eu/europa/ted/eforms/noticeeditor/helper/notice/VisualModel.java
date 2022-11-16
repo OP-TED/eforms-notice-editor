@@ -43,7 +43,7 @@ public class VisualModel {
    */
   public VisualModel(final JsonNode visRoot) {
     final String rootNodeId = JsonUtils.getTextStrict(visRoot, VIS_NODE_ID);
-    final String expected = NoticeSaver.ND_ROOT;
+    final String expected = ConceptualModel.ND_ROOT;
     Validate.isTrue(expected.equals(rootNodeId), "Visual model root must be %s", expected);
     this.visRoot = visRoot;
     this.getNoticeSubType(); // This must not crash.
@@ -76,7 +76,7 @@ public class VisualModel {
 
     putGroupDef(visRoot);
     visRoot.put(VIS_CONTENT_ID, "the_visual_root");
-    visRoot.put(VIS_NODE_ID, NoticeSaver.ND_ROOT);
+    visRoot.put(VIS_NODE_ID, ConceptualModel.ND_ROOT);
     final ArrayNode visRootChildren = visRoot.putArray(VIS_CHILDREN);
 
     //
@@ -87,7 +87,7 @@ public class VisualModel {
       final ObjectNode visSdkVersion = mapper.createObjectNode();
       visRootChildren.add(visSdkVersion);
       putFieldDef(visSdkVersion);
-      visSdkVersion.put(VIS_CONTENT_ID, NoticeSaver.FIELD_ID_SDK_VERSION);
+      visSdkVersion.put(VIS_CONTENT_ID, ConceptualModel.FIELD_ID_SDK_VERSION);
       visSdkVersion.put(VIS_VALUE, fakeSdkForTest);
     }
 
@@ -97,14 +97,14 @@ public class VisualModel {
       visRootChildren.add(visRootExtension);
       putGroupDef(visRootExtension);
       visRootExtension.put(VIS_CONTENT_ID, "the_root_extension");
-      visRootExtension.put(VIS_NODE_ID, NoticeSaver.ND_ROOT_EXTENSION);
+      visRootExtension.put(VIS_NODE_ID, ConceptualModel.ND_ROOT_EXTENSION);
       final ArrayNode visRootExtChildren = visRootExtension.putArray(VIS_CHILDREN);
 
       // Notice sub type.
       final ObjectNode visNoticeSubType = mapper.createObjectNode();
       visRootExtChildren.add(visNoticeSubType);
       putFieldDef(visNoticeSubType);
-      visNoticeSubType.put(VIS_CONTENT_ID, NoticeSaver.FIELD_ID_NOTICE_SUB_TYPE);
+      visNoticeSubType.put(VIS_CONTENT_ID, ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE);
       visNoticeSubType.put(VIS_VALUE, noticeSubTypeForTest);
     }
     return visRootChildren;
@@ -112,8 +112,9 @@ public class VisualModel {
 
 
   public String getNoticeSubType() {
-    final JsonNode rootExt = findByNodeId(visRoot, NoticeSaver.ND_ROOT_EXTENSION);
-    final JsonNode noticeSubJson = findByContentId(rootExt, NoticeSaver.FIELD_ID_NOTICE_SUB_TYPE);
+    final JsonNode rootExt = findByNodeId(visRoot, ConceptualModel.ND_ROOT_EXTENSION);
+    final JsonNode noticeSubJson =
+        findByContentId(rootExt, ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE);
     return JsonUtils.getTextStrict(noticeSubJson, VIS_VALUE);
   }
 
