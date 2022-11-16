@@ -11,6 +11,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+/**
+ * This test parts of X02 as this notice sub type is somewhat simple. This tests field
+ * repeatability. This DOES NOT test group repeatability.
+ */
 public class SaveNoticeX02DummyTest extends SaveNoticeTest {
 
   private static final String NOTICE_DOCUMENT_TYPE = "BRIN";
@@ -31,8 +35,6 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
 
   private static final String VALUE_HEALTH = "health";
   private static final String VALUE_EDUCATION = "education";
-
-  private static final String VIS_CHILDREN = VisualModel.VIS_CHILDREN;
 
   /**
    * Setup dummy test notice form data.
@@ -80,8 +82,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     // Business party.
     {
       final ObjectNode vis = mapper.createObjectNode();
-      putFieldDef(vis);
-      vis.put(VIS_CONTENT_ID, BT_505_BUSINESS);
+      putFieldDef(vis, BT_505_BUSINESS);
       vis.put(VIS_VALUE, "http://www.acme-solution.co.uk");
       visBusinessPartyChildren.add(vis);
     }
@@ -89,15 +90,13 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     // EU.
     {
       final ObjectNode vis = mapper.createObjectNode();
-      putFieldDef(vis);
-      vis.put(VIS_CONTENT_ID, BT_501_BUSINESS_EUROPEAN);
+      putFieldDef(vis, BT_501_BUSINESS_EUROPEAN);
       vis.put(VIS_VALUE, "The EU registration number");
       visEuEntityChildren.add(vis);
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
-      putFieldDef(vis);
-      vis.put(VIS_CONTENT_ID, OPP_113_BUSINESS_EUROPEAN);
+      putFieldDef(vis, OPP_113_BUSINESS_EUROPEAN);
       vis.put(VIS_VALUE, "2020-11-14+01:00");
       visEuEntityChildren.add(vis);
     }
@@ -105,15 +104,13 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     // Local.
     {
       final ObjectNode vis = mapper.createObjectNode();
-      putFieldDef(vis);
-      vis.put(VIS_CONTENT_ID, BT_500_BUSINESS);
+      putFieldDef(vis, BT_500_BUSINESS);
       vis.put(VIS_VALUE, "ACME Solution");
       visLocalEntityChildren.add(vis);
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
-      putFieldDef(vis);
-      vis.put(VIS_CONTENT_ID, BT_501_BUSINESS_NATIONAL);
+      putFieldDef(vis, BT_501_BUSINESS_NATIONAL);
       vis.put(VIS_VALUE, "The national registration number");
       visLocalEntityChildren.add(vis);
     }
@@ -121,24 +118,20 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     // Repeating node for 'sector'.
     {
       final ObjectNode vis = mapper.createObjectNode();
-      putFieldDef(vis);
-      vis.put(VIS_CONTENT_ID, OPP_105_BUSINESS);
+      putFieldDef(vis, OPP_105_BUSINESS);
       vis.put(VIS_VALUE, VALUE_EDUCATION);
       visRootChildren.add(vis);
     }
     {
       final ObjectNode vis = mapper.createObjectNode();
-      putFieldDef(vis);
-      vis.put(VIS_CONTENT_ID, OPP_105_BUSINESS);
+      putFieldDef(vis, OPP_105_BUSINESS, 2);
       vis.put(VIS_VALUE, VALUE_HEALTH);
-      vis.put(VIS_CONTENT_COUNT, "2"); // Override default.
       visRootChildren.add(vis);
     }
 
     {
       final ObjectNode vis = mapper.createObjectNode();
-      putFieldDef(vis);
-      vis.put(VIS_CONTENT_ID, OPP_100_BUSINESS);
+      putFieldDef(vis, OPP_100_BUSINESS);
       vis.put(VIS_VALUE, "reg");
       visOperationTypeChildren.add(vis);
     }
@@ -296,16 +289,17 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
         setupPhysicalModel(mapper, noticeSubType, NOTICE_DOCUMENT_TYPE, visualModel);
 
     System.out.println("XML as text:");
-    final String xml = physicalModel.getXmlAsText(false); // Not indented to avoid line breaks.
-    System.out.println(physicalModel.getXmlAsText(true));
+    final String xml = physicalModel.toXmlText(false); // Not indented to avoid line breaks.
+    System.out.println(physicalModel.toXmlText(true));
 
     count(xml, 1, "encoding=\"UTF-8\"");
 
     // Check fields root node.
-    count(xml, 2, "BusinessRegistrationInformationNotice");
     contains(xml, "xmlns=");
+    count(xml, 2, "BusinessRegistrationInformationNotice");
 
-    // TODO it would be more maintainable to use xpath to check the XML instead of pure text.
+    // IDEA it would be more maintainable to use xpath to check the XML instead of pure text.
+    // physicalModel.evaluateXpathForTests("/", "test1");
 
     // Check some metadata.
     count(xml, 1, noticeSubType);
@@ -348,10 +342,11 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     contains(xml, OPP_100_BUSINESS + "\"");
 
     // Test repeatable field OPP-105-Business.
+
     // Ensure the field is indeed repeatable so that the test itself is not broken.
     final FieldsAndNodes fieldsAndNodes = physicalModel.getFieldsAndNodes();
-    assert fieldsAndNodes.getFieldById(OPP_105_BUSINESS).get(KEY_FIELD_REPEATABLE).get(KEY_VALUE)
-        .asBoolean() : OPP_105_BUSINESS + " should be repeatable";
+    assert fieldsAndNodes.isFieldRepeatable(OPP_105_BUSINESS) : OPP_105_BUSINESS
+        + " should be repeatable";
 
     contains(xml, OPP_105_BUSINESS + "\"");
     contains(xml, ">" + VALUE_EDUCATION + "<");

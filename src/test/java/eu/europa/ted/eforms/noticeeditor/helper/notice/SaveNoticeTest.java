@@ -19,13 +19,14 @@ import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 public abstract class SaveNoticeTest {
   // IDEA: reuse some common constants even with notice saver.
 
-  private static final String CODELIST_NOTICE_SUBTYPE = "notice-subtype";
   //
   // UI FORM RELATED.
   //
+  static final String VIS_CHILDREN = VisualModel.VIS_CHILDREN;
   static final String VIS_CONTENT_PARENT_COUNT = VisualModel.VIS_CONTENT_PARENT_COUNT;
   static final String VIS_CONTENT_COUNT = VisualModel.VIS_CONTENT_COUNT;
   static final String VIS_CONTENT_ID = VisualModel.VIS_CONTENT_ID;
+  static final String VIS_FIELD_ID = VisualModel.VIS_FIELD_ID;
   static final String VIS_VALUE = VisualModel.VIS_VALUE;
   static final String VIS_NODE_ID = "visNodeId";
   static final String VIS_FIRST = "-1";
@@ -34,7 +35,16 @@ public abstract class SaveNoticeTest {
   //
   // FIELDS JSON RELATED.
   //
+  private static final String CODELIST_NOTICE_SUBTYPE = "notice-subtype";
+
+  /**
+   * Root node. Root of all other nodes and starting point of the recursion.
+   */
   static final String ND_ROOT = ConceptualModel.ND_ROOT;
+
+  /**
+   * Root extension node, holds some important metadata.
+   */
   static final String ND_ROOT_EXTENSION = ConceptualModel.ND_ROOT_EXTENSION;
 
   static final String KEY_CODE_LIST_ID = "codeListId";
@@ -177,9 +187,9 @@ public abstract class SaveNoticeTest {
     final boolean debug = true; // Adds field ids in the XML.
     final boolean buildFields = true;
     final SchemaInfo schemaInfo = SchemaToolsTest.getTestSchemaInfo();
-    final PhysicalModel pm = PhysicalModel.buildPhysicalModel(conceptualModel, fieldsAndNodes,
-        noticeInfoBySubtype, documentInfoByType, debug, buildFields, schemaInfo);
+    final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptualModel,
+        fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields, schemaInfo);
 
-    return pm;
+    return physicalModel;
   }
 }

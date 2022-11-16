@@ -38,15 +38,12 @@ import eu.europa.ted.eforms.sdk.SdkConstants;
 import net.sf.saxon.lib.NamespaceConstant;
 
 /**
- * The physical model holds the XML representation. This calss also provides static methods to build
- * the physical model from the conceptual model.
+ * The physical model holds the XML representation. This class also provides static methods to build
+ * the physical model from the conceptual model and a method to transform it to XML.
  */
 public class PhysicalModel {
 
   private static final Logger logger = LoggerFactory.getLogger(PhysicalModel.class);
-
-  private final Document domDocument;
-  private final FieldsAndNodes fieldsAndNodes;
 
   /**
    * A special case that we have to solve. HARDCODED.
@@ -54,10 +51,8 @@ public class PhysicalModel {
   static final String NATIONAL = "national";
 
   private static final String NODE_XPATH_RELATIVE = "xpathRelative";
-  private static final String NODE_IDENTIFIER_FIELD_ID = "identifierFieldId";
 
   private static final String FIELD_CODE_LIST_ID = "codeListId";
-  private static final String FIELD_ID_SCHEME = "idScheme";
   private static final String FIELD_TYPE_CODE = "code";
   private static final String FIELD_XPATH_RELATIVE = "xpathRelative";
   private static final String FIELD_TYPE = "type";
@@ -66,28 +61,40 @@ public class PhysicalModel {
   private static final String XML_ATTR_EDITOR_COUNTER_PRNT = "editorCounterPrnt";
   private static final String XML_ATTR_EDITOR_FIELD_ID = "editorFieldId";
   private static final String XML_ATTR_EDITOR_NODE_ID = "editorNodeId";
-  private static final String XML_ATTR_EDITOR_NODE_IDENTIFIER_FIELD_ID = "editorIdentifierFieldId";
-  private static final String XML_ATTR_EDITOR_NODE_IDENTIFIER_FIELD_ID_SCHEME =
-      "editorIdentifierFieldIdScheme";
-  private static final String XML_ATTR_EDITOR_NODE_IDENTIFIER_FIELD_ID_COUNTER =
-      "editorIdentifierFieldIdCounter";
   private static final String XML_ATTR_SCHEME_NAME = "schemeName";
   private static final String XML_ATTR_LIST_NAME = "listName";
 
   private static final String XPATH_REPLACEMENT = "~"; // ONE CHAR ONLY!
 
   /**
-   * For ids like ORG-0001, 0 is used to fill left of 1.
+   * W3C Document Object Model (DOM), holds the XML representation. This can be queried using xpath
+   * and is also easy to serialize.
    */
-  private static final String SCHEME_ID_PADDING_CHAR = "0";
-  /**
-   * For ids like ORG-0001, 0001 is 4 chars total.
-   */
-  private static final int SCHEME_ID_PADDING_SIZE = 4;
+  private final Document domDocument;
 
-  public PhysicalModel(final Document document, final FieldsAndNodes fieldsAndNodes) {
+  private final FieldsAndNodes fieldsAndNodes;
+  private XPath xPathInst;
+
+  public PhysicalModel(final Document document, final XPath xPathInst,
+      final FieldsAndNodes fieldsAndNodes) {
     this.domDocument = document;
     this.fieldsAndNodes = fieldsAndNodes;
+    this.xPathInst = xPathInst;
+  }
+
+  /**
+   * This is provided for convenience for the unit tests.
+   *
+   * Evaluates xpath and returns a nodelist. Note: this works when the required notice values are
+   * present as some xpath may rely on their presence (codes, indicators, ...).
+   *
+   * @param contextElem The XML context element in which the xpath is evaluated
+   * @param xpathExpr The XPath expression relative to the passed context
+   * @param idForError An identifier which is shown in case of errors
+   * @return The result of evaluating the XPath expression as a NodeList
+   */
+  NodeList evaluateXpathForTests(final String xpathExpr, String idForError) {
+    return evaluateXpath(this.xPathInst, this.getDomDocument(), xpathExpr, idForError);
   }
 
   public Document getDomDocument() {
@@ -103,7 +110,7 @@ public class PhysicalModel {
    *
    * @return The XML as text.
    */
-  public String getXmlAsText(final boolean indented) {
+  public String toXmlText(final boolean indented) {
     return EditorXmlUtils.asText(domDocument, indented);
   }
 
@@ -172,13 +179,16 @@ public class PhysicalModel {
     }
 
     // Recursion: start with the concept root.
-    buildPhysicalModelRec(fieldsAndNodes, xmlDoc, conceptModel.getRoot(), xmlDocRoot, debug,
-        buildFields, 0, false, xPathInst);
+    final ConceptTreeNode conceptualModelTreeRootNode = conceptModel.getTreeRootNode();
+    final boolean onlyIfPriority = false;
+    final int depth = 0;
+    buildPhysicalModelRec(fieldsAndNodes, xmlDoc, conceptualModelTreeRootNode, xmlDocRoot, debug,
+        buildFields, depth, onlyIfPriority, xPathInst);
 
     // Reorder the physical model.
     reorderPhysicalModel(xmlDocRoot, xPathInst, schemaInfo);
 
-    return new PhysicalModel(xmlDoc, fieldsAndNodes);
+    return new PhysicalModel(xmlDoc, xPathInst, fieldsAndNodes);
   }
 
   /**
@@ -193,28 +203,31 @@ public class PhysicalModel {
    * @param depth Passed for debugging and logging purposes
    */
   private static void buildPhysicalModelRec(final FieldsAndNodes fieldsAndNodes, final Document doc,
-      final ConceptNode conceptElem, final Element xmlNodeElem, final boolean debug,
+      final ConceptTreeNode conceptElem, final Element xmlNodeElem, final boolean debug,
       final boolean buildFields, final int depth, final boolean onlyIfPriority,
       final XPath xPathInst) {
     Validate.notNull(conceptElem, "conceptElem is null");
-    Validate.notNull(xmlNodeElem, "xmlElem is null, conceptElem=%s", conceptElem.getId());
+    Validate.notNull(xmlNodeElem, "xmlElem is null, conceptElem=%s", conceptElem.getIdUnique());
 
     final String depthStr = StringUtils.leftPad(" ", depth * 4);
     System.out.println(depthStr + " -----------------------");
     System.out.println(depthStr + " BUILD PHYSICAL " + depth);
     System.out.println(depthStr + " -----------------------");
-    System.out.println(depthStr + " " + xmlNodeElem.getTagName() + ", id=" + conceptElem.getId());
+    System.out
+        .println(depthStr + " " + xmlNodeElem.getTagName() + ", id=" + conceptElem.getIdUnique());
 
     // NODES.
-    for (final ConceptNode conceptNode : conceptElem.getConceptNodes()) {
+    int childCounter = 0;
+    for (final ConceptTreeNode conceptNode : conceptElem.getConceptNodes()) {
       buildNodesAndFields(fieldsAndNodes, doc, conceptNode, xPathInst, xmlNodeElem, debug, depth,
-          onlyIfPriority, buildFields);
+          onlyIfPriority, buildFields, childCounter++);
     }
 
     // FIELDS.
-    for (final ConceptField conceptField : conceptElem.getConceptFields()) {
+    childCounter = 0;
+    for (final ConceptTreeField conceptField : conceptElem.getConceptFields()) {
       buildFields(fieldsAndNodes, doc, conceptField, xPathInst, xmlNodeElem, debug, depth,
-          onlyIfPriority, buildFields);
+          onlyIfPriority, buildFields, childCounter++);
     }
 
     // if (debug) {
@@ -239,78 +252,22 @@ public class PhysicalModel {
    * @param depth The current depth level passed for debugging and logging purposes
    * @param onlyIfPriority
    * @param buildFields True if fields have to be built, false otherwise
+   * @param childCounter Current position in the children
    */
   private static void buildNodesAndFields(final FieldsAndNodes fieldsAndNodes, final Document doc,
-      final ConceptNode conceptNode, final XPath xPathInst, final Element xmlNodeElem,
-      final boolean debug, final int depth, boolean onlyIfPriority, final boolean buildFields) {
+      final ConceptTreeNode conceptNode, final XPath xPathInst, final Element xmlNodeElem,
+      final boolean debug, final int depth, boolean onlyIfPriority, final boolean buildFields,
+      final int childCounter) {
 
     final String depthStr = StringUtils.leftPad(" ", depth * 4);
 
     // Get the node meta-data from the SDK.
-    final String nodeId = conceptNode.getId();
+    final String nodeId = conceptNode.getNodeId();
     final JsonNode nodeMeta = fieldsAndNodes.getNodeById(nodeId);
 
     // If a field or node is repeatable, the the XML element to repeat is the first XML
     // element in the xpathRelative.
     final boolean nodeMetaRepeatable = FieldsAndNodes.isNodeRepeatable(nodeMeta);
-
-    //
-    // Handle identifier field id of node.
-    //
-    final Optional<NodeIdentifierFieldId> nodeIdentifierFieldIdOpt;
-    final Optional<String> identifierFieldIdOpt =
-        JsonUtils.getTextOpt(nodeMeta, NODE_IDENTIFIER_FIELD_ID);
-    if (identifierFieldIdOpt.isPresent()) {
-      // Example: "ND-Organization"
-      // "repeatable" : true,
-
-      // "identifierFieldId" : "OPT-200-Organization-Company"
-      final String identifierFieldId = identifierFieldIdOpt.get();
-
-      // Example: get meta info for "OPT-200-Organization-Company"
-      final JsonNode fieldMeta = fieldsAndNodes.getFieldById(identifierFieldId);
-      final String scheme = getTextStrict(fieldMeta, FIELD_ID_SCHEME);
-
-      // TODO tttt get counter value from the form.
-      // NOTE: this is relative to the context as TPO can be inside ORG and both repeat ...
-      // Example: for TPO, we are on the parent, so look for descendants having
-      // XML_ATTR_EDITOR_NODE_IDENTIFIER_FIELD_ID_SCHEME attribute being TPO.
-      // If one is found the last one and the XML_ATTR_EDITOR_NODE_IDENTIFIER_FIELD_ID_COUNTER
-      // count.
-      // Increment the highest count by one.
-      // All of this has to rely on the current context, so on the XML dom.
-      final int counter = 1;
-
-      // xmlNodeElem.get
-      // []
-      // "@" + "XML_ATTR_EDITOR_NODE_IDENTIFIER_FIELD_ID_SCHEME"
-
-      // "@" + "XML_ATTR_EDITOR_NODE_IDENTIFIER_FIELD_ID_COUNTER"
-
-      // NODE PARTS SIZE: 1
-      // NODE PARTS: efac:TouchPoint
-      // tag=efac:TouchPoint
-      // xmlTag=efac:Organization
-      // efac:TouchPoint
-      // ND-Touchpoint, xml=efac:TouchPoint
-      // --------------------------
-      // --- BUILD PHYSICAL 4
-      // --- -----------------------
-      // --- efac:TouchPoint, id=ND-Touchpoint
-      // --- -----------------------
-      // --- BUILD NODES AND FIELDS
-      // --- -----------------------
-      // --- NODE PARTS SIZE: 1
-      // --- NODE PARTS: cac:PostalAddress
-      // --- tag=cac:PostalAddress
-      // --- xmlTag=efac:TouchPoint
-      // --- ND-TouchpointAddress, xml=cac:PostalAddress
-
-      final String id = buildIdWithSchemeAndCount(scheme, counter);
-      nodeIdentifierFieldIdOpt = Optional.of(new NodeIdentifierFieldId(id, scheme, counter));
-    } else {
-      nodeIdentifierFieldIdOpt = Optional.empty();
-    }
 
     final String xpathRel = getTextStrict(nodeMeta, NODE_XPATH_RELATIVE);
     Element previousElem = xmlNodeElem;
@@ -357,17 +314,6 @@ public class PhysicalModel {
         // TODO this may be fixed by TEDEFO-1466
         continue; // Skip this tag.
       }
-
-      if (nodeIdentifierFieldIdOpt.isPresent()) {
-        final NodeIdentifierFieldId nif = nodeIdentifierFieldIdOpt.get();
-        final String idWithCount = nif.getIdWithCount();
-
-        // Modify xpathExpr to find only ORG-0001
-        // Example: [@editorIdentifierFieldId='GLO-0001']
-        final String predicate =
-            String.format("[@%s='%s']", XML_ATTR_EDITOR_NODE_IDENTIFIER_FIELD_ID, idWithCount);
-        xpathExpr = xpathExpr + predicate;
-      }
       foundElements = evaluateXpath(xPathInst, previousElem, xpathExpr, nodeId);
 
       if (foundElements.getLength() > 0) {
@@ -406,7 +352,7 @@ public class PhysicalModel {
     // "xpathRelative" : "cac:CorporateRegistrationScheme/cac:JurisdictionRegionAddress"
     // The element nodeElem is cac:JurisdictionRegionAddress, so it is the node.
     final Element nodeElem = partElem;
-    Validate.notNull(nodeElem, "partElem is null, conceptElem=%s", conceptNode.getId());
+    Validate.notNull(nodeElem, "partElem is null, conceptElem=%s", conceptNode.getIdUnique());
 
     // This could make the XML invalid, this is meant to be read by humans.
     if (debug) {
@@ -419,27 +365,9 @@ public class PhysicalModel {
           Integer.toString(conceptNode.getParentCounter()));
     }
 
-    if (nodeIdentifierFieldIdOpt.isPresent()) {
-      final NodeIdentifierFieldId nif = nodeIdentifierFieldIdOpt.get();
-      nodeElem.setAttribute(XML_ATTR_EDITOR_NODE_IDENTIFIER_FIELD_ID, nif.getIdWithCount());
-      nodeElem.setAttribute(XML_ATTR_EDITOR_NODE_IDENTIFIER_FIELD_ID_SCHEME, nif.getScheme());
-      nodeElem.setAttribute(XML_ATTR_EDITOR_NODE_IDENTIFIER_FIELD_ID_COUNTER,
-          Integer.toString(nif.getCounter()));
-    }
-
     // Build child nodes recursively.
     buildPhysicalModelRec(fieldsAndNodes, doc, conceptNode, nodeElem, debug, buildFields, depth + 1,
         onlyIfPriority, xPathInst);
-  }
-
-  /**
-   * @return An identifier. Example: Padding ORG and 1 would return ORG-0001
-   */
-  private static String buildIdWithSchemeAndCount(final String scheme, final int counter) {
-    final String numStr = Integer.toString(counter);
-    final String padding =
-        StringUtils.leftPad(numStr, SCHEME_ID_PADDING_SIZE, SCHEME_ID_PADDING_CHAR);
-    return scheme + "-" + padding;
   }
 
   /**
@@ -449,12 +377,13 @@ public class PhysicalModel {
    * @param debug special debug mode for humans and unit tests (XML may be invalid)
    * @param depth The current depth level passed for debugging and logging purposes
    * @param onlyIfPriority add only elements that have priority
-   * @param buildFields
+   * @param buildFields If false it will abort (only exists to simplify the code elsewhere)
+   * @param childCounter The current position in the children.
    */
   private static void buildFields(final FieldsAndNodes fieldsAndNodes, final Document doc,
-      final ConceptField conceptField, final XPath xPathInst, final Element xmlNodeElem,
-      final boolean debug, final int depth, final boolean onlyIfPriority,
-      final boolean buildFields) {
+      final ConceptTreeField conceptField, final XPath xPathInst, final Element xmlNodeElem,
+      final boolean debug, final int depth, final boolean onlyIfPriority, final boolean buildFields,
+      final int childCounter) {
 
     if (!buildFields) {
       return;
@@ -464,11 +393,11 @@ public class PhysicalModel {
     // logger.debug("xmlEleme=" + EditorXmlUtils.getNodePath(xmlNodeElem));
 
     final String value = conceptField.getValue();
-    final String fieldId = conceptField.getId();
+    final String fieldId = conceptField.getFieldId();
 
     if (debug) {
       System.out.println("");
-      System.out.println(depthStr + " fieldId=" + fieldId);
+      System.out.println(depthStr + " fieldId=" + fieldId + ", childCounter=" + childCounter);
     }
 
     // Get the field meta-data from the SDK.
@@ -768,7 +697,7 @@ public class PhysicalModel {
    * @param xPathInst The XPath instance (reusable)
    * @param contextElem The XML context element in which the xpath is evaluated
    * @param xpathExpr The XPath expression relative to the passed context
-   * @param idForError
+   * @param idForError An identifier which is shown in case of errors
    * @return The result of evaluating the XPath expression as a NodeList
    */
   static NodeList evaluateXpath(final XPath xPathInst, final Object contextElem,

@@ -86,11 +86,19 @@ public class FieldsAndNodes {
     return prop;
   }
 
-  public static boolean isFieldRepeatable(final JsonNode json) {
-    return getFieldPropertyValueBoolStrict(json, FIELD_REPEATABLE);
+  public boolean isFieldRepeatable(final String fieldId) {
+    return isFieldRepeatable(this.getFieldById(fieldId));
   }
 
-  public static boolean isNodeRepeatable(final JsonNode json) {
-    return JsonUtils.getBoolStrict(json, NODE_REPEATABLE);
+  public boolean isNodeRepeatable(final String nodeId) {
+    return isNodeRepeatable(this.getNodeById(nodeId));
+  }
+
+  public static boolean isFieldRepeatable(final JsonNode fieldMeta) {
+    return getFieldPropertyValueBoolStrict(fieldMeta, FIELD_REPEATABLE);
+  }
+
+  public static boolean isNodeRepeatable(final JsonNode nodeMeta) {
+    return JsonUtils.getBoolStrict(nodeMeta, NODE_REPEATABLE);
   }
 }

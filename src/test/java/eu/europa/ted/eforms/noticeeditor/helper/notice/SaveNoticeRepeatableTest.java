@@ -19,14 +19,15 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  */
 public class SaveNoticeRepeatableTest extends SaveNoticeTest {
 
+  /**
+   * It could be anything for this test dummy, but we will use BRIN.
+   */
   private static final String NOTICE_DOCUMENT_TYPE = "BRIN";
 
   private static final String ND_A = "ND_A";
   private static final String ND_B = "ND_B";
 
-  private static final String BT_FIELD_123 = "BT-field-123";
-
-  private static final String VIS_CHILDREN = VisualModel.VIS_CHILDREN;
+  private static final String BT_FIELD_DUMMY_C_REP = "BT-field-c";
 
   private static VisualModel setupVisualModel(final ObjectMapper mapper,
       final String fakeSdkForTest, final String noticeSubTypeForTest) {
@@ -107,16 +108,13 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
       // Add dummy field in C.
       final ObjectNode visGroupcField1 = mapper.createObjectNode();
       groupcChildren.add(visGroupcField1);
-      putFieldDef(visGroupcField1);
-      visGroupcField1.put(VIS_CONTENT_ID, BT_FIELD_123);
+      putFieldDef(visGroupcField1, BT_FIELD_DUMMY_C_REP);
       visGroupcField1.put(VIS_VALUE, "value-of-field-c1");
 
       final ObjectNode visGroupcField2 = mapper.createObjectNode();
       groupcChildren.add(visGroupcField2);
-      putFieldDef(visGroupcField2);
-      visGroupcField2.put(VIS_CONTENT_ID, BT_FIELD_123);
+      putFieldDef(visGroupcField2, BT_FIELD_DUMMY_C_REP, 2);
       visGroupcField2.put(VIS_VALUE, "value-of-field-c2");
-      visGroupcField2.put(VIS_CONTENT_COUNT, "2"); // Override default.
     }
 
     return new VisualModel(visRoot);
@@ -160,7 +158,7 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     {
       // Add a repeatable field to also cover field repeatability.
       final ObjectNode field = mapper.createObjectNode();
-      fieldById.put(BT_FIELD_123, field);
+      fieldById.put(BT_FIELD_DUMMY_C_REP, field);
       field.put(KEY_PARENT_NODE_ID, ND_ROOT_EXTENSION);
       field.put(KEY_XPATH_ABS, "/*/a/b/c");
       field.put(KEY_XPATH_REL, "c");
@@ -219,7 +217,7 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     final ConceptualModel conceptModel = visualModel.toConceptualModel(fieldsAndNodes);
 
     assertEquals(noticeSubType, conceptModel.getNoticeSubType());
-    assertEquals(ConceptualModel.ND_ROOT, conceptModel.getRoot().getId());
+    assertEquals(ConceptualModel.ND_ROOT, conceptModel.getTreeRootNode().getNodeId());
 
     //
     // BUILD PHYSICAL MODEL.
@@ -228,11 +226,14 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     final boolean buildFields = true;
     final SchemaInfo schemaInfo = SchemaToolsTest.getTestSchemaInfo();
 
-    final PhysicalModel pm = PhysicalModel.buildPhysicalModel(conceptModel, fieldsAndNodes,
-        noticeInfoBySubtype, documentInfoByType, debug, buildFields, schemaInfo);
+    final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptModel,
+        fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields, schemaInfo);
 
-    final String xml = pm.getXmlAsText(false); // Not indented to avoid line breaks.
-    System.out.println(pm.getXmlAsText(true));
+    final String xml = physicalModel.toXmlText(false); // Not indented to avoid line breaks.
+    System.out.println(physicalModel.toXmlText(true));
+
+    // IDEA it would be more maintainable to use xpath to check the XML instead of pure text.
+    // physicalModel.evaluateXpathForTests("/", "test2");
 
     count(xml, 1, "encoding=\"UTF-8\"");
 
@@ -258,13 +259,17 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
 
     // Verify repeatable field.
 
+    // Ensure the field is indeed repeatable so that the test itself is not broken.
+    assert fieldsAndNodes.isFieldRepeatable(BT_FIELD_DUMMY_C_REP) : BT_FIELD_DUMMY_C_REP
+        + " should be repeatable";
+
     // c1
-    count(xml, 1, "editorFieldId=\"BT-field-123\">value-of-field-c1</c>");
-    count(xml, 1, "editorCounterSelf=\"1\" editorFieldId=\"BT-field-123\">value-of-field-c1</c>");
+    count(xml, 1, "editorFieldId=\"BT-field-c\">value-of-field-c1</c>");
+    count(xml, 1, "editorCounterSelf=\"1\" editorFieldId=\"BT-field-c\">value-of-field-c1</c>");
 
     // c2
-    count(xml, 1, "editorFieldId=\"BT-field-123\">value-of-field-c2</c>");
-    count(xml, 1, "editorCounterSelf=\"2\" editorFieldId=\"BT-field-123\">value-of-field-c2</c>");
+    count(xml, 1, "editorFieldId=\"BT-field-c\">value-of-field-c2</c>");
+    count(xml, 1, "editorCounterSelf=\"2\" editorFieldId=\"BT-field-c\">value-of-field-c2</c>");
   }
 
 }

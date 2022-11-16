@@ -4,6 +4,11 @@ import org.apache.commons.lang3.Validate;
 import com.fasterxml.jackson.databind.JsonNode;
 import eu.europa.ted.eforms.noticeeditor.util.GraphvizDotTool;
 
+/**
+ * The conceptual model is an intermediary model that is between the visual and the physical model.
+ * It holds a tree made of node and field instances. The tree items must reference SDK nodes or
+ * fields so that SDK metadata can be retrieved.
+ */
 public class ConceptualModel {
 
   static final String ND_ROOT = "ND-Root";
@@ -19,36 +24,42 @@ public class ConceptualModel {
    */
   public static final String FIELD_ID_NOTICE_SUB_TYPE = "OPP-070-notice";
 
+  /**
+   * The conceptual tree root node.
+   */
+  private final ConceptTreeNode treeRootNode;
 
-  private final ConceptNode rootNode;
-
-  public ConceptualModel(final ConceptNode rootNode) {
-    Validate.isTrue(ND_ROOT.equals(rootNode.getId()));
-    this.rootNode = rootNode;
+  public ConceptualModel(final ConceptTreeNode rootNode) {
+    Validate.isTrue(ND_ROOT.equals(rootNode.getNodeId()));
+    this.treeRootNode = rootNode;
   }
 
-  public ConceptNode getRoot() {
-    return rootNode;
+  public ConceptTreeNode getTreeRootNode() {
+    return treeRootNode;
   }
 
   public String getNoticeSubType() {
     // HARDCODED LOGIC.
-    System.out.println(rootNode);
-    final ConceptNode rootExtension = rootNode.getConceptNodes().stream()
-        .filter(item -> item.getId().equals(ND_ROOT_EXTENSION)).findFirst().get();
+    System.out.println(treeRootNode);
+    final ConceptTreeNode rootExtension = treeRootNode.getConceptNodes().stream()
+        .filter(item -> item.getNodeId().equals(ND_ROOT_EXTENSION)).findFirst().get();
     return rootExtension.getConceptFields().stream()
-        .filter(item -> item.getId().equals(FIELD_ID_NOTICE_SUB_TYPE)).findFirst().get().getValue();
+        .filter(item -> item.getFieldId().equals(FIELD_ID_NOTICE_SUB_TYPE)).findFirst().get()
+        .getValue();
   }
 
   @Override
   public String toString() {
-    return "ConceptualModel [rootNode=" + rootNode + "]";
+    return "ConceptualModel [rootNode=" + treeRootNode + "]";
   }
 
+  /**
+   * This can be used for visualization of the conceptual model tree.
+   */
   public String toDot(final FieldsAndNodes fieldsAndNodes, final boolean includeFields) {
 
     final StringBuilder sb = new StringBuilder();
-    final ConceptNode root = this.getRoot();
+    final ConceptTreeNode root = this.treeRootNode;
     toDotRec(fieldsAndNodes, sb, root, includeFields);
 
     final StringBuilder sbDot = new StringBuilder();
@@ -61,14 +72,14 @@ public class ConceptualModel {
   }
 
   public static void toDotRec(final FieldsAndNodes fieldsAndNodes, final StringBuilder sb,
-      final ConceptNode cn, final boolean includeFields) {
+      final ConceptTreeNode cn, final boolean includeFields) {
     final String cnIdIsNodeId = cn.getNodeId();
-    final String cnIdForDebug = cn.getIdForDebug();
+    final String cnIdUnique = cn.getIdUnique();
 
     // Include nodes in dot file.
-    for (final ConceptNode childNode : cn.getConceptNodes()) {
-      final JsonNode nodeMeta = fieldsAndNodes.getNodeById(childNode.getId());
-      Validate.notNull(nodeMeta, "null for nodeId=%s", childNode.getId());
+    for (final ConceptTreeNode childNode : cn.getConceptNodes()) {
+      final JsonNode nodeMeta = fieldsAndNodes.getNodeById(childNode.getNodeId());
+      Validate.notNull(nodeMeta, "null for nodeId=%s", childNode.getNodeId());
 
       final boolean nodeIsRepeatable = FieldsAndNodes.isNodeRepeatable(nodeMeta);
       final String color =
@@ -76,19 +87,20 @@ public class ConceptualModel {
 
       GraphvizDotTool.appendEdge(cnIdIsNodeId, color,
 
-          cnIdForDebug, childNode.getIdForDebug(), // node -> node
+          cnIdUnique, childNode.getIdUnique(), // concept node -> concept node
 
           sb);
+
       toDotRec(fieldsAndNodes, sb, childNode, includeFields);
     }
 
     // Include fields in dot file?
     if (includeFields) {
       // This makes the tree a lot more bushy and can be hard to read.
-      for (final ConceptField cf : cn.getConceptFields()) {
+      for (final ConceptTreeField cf : cn.getConceptFields()) {
         GraphvizDotTool.appendEdge(cnIdIsNodeId, GraphvizDotTool.COLOR_BLUE,
 
-            cnIdForDebug, cf.getIdForDebug() + "=" + cf.getValue(), // node -> field
+            cnIdUnique, cf.getIdUnique() + "=" + cf.getValue(), // node -> field
 
             sb);
       }

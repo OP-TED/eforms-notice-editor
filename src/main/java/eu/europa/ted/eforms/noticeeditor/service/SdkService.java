@@ -640,7 +640,7 @@ public class SdkService {
         fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields, schemaInfo);
 
     // Build physical model as XML.
-    final String xmlAsText = physicalModel.getXmlAsText(buildFields);
+    final String xmlAsText = physicalModel.toXmlText(buildFields);
     final String filenameForDownload = generateNoticeFilename(noticeUuid, sdkVersion);
     if (responseOpt.isPresent()) {
       serveSdkXmlStringAsDownload(responseOpt.get(), xmlAsText, filenameForDownload);
