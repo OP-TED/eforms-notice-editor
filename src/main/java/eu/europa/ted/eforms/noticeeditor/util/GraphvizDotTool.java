@@ -9,6 +9,10 @@ public class GraphvizDotTool {
   public static final String COLOR_RED = "red";
   public static final String COLOR_BLUE = "blue";
 
+  private GraphvizDotTool() {
+    throw new AssertionError("Utility class.");
+  }
+
   public static void appendEdge(final String label, final String color, final String from,
       final String to, final StringBuilder sb) {
     sb.append(String.format("\"%s\" -> \"%s\"", from, to));

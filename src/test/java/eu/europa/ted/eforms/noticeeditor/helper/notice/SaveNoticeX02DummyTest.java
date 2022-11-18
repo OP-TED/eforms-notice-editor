@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
  * This test parts of X02 as this notice sub type is somewhat simple. This tests field
@@ -72,7 +73,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     visRootChildren.add(visOperationType);
     putGroupDef(visOperationType);
     visOperationType.put(VIS_CONTENT_ID, "the_operation_type");
-    visOperationType.put(VIS_NODE_ID, ND_OPERATION_TYPE);
+    // visOperationType.put(VIS_NODE_ID, ND_OPERATION_TYPE);
     final ArrayNode visOperationTypeChildren = visOperationType.putArray(VIS_CHILDREN);
 
     //
@@ -274,7 +275,9 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
   public void testDummy() throws ParserConfigurationException, IOException {
     final ObjectMapper mapper = new ObjectMapper();
 
-    final String prefixedSdkVersion = "eforms-sdk-" + "1.3.0"; // A dummy 1.3.0, not real 1.3.0
+    // A dummy 1.3.0, not real 1.3.0
+    final SdkVersion sdkVersion = new SdkVersion("1.3.0");
+    final String prefixedSdkVersion = FieldsAndNodes.EFORMS_SDK_PREFIX + sdkVersion.toString();
     final String noticeSubType = "X02"; // A dummy X02, not the real X02 of 1.3.0
 
     //
@@ -286,7 +289,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     // BUILD PHYSICAL MODEL.
     //
     final PhysicalModel physicalModel =
-        setupPhysicalModel(mapper, noticeSubType, NOTICE_DOCUMENT_TYPE, visualModel);
+        setupPhysicalModel(mapper, noticeSubType, NOTICE_DOCUMENT_TYPE, visualModel, sdkVersion);
 
     System.out.println("XML as text:");
     final String xml = physicalModel.toXmlText(false); // Not indented to avoid line breaks.
@@ -314,15 +317,39 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     count(xml, 1, String.format(
         "<cac:BusinessParty editorCounterPrnt=\"1\" editorCounterSelf=\"1\" editorNodeId=\"%s\"",
         ND_BUSINESS_PARTY));
+
+    // OPP-100-Business
+    // TODO in the NTD this is not under a group having ND-OperationType.
+    // This means this kind of node must be created, otherwise the field will be added to the wrong
+    // node.
+    // In the editor demo we will assume the NTDs are correct but that some non-repeating nodes
+    // maybe missing in the NTDs.
+
+    // 0. Do this AFTER the creation of the conceptual model as removal of pure UI groups already
+    // happened.
+    // 1. look at field parentNodeId
+    // 2. if the nodeId of the parent in conceptual mode does not match
+    // ensure it is at least an ancestor of the node and create intermediary nodes in the concept
+    // model, but only if those nodes are non-repeatable, otherwise we have a problem in the NTDs.
+
+    // ND-Root -> ... -> ND-toCreate -> ... -> field
+    // TODO this is the case for this ND-OperationType as it does not appear in the NTD of X02.
+    // TODO remove test group nodeId if they are not present in X02
+    // if it is a repeatable node that is missing then we have a real problem with the NTD itself.
+
     count(xml, 1, String.format(
-        "<efac:NoticePurpose editorCounterPrnt=\"1\" editorCounterSelf=\"1\" editorNodeId=\"%s\"",
-        ND_OPERATION_TYPE));
+        "<efac:NoticePurpose editorCounterPrnt=\"1\" editorCounterSelf=\"1\"", ND_OPERATION_TYPE));
+
+    // count(xml, 1, String.format(
+    // "<efac:NoticePurpose editorCounterPrnt=\"1\" editorCounterSelf=\"1\"",
+    // ND_OPERATION_TYPE));
 
     // It is the same xml tag, but here we can even check the nodeId is originally correct.
     // Without debug true this editor intermediary information would otherwise be lost.
     count(xml, 1, String.format(
         "<cac:PartyLegalEntity editorCounterPrnt=\"1\" editorCounterSelf=\"1\" editorNodeId=\"%s\"",
         ND_EU_ENTITY));
+
     count(xml, 1, String.format(
         "<cac:PartyLegalEntity editorCounterPrnt=\"1\" editorCounterSelf=\"1\" editorNodeId=\"%s\"",
         ND_LOCAL_ENTITY));

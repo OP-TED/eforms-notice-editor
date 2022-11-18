@@ -12,6 +12,10 @@ import org.w3c.dom.Node;
 
 public class EditorXmlUtils {
 
+  private EditorXmlUtils() {
+    throw new AssertionError("Utility class.");
+  }
+
   /**
    * @param doc The document to transform to text
    * @param indented Indent if true

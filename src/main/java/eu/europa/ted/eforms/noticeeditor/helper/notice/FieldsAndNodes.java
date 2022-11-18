@@ -7,9 +7,11 @@ import org.apache.commons.lang3.Validate;
 import com.fasterxml.jackson.databind.JsonNode;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.sdk.SdkConstants;
+import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
- * Equivalent to the SDK "fields.json".
+ * Holds JSON data of the SDK "fields.json" file. Reuse this after construction. As with all SDK
+ * data this is associated with an SDK version.
  */
 public class FieldsAndNodes {
 
@@ -19,15 +21,32 @@ public class FieldsAndNodes {
   private static final String FIELD_REPEATABLE = "repeatable";
   private static final String NODE_REPEATABLE = "repeatable";
 
+  public static final String EFORMS_SDK_PREFIX = "eforms-sdk-";
+
   private final Map<String, JsonNode> fieldById;
   private final Map<String, JsonNode> nodeById;
+
+  /**
+   * The SDK version this data is associated to.
+   */
+  private final SdkVersion sdkVersion;
 
   /**
    * This constructor is meant to be used to read from fields.json data.
    *
    * @param fieldsJsonRoot The root of the SDK fields.json file
    */
-  public FieldsAndNodes(final JsonNode fieldsJsonRoot) {
+  public FieldsAndNodes(final JsonNode fieldsJsonRoot, final SdkVersion expectedSdkVersion) {
+
+    final SdkVersion sdkVersionFound = parseSdkVersion(fieldsJsonRoot);
+    if (!expectedSdkVersion.equals(sdkVersionFound)) {
+      // Sanity check.
+      throw new RuntimeException(
+          String.format("The SDK version does not match, expected %s but found %s",
+              expectedSdkVersion, sdkVersionFound));
+    }
+    this.sdkVersion = sdkVersionFound;
+
     // SDK nodes.
     {
       final JsonNode nodes = fieldsJsonRoot.get(SdkConstants.FIELDS_JSON_XML_STRUCTURE_KEY);
@@ -47,14 +66,22 @@ public class FieldsAndNodes {
       }
       this.fieldById = Collections.unmodifiableMap(fieldsMap);
     }
+
+    Validate.notEmpty(fieldById);
+    Validate.notEmpty(nodeById);
   }
 
   /**
    * This constructor is meant to be used by unit tests.
    */
-  FieldsAndNodes(final Map<String, JsonNode> fieldById, final Map<String, JsonNode> nodeById) {
+  FieldsAndNodes(final Map<String, JsonNode> fieldById, final Map<String, JsonNode> nodeById,
+      final SdkVersion sdkVersion) {
+    Validate.notNull(sdkVersion);
+    Validate.notEmpty(fieldById);
+    Validate.notEmpty(nodeById);
     this.fieldById = fieldById;
     this.nodeById = nodeById;
+    this.sdkVersion = sdkVersion;
   }
 
   public JsonNode getFieldById(final String fieldId) {
@@ -67,6 +94,16 @@ public class FieldsAndNodes {
     final JsonNode jsonNode = nodeById.get(nodeId);
     Validate.notNull(jsonNode, "Node not found for id=%s", nodeId);
     return jsonNode;
+  }
+
+  public SdkVersion getSdkVersion() {
+    return sdkVersion;
+  }
+
+  private static SdkVersion parseSdkVersion(final JsonNode fieldsJsonRoot) {
+    // Example: "sdkVersion" : "eforms-sdk-1.3.2",
+    final String text = fieldsJsonRoot.get("sdkVersion").asText(null);
+    return new SdkVersion(text.substring(EFORMS_SDK_PREFIX.length()));
   }
 
   public static boolean getFieldPropertyValueBoolStrict(final JsonNode json, final String propKey) {

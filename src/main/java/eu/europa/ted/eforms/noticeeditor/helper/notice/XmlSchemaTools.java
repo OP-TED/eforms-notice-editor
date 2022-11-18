@@ -20,14 +20,23 @@ import org.apache.ws.commons.schema.XmlSchemaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SchemaTools {
-  private static final Logger logger = LoggerFactory.getLogger(SchemaTools.class);
+/**
+ * Helper.
+ */
+public class XmlSchemaTools {
+  private static final Logger logger = LoggerFactory.getLogger(XmlSchemaTools.class);
 
-  public static SchemaInfo getSchemaInfo(final Path pathToXsd, final String rootTagName)
+  private XmlSchemaTools() {
+    throw new AssertionError("Utility class.");
+  }
+
+  public static XmlSchemaInfo getSchemaInfo(final Path pathToXsd, final String rootTagName)
       throws IOException {
     logger.debug("Attempting to read schema info (xsd).");
     // try {
     try (InputStream is = Files.newInputStream(pathToXsd)) {
+
+      // TODO look into this later.
 
       final XmlSchemaCollection schemaCol = new XmlSchemaCollection();
       // final DocumentBuilder build =
@@ -61,7 +70,7 @@ public class SchemaTools {
 
       final List<String> rootOrder = getSequenceTagNamesAsList(type);
 
-      return new SchemaInfo(rootOrder);
+      return new XmlSchemaInfo(rootOrder);
       // } catch (ParserConfigurationException e) {
       // throw new RuntimeException(e);
       // } catch (SAXException e) {

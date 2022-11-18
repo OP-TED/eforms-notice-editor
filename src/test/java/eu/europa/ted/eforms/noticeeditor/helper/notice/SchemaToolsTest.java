@@ -17,7 +17,7 @@ public class SchemaToolsTest {
   @SuppressWarnings("static-method")
   @Test
   public void readXsdUsingApacheXmlSchemaTest() throws IOException {
-    final SchemaInfo schemaInfo = getTestSchemaInfo();
+    final XmlSchemaInfo schemaInfo = getTestSchemaInfo();
     final List<String> rootOrder = schemaInfo.getRootOrder();
     for (final String item : rootOrder) {
       System.out.println(item);
@@ -26,10 +26,10 @@ public class SchemaToolsTest {
     assertTrue(rootOrder.contains("efac:NoticeSubType"));
   }
 
-  public static SchemaInfo getTestSchemaInfo() throws IOException {
+  public static XmlSchemaInfo getTestSchemaInfo() throws IOException {
     final Path pathToXsd = Path.of(TEST_XSD);
     final String rootTagName = "BusinessRegistrationInformationNotice";
-    final SchemaInfo schemaInfo = SchemaTools.getSchemaInfo(pathToXsd, rootTagName);
+    final XmlSchemaInfo schemaInfo = XmlSchemaTools.getSchemaInfo(pathToXsd, rootTagName);
     return schemaInfo;
   }
 

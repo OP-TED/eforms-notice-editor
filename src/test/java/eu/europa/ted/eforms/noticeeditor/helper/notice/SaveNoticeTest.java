@@ -12,9 +12,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
+import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
- * Abstract, common code for testing the notice saver.
+ * Abstract, common code for testing the save notice to XML.
  */
 public abstract class SaveNoticeTest {
   // IDEA: reuse some common constants even with notice saver.
@@ -143,7 +144,7 @@ public abstract class SaveNoticeTest {
   }
 
   protected PhysicalModel setupPhysicalModel(final ObjectMapper mapper, final String noticeSubType,
-      final String documentType, final VisualModel visModel)
+      final String documentType, final VisualModel visModel, final SdkVersion sdkVersion)
       throws IOException, ParserConfigurationException {
     //
     // NODES like in fields.json
@@ -178,7 +179,7 @@ public abstract class SaveNoticeTest {
     //
     // BUILD CONCEPTUAL MODEL.
     //
-    final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldById, nodeById);
+    final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldById, nodeById, sdkVersion);
     final ConceptualModel conceptualModel = visModel.toConceptualModel(fieldsAndNodes);
 
     //
@@ -186,7 +187,7 @@ public abstract class SaveNoticeTest {
     //
     final boolean debug = true; // Adds field ids in the XML.
     final boolean buildFields = true;
-    final SchemaInfo schemaInfo = SchemaToolsTest.getTestSchemaInfo();
+    final XmlSchemaInfo schemaInfo = SchemaToolsTest.getTestSchemaInfo();
     final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptualModel,
         fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields, schemaInfo);
 

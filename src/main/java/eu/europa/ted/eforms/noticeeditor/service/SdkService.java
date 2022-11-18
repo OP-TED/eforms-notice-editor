@@ -53,7 +53,7 @@ import eu.europa.ted.eforms.noticeeditor.helper.notice.ConceptualModel;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.DocumentTypeInfo;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.PhysicalModel;
-import eu.europa.ted.eforms.noticeeditor.helper.notice.SchemaInfo;
+import eu.europa.ted.eforms.noticeeditor.helper.notice.XmlSchemaInfo;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.VisualModel;
 import eu.europa.ted.eforms.noticeeditor.util.IntuitiveStringComparator;
 import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
@@ -593,7 +593,7 @@ public class SdkService {
     final SdkVersion sdkVersion = new SdkVersion(sdkVersionStr);
 
     final JsonNode fieldsJson = readSdkJsonFile(sdkVersion, SdkResource.FIELDS, SDK_FIELDS_JSON);
-    final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldsJson);
+    final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldsJson, sdkVersion);
     final VisualModel visualModel = new VisualModel(visualRoot);
 
     final JsonNode noticeTypesJson =
@@ -631,7 +631,7 @@ public class SdkService {
     final Path sdkXsdPath = readSdkPath(sdkVersion, SdkResource.SCHEMAS_MAINDOC, sdkXsdFile);
     // final String rootElementTagName = docTypeInfo.getRootElementTagName();
     // final SchemaInfo schemaInfo = SchemaTools.getSchemaInfo(sdkXsdPath, rootElementTagName);
-    final SchemaInfo schemaInfo = new SchemaInfo(new ArrayList<>());
+    final XmlSchemaInfo schemaInfo = new XmlSchemaInfo(new ArrayList<>());
 
     // Build physical model.
     final boolean debug = true;

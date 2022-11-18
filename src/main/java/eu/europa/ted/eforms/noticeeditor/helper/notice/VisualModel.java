@@ -11,9 +11,16 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 
 /**
- * Visual model.
+ * Visual model (VM).
  *
- * Wrapper around the representation of the form data.
+ * <p>
+ * Wrapper around the JSON representation of the form data. Vis is be used as a shorthand for
+ * visual.
+ * </p>
+ * <p>
+ * NOTE: the Jackson xyzNode objects are not related to the SDK node concept, it is just that the
+ * term "node" is commonly used for items of a tree (tree nodes) and that JSON data is hierarchical.
+ * </p>
  */
 public class VisualModel {
 
@@ -29,8 +36,8 @@ public class VisualModel {
   static final String VIS_NODE_ID = "visNodeId";
 
   static final String VIS_VALUE = "value";
-
   static final String VIS_TYPE = "type";
+
   private static final String VIS_TYPE_FIELD = "field";
   private static final String VIS_TYPE_GROUP = "group";
 
@@ -41,18 +48,13 @@ public class VisualModel {
 
   /**
    * @param visRoot The visual model as JSON, usually set from a user interface.
-   * @param fieldsAndNodes
    */
   public VisualModel(final JsonNode visRoot) {
     final String rootNodeId = JsonUtils.getTextStrict(visRoot, VIS_NODE_ID);
     final String expected = ConceptualModel.ND_ROOT;
     Validate.isTrue(expected.equals(rootNodeId), "Visual model root must be %s", expected);
     this.visRoot = visRoot;
-    this.getNoticeSubType(); // This must not crash.
-  }
-
-  public JsonNode getVisRoot() {
-    return this.visRoot;
+    this.getNoticeSubTypeStrict(); // This must not crash.
   }
 
   /**
@@ -82,6 +84,9 @@ public class VisualModel {
     vis.put(VIS_CONTENT_PARENT_COUNT, 1); // TODO fix this or remove it?
   }
 
+  /**
+   * Common code which can be used in unit tests. It is placed here as it is about the visual model.
+   */
   public static ArrayNode setupVisualRootForTest(final ObjectMapper mapper,
       final String fakeSdkForTest, final String noticeSubTypeForTest, final ObjectNode visRoot) {
 
@@ -119,15 +124,23 @@ public class VisualModel {
     return visRootChildren;
   }
 
-
-  public String getNoticeSubType() {
-    final JsonNode rootExt = findByNodeId(visRoot, ConceptualModel.ND_ROOT_EXTENSION);
-    final JsonNode noticeSubJson = findByFieldId(rootExt, ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE);
+  /**
+   * @return The notice sub type, otherwise an exception is thrown
+   */
+  public String getNoticeSubTypeStrict() {
+    final JsonNode rootExt = findByNodeIdStrict(visRoot, ConceptualModel.ND_ROOT_EXTENSION);
+    final JsonNode noticeSubJson =
+        findByFieldIdStrict(rootExt, ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE);
     return JsonUtils.getTextStrict(noticeSubJson, VIS_VALUE);
   }
 
-  private static JsonNode findByNodeId(final JsonNode toSearch, final String nodeId) {
-    // HARDCODED LOGIC.
+  /**
+   * @param toSearch The json item to be searched into
+   * @param nodeId The node id to find
+   *
+   * @return the json of the node, an exception is thrown if not found
+   */
+  private static JsonNode findByNodeIdStrict(final JsonNode toSearch, final String nodeId) {
     final ArrayNode visChildren = (ArrayNode) toSearch.get(VIS_CHILDREN);
     for (final JsonNode searched : visChildren) {
       final JsonNode nodeIdJsonMaybeNull = searched.get(VIS_NODE_ID);
@@ -141,8 +154,13 @@ public class VisualModel {
     throw new RuntimeException(String.format("Node id=%s not found in visual model!", nodeId));
   }
 
-  private static JsonNode findByFieldId(final JsonNode toSearch, final String fieldId) {
-    // HARDCODED LOGIC.
+  /**
+   * @param toSearch The json item to be searched into
+   * @param fieldId The field id to find
+   *
+   * @return the json of the field, an exception is thrown if not found
+   */
+  private static JsonNode findByFieldIdStrict(final JsonNode toSearch, final String fieldId) {
     final ArrayNode visChildren = (ArrayNode) toSearch.get(VIS_CHILDREN);
     for (final JsonNode searched : visChildren) {
       final String fieldIdCurrent = searched.get(VIS_FIELD_ID).asText(null);
@@ -150,19 +168,21 @@ public class VisualModel {
         return searched;
       }
     }
-    throw new RuntimeException(String.format("Content id=%s not found in visual model!", fieldId));
+    throw new RuntimeException(String.format("Field id=%s not found in visual model!", fieldId));
   }
 
   /**
    * Build the conceptual model from the visual model.
    *
-   * @param visRoot The root of the visual model
-   * @return The conceptual model
+   * @param fieldsAndNodes Field and node metadata
+   * @return The conceptual model for this visual model
    */
   public ConceptualModel toConceptualModel(final FieldsAndNodes fieldsAndNodes) {
     logger.info("Attempting to build conceptual model from visual model.");
 
     final int childCounter = 1;
+
+    // This is located in this class as most of the code is about reading the visual model.
     final Optional<ConceptTreeItem> conceptItemOpt =
         parseVisualModelRec(fieldsAndNodes, visRoot, null, childCounter);
     if (!conceptItemOpt.isPresent()) {
@@ -170,7 +190,7 @@ public class VisualModel {
     }
     final ConceptTreeNode rootNode = (ConceptTreeNode) conceptItemOpt.get();
 
-    // TODO more work is required for the full metadata.
+    // TODO more work is required for the full metadata (see with realistic X02) !?
 
     return new ConceptualModel(rootNode);
   }
@@ -209,8 +229,10 @@ public class VisualModel {
       // This is a node.
       final JsonNode nodeIdItem = jsonItem.get(VIS_NODE_ID);
       if (nodeIdItem == null) {
-
         // This is a group which has no nodeId.
+        // This group is used purely to group fields visually in the UI (visual model).
+        // We could call this a purely visual group.
+        // The conceptual model must ignore this group but keep the content.
         // In that case we want the children to be moved up to the nearest parent node, flattening
         // the tree.
         final JsonNode maybeNull = jsonItem.get(VIS_CHILDREN);
@@ -241,6 +263,8 @@ public class VisualModel {
 
       // Not a leaf of the tree: recursion on children:
       final JsonNode maybeNull = jsonItem.get(VIS_CHILDREN);
+      // Could be null depending on how the JSON is serialized (not present, thus null if the array
+      // is empty).
       if (maybeNull != null) {
         final ArrayNode visChildren = (ArrayNode) maybeNull;
         for (final JsonNode visChild : visChildren) {

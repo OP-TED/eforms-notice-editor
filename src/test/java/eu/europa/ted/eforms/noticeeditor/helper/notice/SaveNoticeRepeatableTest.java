@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
  * A test with focus on repeatability, including nested repeatable groups.
@@ -172,7 +173,9 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
   @Test
   public final void test() throws IOException, ParserConfigurationException {
     final ObjectMapper mapper = new ObjectMapper();
-    final String prefixedSdkVersion = "eforms-sdk-" + "1.3.0"; // A dummy 1.3.0, not real 1.3.0
+    // A dummy 1.3.0, not real 1.3.0
+    final SdkVersion sdkVersion = new SdkVersion("1.3.0");
+    final String prefixedSdkVersion = FieldsAndNodes.EFORMS_SDK_PREFIX + sdkVersion.toString();
     final String noticeSubType = "X02"; // A dummy X02, not the real X02 of 1.3.0
 
     //
@@ -213,7 +216,7 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     //
     // BUILD CONCEPTUAL MODEL.
     //
-    final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldById, nodeById);
+    final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldById, nodeById, sdkVersion);
     final ConceptualModel conceptModel = visualModel.toConceptualModel(fieldsAndNodes);
 
     assertEquals(noticeSubType, conceptModel.getNoticeSubType());
@@ -224,7 +227,7 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     //
     final boolean debug = true; // Adds field ids in the XML.
     final boolean buildFields = true;
-    final SchemaInfo schemaInfo = SchemaToolsTest.getTestSchemaInfo();
+    final XmlSchemaInfo schemaInfo = SchemaToolsTest.getTestSchemaInfo();
 
     final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptModel,
         fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields, schemaInfo);

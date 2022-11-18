@@ -5,9 +5,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import eu.europa.ted.eforms.noticeeditor.util.GraphvizDotTool;
 
 /**
- * The conceptual model is an intermediary model that is between the visual and the physical model.
- * It holds a tree made of node and field instances. The tree items must reference SDK nodes or
- * fields so that SDK metadata can be retrieved.
+ * The conceptual model (CM) is an intermediary model that is between the visual and the physical
+ * model. It holds a tree made of node and field instances. The tree items must reference SDK nodes
+ * or fields so that SDK metadata can be retrieved.
  */
 public class ConceptualModel {
 

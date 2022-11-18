@@ -7,6 +7,9 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Secure document builder.
+ */
 public class SafeDocumentBuilder {
   private static final Logger logger = LoggerFactory.getLogger(SafeDocumentBuilder.class);
 

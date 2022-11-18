@@ -6,7 +6,7 @@ import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.sdk.SdkConstants;
 
 /**
- * Abstraction around the json data of the document type information.
+ * Abstraction around the JSON data of the document type information.
  */
 public class DocumentTypeInfo {
   private final JsonNode jsonItem;

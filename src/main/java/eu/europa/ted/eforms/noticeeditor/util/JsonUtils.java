@@ -10,6 +10,9 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+/**
+ * Helper for Jackson JSON construction and reading (get).
+ */
 public class JsonUtils {
 
   private JsonUtils() {
@@ -41,10 +44,8 @@ public class JsonUtils {
     return getStandardJacksonObjectMapper().createArrayNode();
   }
 
-
-  public static String marshall(final Object obj) throws JsonProcessingException {
-    final ObjectMapper objectMapper = getStandardJacksonObjectMapper();
-    return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
+  public static ArrayNode createArrayNode(final ObjectNode objectNode, final String key) {
+    return objectNode.putArray(key);
   }
 
   public static int getIntStrict(final JsonNode json, final String key) {
@@ -88,5 +89,10 @@ public class JsonUtils {
       return Optional.empty();
     }
     return Optional.of(text);
+  }
+
+  public static String marshall(final Object obj) throws JsonProcessingException {
+    final ObjectMapper objectMapper = getStandardJacksonObjectMapper();
+    return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
   }
 }
