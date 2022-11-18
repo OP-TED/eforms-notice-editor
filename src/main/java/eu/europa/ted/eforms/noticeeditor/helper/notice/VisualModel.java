@@ -230,61 +230,52 @@ public class VisualModel {
           jsonItem.get(VIS_VALUE).asText(null), counter, parentCounter);
 
       final JsonNode sdkFieldMeta = fieldsAndNodes.getFieldById(sdkFieldId);
+
+      // We found a field.
+      // But is the current concept hierarchy matching the hierarchy found in the SDK fields.json?
       final String sdkParentNodeId =
           JsonUtils.getTextStrict(sdkFieldMeta, FieldsAndNodes.FIELD_PARENT_NODE_ID);
 
       if (!closestParentNode.getNodeId().equals(sdkParentNodeId)) {
-        final JsonNode sdkParentNodeOfField = fieldsAndNodes.getNodeById(sdkParentNodeId);
-        if (FieldsAndNodes.isNodeRepeatable(sdkParentNodeOfField)) {
-          // If the SDK says the parentNodeId is repeatable and is missing in the visual model we
-          // have a serious problem!
+        // The parents do not match.
+
+        final JsonNode sdkParentNode = fieldsAndNodes.getNodeById(sdkParentNodeId);
+        if (FieldsAndNodes.isNodeRepeatable(sdkParentNode)) {
+          // The SDK says the desired parentNodeId is repeatable and is missing in the visual model,
+          // thus we have a serious problem!
           throw new RuntimeException(String.format(
               "Problem in visual node hierarchy, fieldId=%s is not included in the correct parent. Expecting %s but found %s",
               sdkFieldId, sdkParentNodeId, closestParentNode.getNodeId()));
         }
 
-        // Create the missing node.
+        // The SDK says the desired parent node is not repeatable or "non-repeatable". We can
+        // tolerate that the visual model does not point to it (or not yet) and generate it as this
+        // is not problematic in the visual model in this case. Ideally we want the full SDK node
+        // chain to be present in the correct order in the conceptual model.
+        // ND-Root -> ... -> ... -> otherConceptualNode -> The field (leaf)
         final Optional<ConceptTreeNode> cnOpt =
             closestParentNode.findFirstByConceptNodeId(sdkParentNodeId);
         final ConceptTreeNode cn;
         if (cnOpt.isPresent()) {
+          // Reuse existing conceptual node.
           cn = cnOpt.get();
         } else {
-          // TODO what if more than one intermediary node is missing.
-          // ND-Root -> ... -> closestParentNode -> missingNode -> ... -> field
-          cn = new ConceptTreeNode(sdkParentNodeId + VIS_FIRST, sdkParentNodeId, 1, 1);
+          // Create and add the missing conceptual node.
+          // Generate missing conceptual node.
+          // IDEA what if more than one intermediary nodes are missing? For now we will assume that
+          // this is not the case.
+          // ND-Root -> ... -> closestParentNode -> newConceptNode -> ... -> field
+          // By convention we will add "-generated" to these generated concept nodes.
+          cn = new ConceptTreeNode(sdkParentNodeId + VIS_FIRST + "-generated", sdkParentNodeId, 1,
+              1);
           closestParentNode.addConceptNode(cn);
         }
 
-        // Always add the field.
+        // Always add the current field.
         cn.addConceptField(field);
 
         return Optional.empty();
       }
-      // closestParentNode
-      // Find out if intermediary nodes must be created.
-
-      // This means this kind of node must be created, otherwise the field will be added to the
-      // wrong node.
-      // In the editor demo we will assume the NTDs are correct but that some non-repeating nodes
-      // maybe missing in the NTDs.
-
-      // 0. Do this AFTER the creation of the conceptual model as removal of pure UI groups
-      // already
-      // happened.
-      // 1. look at field parentNodeId
-      // 2. if the nodeId of the parent in conceptual mode does not match
-      // ensure it is at least an ancestor of the node and create intermediary nodes in the
-      // concept
-      // model, but only if those nodes are non-repeatable, otherwise we have a problem in the
-      // NTDs.
-
-      // ND-Root -> ... -> ND-toCreate -> ... -> field
-      // TODO this is the case for this ND-OperationType as it does not appear in the NTD of X02.
-      // TODO remove test group nodeId if they are not present in X02
-      // if it is a repeatable node that is missing then we have a real problem with the NTD
-      // itself.
-
       return Optional.of(field); // Leaf of tree: just return.
     }
 

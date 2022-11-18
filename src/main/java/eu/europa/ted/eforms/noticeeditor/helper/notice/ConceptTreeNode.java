@@ -30,9 +30,18 @@ public class ConceptTreeNode extends ConceptTreeItem {
   }
 
   public Optional<ConceptTreeNode> findFirstByConceptNodeId(final String nodeId) {
-    for (final ConceptTreeNode cn : this.conceptNodes) {
-      if (cn.getNodeId().equals(nodeId)) {
-        return Optional.of(cn);
+    return findFirstByConceptNodeIdRec(this, nodeId);
+  }
+
+  private static final Optional<ConceptTreeNode> findFirstByConceptNodeIdRec(
+      final ConceptTreeNode cn, String nodeId) {
+    if (cn.getNodeId().equals(nodeId)) {
+      return Optional.of(cn);
+    }
+    for (final ConceptTreeNode cnChild : cn.conceptNodes) {
+      final Optional<ConceptTreeNode> cnOpt = findFirstByConceptNodeIdRec(cnChild, nodeId);
+      if (cnOpt.isPresent()) {
+        return cnOpt;
       }
     }
     return Optional.empty();

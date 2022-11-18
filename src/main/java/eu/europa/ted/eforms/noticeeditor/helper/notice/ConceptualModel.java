@@ -6,8 +6,16 @@ import eu.europa.ted.eforms.noticeeditor.util.GraphvizDotTool;
 
 /**
  * The conceptual model (CM) is an intermediary model that is between the visual and the physical
- * model. It holds a tree made of node and field instances. The tree items must reference SDK nodes
- * or fields so that SDK metadata can be retrieved.
+ * model. It holds a tree made of conceptual node and conceptual field instances.
+ * <p>
+ * In this model the tree items must reference SDK nodes or fields so that SDK metadata can be
+ * retrieved!
+ * </p>
+ * <p>
+ * There are no tree items which do not point to SDK field or node, so if a visual group is not
+ * pointing to a node all the children must be moved to the closes parent which points to a node in
+ * the conceptual hierarchy. In other words this is one step closer to the physical representation.
+ * </p>
  */
 public class ConceptualModel {
 
@@ -25,7 +33,7 @@ public class ConceptualModel {
   public static final String FIELD_ID_NOTICE_SUB_TYPE = "OPP-070-notice";
 
   /**
-   * The conceptual tree root node.
+   * The root node of the conceptual model.
    */
   private final ConceptTreeNode treeRootNode;
 
@@ -54,7 +62,8 @@ public class ConceptualModel {
   }
 
   /**
-   * This can be used for visualization of the conceptual model tree.
+   * This can be used for visualization of the conceptual model tree (as a graph). The graphviz dot
+   * text itself is interesting but it makes even more sense when seen inside a tool.
    */
   public String toDot(final FieldsAndNodes fieldsAndNodes, final boolean includeFields) {
 
@@ -71,7 +80,13 @@ public class ConceptualModel {
     return sbDot.toString();
   }
 
-  public static void toDotRec(final FieldsAndNodes fieldsAndNodes, final StringBuilder sb,
+  /**
+   * Recursively create DOT format text and append it to the string builder (sb).
+   *
+   * @param fieldsAndNodes SDK field and node metadata
+   * @param includeFields If true include fields in the graph, otherwise do not
+   */
+  private static void toDotRec(final FieldsAndNodes fieldsAndNodes, final StringBuilder sb,
       final ConceptTreeNode cn, final boolean includeFields) {
     final String cnIdUnique = cn.getIdUnique();
     final String edgeLabel = cn.getNodeId();

@@ -160,7 +160,7 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
       // Add a repeatable field to also cover field repeatability.
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(BT_FIELD_DUMMY_C_REP, field);
-      field.put(KEY_PARENT_NODE_ID, ND_ROOT_EXTENSION);
+      field.put(KEY_PARENT_NODE_ID, ND_B);
       field.put(KEY_XPATH_ABS, "/*/a/b/c");
       field.put(KEY_XPATH_REL, "c");
       field.put(KEY_TYPE, TYPE_TEXT);
@@ -259,6 +259,7 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     count(xml, 3, "editorNodeId=\"ND_B\""); // 3 in total
     count(xml, 2, "editorCounterSelf=\"1\" editorNodeId=\"ND_B\"");
     count(xml, 1, "editorCounterSelf=\"2\" editorNodeId=\"ND_B\"");
+    count(xml, 1, "<b editorCounterPrnt=\"1\" editorCounterSelf=\"1\" editorNodeId=\"ND_B\">");
 
     // Verify repeatable field.
 
