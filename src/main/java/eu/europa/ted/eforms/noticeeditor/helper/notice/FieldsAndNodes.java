@@ -18,6 +18,8 @@ public class FieldsAndNodes {
   private static final String FIELD_ID_KEY = "id";
   private static final String NODE_ID_KEY = "id";
 
+  static final String FIELD_PARENT_NODE_ID = "parentNodeId";
+
   private static final String FIELD_REPEATABLE = "repeatable";
   private static final String NODE_REPEATABLE = "repeatable";
 

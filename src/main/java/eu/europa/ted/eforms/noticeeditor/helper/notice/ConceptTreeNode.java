@@ -2,6 +2,7 @@ package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -26,6 +27,15 @@ public class ConceptTreeNode extends ConceptTreeItem {
       throw new RuntimeException(
           String.format("Unexpected item type for concept item=%s", item.getIdUnique()));
     }
+  }
+
+  public Optional<ConceptTreeNode> findFirstByConceptNodeId(final String nodeId) {
+    for (final ConceptTreeNode cn : this.conceptNodes) {
+      if (cn.getNodeId().equals(nodeId)) {
+        return Optional.of(cn);
+      }
+    }
+    return Optional.empty();
   }
 
   /**

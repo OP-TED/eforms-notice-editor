@@ -319,24 +319,8 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
         ND_BUSINESS_PARTY));
 
     // OPP-100-Business
-    // TODO in the NTD this is not under a group having ND-OperationType.
-    // This means this kind of node must be created, otherwise the field will be added to the wrong
-    // node.
-    // In the editor demo we will assume the NTDs are correct but that some non-repeating nodes
-    // maybe missing in the NTDs.
-
-    // 0. Do this AFTER the creation of the conceptual model as removal of pure UI groups already
-    // happened.
-    // 1. look at field parentNodeId
-    // 2. if the nodeId of the parent in conceptual mode does not match
-    // ensure it is at least an ancestor of the node and create intermediary nodes in the concept
-    // model, but only if those nodes are non-repeatable, otherwise we have a problem in the NTDs.
-
-    // ND-Root -> ... -> ND-toCreate -> ... -> field
-    // TODO this is the case for this ND-OperationType as it does not appear in the NTD of X02.
-    // TODO remove test group nodeId if they are not present in X02
-    // if it is a repeatable node that is missing then we have a real problem with the NTD itself.
-
+    // TODO in the NTD this is not under a group having ND-OperationType. Which is probably OK as
+    // this node is not repeatable.
     count(xml, 1, String.format(
         "<efac:NoticePurpose editorCounterPrnt=\"1\" editorCounterSelf=\"1\"", ND_OPERATION_TYPE));
 

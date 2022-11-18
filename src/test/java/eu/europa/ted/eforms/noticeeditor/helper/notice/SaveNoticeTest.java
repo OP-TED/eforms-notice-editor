@@ -30,8 +30,8 @@ public abstract class SaveNoticeTest {
   static final String VIS_FIELD_ID = VisualModel.VIS_FIELD_ID;
   static final String VIS_VALUE = VisualModel.VIS_VALUE;
   static final String VIS_NODE_ID = "visNodeId";
-  static final String VIS_FIRST = "-1";
-  static final String VIS_SECOND = "-2";
+  static final String VIS_FIRST = VisualModel.VIS_FIRST;
+  static final String VIS_SECOND = VisualModel.VIS_SECOND;
 
   //
   // FIELDS JSON RELATED.
