@@ -18,18 +18,15 @@ public abstract class ConceptTreeItem {
   protected final String idInSdkFieldsJson;
 
   private final int counter;
-  private final int parentCounter;
 
   protected ConceptTreeItem(final String idUnique, final String idInSdkFieldsJson,
-      final int counter, final int parentCounter) {
+      final int counter) {
     Validate.notBlank(idUnique, "idUnique of concept node is blank");
     Validate.notBlank(idInSdkFieldsJson, "idInSdkFieldsJson of concept node is blank");
     Validate.isTrue(counter >= 1);
-    Validate.isTrue(parentCounter >= 1);
     this.idUnique = idUnique;
     this.idInSdkFieldsJson = idInSdkFieldsJson;
     this.counter = counter;
-    this.parentCounter = parentCounter;
   }
 
   /**
@@ -37,10 +34,6 @@ public abstract class ConceptTreeItem {
    */
   public String getIdUnique() {
     return idUnique;
-  }
-
-  public int getParentCounter() {
-    return parentCounter;
   }
 
   public int getCounter() {

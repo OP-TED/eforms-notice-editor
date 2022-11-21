@@ -124,16 +124,16 @@ public class SaveNoticeFillingTest extends SaveNoticeTest {
   @Override
   protected Map<String, JsonNode> setupFieldsJsonFields(final ObjectMapper mapper) {
     final Map<String, JsonNode> fieldById = super.setupFieldsJsonFields(mapper);
-    {
-      // Add a repeatable field to also cover field repeatability.
-      final ObjectNode field = mapper.createObjectNode();
-      fieldById.put(BT_FIELD_DUMMY_Z, field);
-      field.put(KEY_PARENT_NODE_ID, ND_Y);
-      field.put(KEY_XPATH_ABS, "/*/x/y/z");
-      field.put(KEY_XPATH_REL, "z");
-      field.put(KEY_TYPE, TYPE_TEXT);
-      SaveNoticeTest.fieldPutRepeatable(field, true);
-    }
+
+    // Add a repeatable field to also cover field repeatability.
+    final ObjectNode field = mapper.createObjectNode();
+    fieldById.put(BT_FIELD_DUMMY_Z, field);
+    field.put(KEY_PARENT_NODE_ID, ND_Y);
+    field.put(KEY_XPATH_ABS, "/*/x/y/z");
+    field.put(KEY_XPATH_REL, "z");
+    field.put(KEY_TYPE, TYPE_TEXT);
+    SaveNoticeTest.fieldPutRepeatable(field, true);
+
     return fieldById;
   }
 
@@ -205,17 +205,7 @@ public class SaveNoticeFillingTest extends SaveNoticeTest {
     // IDEA it would be more maintainable to use xpath to check the XML instead of pure text.
     // physicalModel.evaluateXpathForTests("/", "test2");
 
-    count(xml, 1, "encoding=\"UTF-8\"");
-
-    // Check fields root node.
-    contains(xml, "xmlns=");
-
-    // Check some metadata.
-    count(xml, 1, noticeSubType);
-    count(xml, 1, prefixedSdkVersion);
-
-    count(xml, 1, "<cbc:CustomizationID");
-    count(xml, 1, "<cbc:SubTypeCode");
+    checkCommon(prefixedSdkVersion, noticeSubType, xml);
 
     // Verify nodes.
     // x

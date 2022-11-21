@@ -17,9 +17,8 @@ public class ConceptTreeNode extends ConceptTreeItem {
    * @param idUnique A unique id, at least unique at the level of the siblings
    * @param idInSdkFieldsJson The id of the item in the SDK fields.json
    */
-  public ConceptTreeNode(final String idUnique, final String idInSdkFieldsJson, final int counter,
-      final int parentCounter) {
-    super(idUnique, idInSdkFieldsJson, counter, parentCounter);
+  public ConceptTreeNode(final String idUnique, final String idInSdkFieldsJson, final int counter) {
+    super(idUnique, idInSdkFieldsJson, counter);
   }
 
   /**

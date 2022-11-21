@@ -8,8 +8,8 @@ public class ConceptTreeField extends ConceptTreeItem {
   private final String value;
 
   public ConceptTreeField(final String idUnique, final String idInSdkFieldsJson, final String value,
-      final int counter, final int parentCounter) {
-    super(idUnique, idInSdkFieldsJson, counter, parentCounter);
+      final int counter) {
+    super(idUnique, idInSdkFieldsJson, counter);
     this.value = value; // The value may or may not be blank, we cannot validate it here.
   }
 

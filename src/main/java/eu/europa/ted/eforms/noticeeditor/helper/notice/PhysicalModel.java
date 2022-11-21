@@ -58,7 +58,6 @@ public class PhysicalModel {
   private static final String FIELD_TYPE = "type";
 
   private static final String XML_ATTR_EDITOR_COUNTER_SELF = "editorCounterSelf";
-  private static final String XML_ATTR_EDITOR_COUNTER_PRNT = "editorCounterPrnt";
   private static final String XML_ATTR_EDITOR_FIELD_ID = "editorFieldId";
   private static final String XML_ATTR_EDITOR_NODE_ID = "editorNodeId";
   private static final String XML_ATTR_SCHEME_NAME = "schemeName";
@@ -369,9 +368,6 @@ public class PhysicalModel {
 
       nodeElem.setAttribute(XML_ATTR_EDITOR_COUNTER_SELF,
           Integer.toString(conceptNode.getCounter())); // SIDE-EFFECT!
-
-      nodeElem.setAttribute(XML_ATTR_EDITOR_COUNTER_PRNT,
-          Integer.toString(conceptNode.getParentCounter())); // SIDE-EFFECT!
     }
 
     // Build child nodes recursively.
@@ -523,9 +519,6 @@ public class PhysicalModel {
 
       fieldElem.setAttribute(XML_ATTR_EDITOR_COUNTER_SELF,
           Integer.toString(conceptField.getCounter()));
-
-      fieldElem.setAttribute(XML_ATTR_EDITOR_COUNTER_PRNT,
-          Integer.toString(conceptField.getParentCounter()));
     }
 
     if (onlyIfPriority && StringUtils.isBlank(fieldElem.getAttribute(XML_ATTR_SCHEME_NAME))) {

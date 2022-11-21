@@ -193,4 +193,19 @@ public abstract class SaveNoticeTest {
 
     return physicalModel;
   }
+
+  static void checkCommon(final String prefixedSdkVersion, final String noticeSubType,
+      final String xml) {
+    count(xml, 1, "encoding=\"UTF-8\"");
+
+    // Check fields root node.
+    contains(xml, " xmlns=");
+
+    // Check some metadata.
+    count(xml, 1, ">" + noticeSubType + "<");
+    count(xml, 1, ">" + prefixedSdkVersion + "<");
+
+    count(xml, 1, "<cbc:CustomizationID");
+    count(xml, 1, "<cbc:SubTypeCode");
+  }
 }

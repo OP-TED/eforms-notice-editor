@@ -295,47 +295,36 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     final String xml = physicalModel.toXmlText(false); // Not indented to avoid line breaks.
     System.out.println(physicalModel.toXmlText(true));
 
-    count(xml, 1, "encoding=\"UTF-8\"");
-
-    // Check fields root node.
-    contains(xml, "xmlns=");
-    count(xml, 2, "BusinessRegistrationInformationNotice");
-
     // IDEA it would be more maintainable to use xpath to check the XML instead of pure text.
     // physicalModel.evaluateXpathForTests("/", "test1");
 
     // Check some metadata.
-    count(xml, 1, noticeSubType);
-    count(xml, 1, prefixedSdkVersion);
-    count(xml, 1, "<cbc:CustomizationID");
-    count(xml, 1, "<cbc:SubTypeCode");
+    checkCommon(prefixedSdkVersion, noticeSubType, xml);
+
+    count(xml, 2, "BusinessRegistrationInformationNotice");
 
     // Check nodes.
     count(xml, 1, "<BusinessRegistrationInformationNotice");
     count(xml, 1, "<ext:UBLExtensions>");
 
-    count(xml, 1, String.format(
-        "<cac:BusinessParty editorCounterPrnt=\"1\" editorCounterSelf=\"1\" editorNodeId=\"%s\"",
+    count(xml, 1, String.format("<cac:BusinessParty editorCounterSelf=\"1\" editorNodeId=\"%s\"",
         ND_BUSINESS_PARTY));
 
     // OPP-100-Business
     // TODO in the NTD this is not under a group having ND-OperationType. Which is probably OK as
     // this node is not repeatable.
-    count(xml, 1, String.format(
-        "<efac:NoticePurpose editorCounterPrnt=\"1\" editorCounterSelf=\"1\"", ND_OPERATION_TYPE));
+    count(xml, 1, String.format("<efac:NoticePurpose editorCounterSelf=\"1\"", ND_OPERATION_TYPE));
 
     // count(xml, 1, String.format(
-    // "<efac:NoticePurpose editorCounterPrnt=\"1\" editorCounterSelf=\"1\"",
+    // "<efac:NoticePurpose editorCounterSelf=\"1\"",
     // ND_OPERATION_TYPE));
 
     // It is the same xml tag, but here we can even check the nodeId is originally correct.
     // Without debug true this editor intermediary information would otherwise be lost.
-    count(xml, 1, String.format(
-        "<cac:PartyLegalEntity editorCounterPrnt=\"1\" editorCounterSelf=\"1\" editorNodeId=\"%s\"",
+    count(xml, 1, String.format("<cac:PartyLegalEntity editorCounterSelf=\"1\" editorNodeId=\"%s\"",
         ND_EU_ENTITY));
 
-    count(xml, 1, String.format(
-        "<cac:PartyLegalEntity editorCounterPrnt=\"1\" editorCounterSelf=\"1\" editorNodeId=\"%s\"",
+    count(xml, 1, String.format("<cac:PartyLegalEntity editorCounterSelf=\"1\" editorNodeId=\"%s\"",
         ND_LOCAL_ENTITY));
 
     // Check fields.

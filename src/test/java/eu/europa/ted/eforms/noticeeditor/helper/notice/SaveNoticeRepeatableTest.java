@@ -157,16 +157,16 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
   @Override
   protected Map<String, JsonNode> setupFieldsJsonFields(final ObjectMapper mapper) {
     final Map<String, JsonNode> fieldById = super.setupFieldsJsonFields(mapper);
-    {
-      // Add a repeatable field to also cover field repeatability.
-      final ObjectNode field = mapper.createObjectNode();
-      fieldById.put(BT_FIELD_DUMMY_C_REP, field);
-      field.put(KEY_PARENT_NODE_ID, ND_B);
-      field.put(KEY_XPATH_ABS, "/*/a/b/c");
-      field.put(KEY_XPATH_REL, "c");
-      field.put(KEY_TYPE, TYPE_TEXT);
-      SaveNoticeTest.fieldPutRepeatable(field, true);
-    }
+
+    // Add a repeatable field to also cover field repeatability.
+    final ObjectNode field = mapper.createObjectNode();
+    fieldById.put(BT_FIELD_DUMMY_C_REP, field);
+    field.put(KEY_PARENT_NODE_ID, ND_B);
+    field.put(KEY_XPATH_ABS, "/*/a/b/c");
+    field.put(KEY_XPATH_REL, "c");
+    field.put(KEY_TYPE, TYPE_TEXT);
+    SaveNoticeTest.fieldPutRepeatable(field, true);
+
     return fieldById;
   }
 
@@ -204,7 +204,7 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
       final ObjectNode info = mapper.createObjectNode();
       info.put("namespace",
           "http://data.europa.eu/p27/eforms-business-registration-information-notice/1");
-      info.put("rootElement", "bla");
+      info.put("rootElement", "zzz");
       documentInfoByType.put(NOTICE_DOCUMENT_TYPE, info);
     }
 
@@ -238,14 +238,7 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     // IDEA it would be more maintainable to use xpath to check the XML instead of pure text.
     // physicalModel.evaluateXpathForTests("/", "test2");
 
-    count(xml, 1, "encoding=\"UTF-8\"");
-
-    // Check fields root node.
-    contains(xml, "xmlns=");
-
-    // Check some metadata.
-    count(xml, 1, noticeSubType);
-    count(xml, 1, prefixedSdkVersion);
+    checkCommon(prefixedSdkVersion, noticeSubType, xml);
 
     count(xml, 1, "<cbc:CustomizationID");
     count(xml, 1, "<cbc:SubTypeCode");
@@ -259,7 +252,7 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     count(xml, 3, "editorNodeId=\"ND_B\""); // 3 in total
     count(xml, 2, "editorCounterSelf=\"1\" editorNodeId=\"ND_B\"");
     count(xml, 1, "editorCounterSelf=\"2\" editorNodeId=\"ND_B\"");
-    count(xml, 1, "<b editorCounterPrnt=\"1\" editorCounterSelf=\"1\" editorNodeId=\"ND_B\">");
+    count(xml, 1, "<b editorCounterSelf=\"1\" editorNodeId=\"ND_B\">");
 
     // Verify repeatable field.
 

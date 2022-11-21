@@ -237,7 +237,7 @@ public class VisualModel {
     // Try to create an intermediary node in the conceptual model.
     // -> closestParent -> cnNew -> cn
     final ConceptTreeNode cnNew =
-        new ConceptTreeNode(nodeParentId + VIS_FIRST + "-generated", nodeParentId, 1, 1);
+        new ConceptTreeNode(nodeParentId + VIS_FIRST + "-generated", nodeParentId, 1);
     cnNew.addConceptNode(cn);
 
     // There may be more to add, recursion:
@@ -257,7 +257,6 @@ public class VisualModel {
     Validate.notNull(jsonItem, "jsonNode is null, jsonNode=%s", jsonItem);
 
     final int counter = jsonItem.get(VIS_CONTENT_COUNT).asInt(-1);
-    final int parentCounter = jsonItem.get(VIS_CONTENT_PARENT_COUNT).asInt(-1);
 
     final String visualType = JsonUtils.getTextStrict(jsonItem, VIS_TYPE);
     if (visualType == VIS_TYPE_FIELD) {
@@ -269,8 +268,8 @@ public class VisualModel {
       final String sdkFieldId = JsonUtils.getTextStrict(jsonItem, VIS_FIELD_ID);
       // final String idUnique = idInSdkFieldsJson + "-" + childCounter;
       final String idUnique = jsonItem.get(VIS_CONTENT_ID).asText(null);
-      final ConceptTreeField conceptField = new ConceptTreeField(idUnique, sdkFieldId,
-          jsonItem.get(VIS_VALUE).asText(null), counter, parentCounter);
+      final ConceptTreeField conceptField =
+          new ConceptTreeField(idUnique, sdkFieldId, jsonItem.get(VIS_VALUE).asText(null), counter);
 
       final JsonNode sdkFieldMeta = fieldsAndNodes.getFieldById(sdkFieldId);
 
@@ -309,8 +308,7 @@ public class VisualModel {
           // this is not the case.
           // ND-Root -> ... -> closestParentNode -> newConceptNode -> ... -> field
           // By convention we will add "-generated" to these generated concept nodes.
-          cn = new ConceptTreeNode(sdkParentNodeId + VIS_FIRST + "-generated", sdkParentNodeId, 1,
-              1);
+          cn = new ConceptTreeNode(sdkParentNodeId + VIS_FIRST + "-generated", sdkParentNodeId, 1);
 
           // See unit test about filling to fully understand this.
           // closestParentNode.addConceptNode(cn); // NO: there may be more items to fill in.
@@ -366,8 +364,7 @@ public class VisualModel {
       // final String idUnique = idInSdkFieldsJson + "-" + childCounter;
       final String idUnique = jsonItem.get(VIS_CONTENT_ID).asText(null);
       final ConceptTreeNode conceptNode =
-          new ConceptTreeNode(idUnique, sdkNodeId, jsonItem.get(VIS_CONTENT_COUNT).asInt(-1),
-              jsonItem.get(VIS_CONTENT_PARENT_COUNT).asInt(-1));
+          new ConceptTreeNode(idUnique, sdkNodeId, jsonItem.get(VIS_CONTENT_COUNT).asInt(-1));
 
       // Not a leaf of the tree: recursion on children:
       final JsonNode maybeNull = jsonItem.get(VIS_CHILDREN);
