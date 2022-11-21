@@ -1,7 +1,6 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 import static eu.europa.ted.eforms.noticeeditor.helper.notice.VisualModel.putFieldDef;
-import static eu.europa.ted.eforms.noticeeditor.helper.notice.VisualModel.putGroupDef;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
 import java.util.Collections;
@@ -16,19 +15,19 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
- * A test with focus on repeatability, including nested repeatable groups.
+ * A test with focus on the filling in of non-repeating intermediary conceptual nodes.
  */
-public class SaveNoticeRepeatableTest extends SaveNoticeTest {
+public class SaveNoticeFillingTest extends SaveNoticeTest {
 
   /**
    * It could be anything for this test dummy, but we will use BRIN.
    */
   private static final String NOTICE_DOCUMENT_TYPE = "BRIN";
 
-  private static final String ND_A = "ND_A";
-  private static final String ND_B = "ND_B";
+  private static final String ND_X = "ND_X";
+  private static final String ND_Y = "ND_Y";
 
-  private static final String BT_FIELD_DUMMY_C_REP = "BT-field-c";
+  private static final String BT_FIELD_DUMMY_Z = "BT-field-z";
 
   private static VisualModel setupVisualModel(final ObjectMapper mapper,
       final String fakeSdkForTest, final String noticeSubTypeForTest) {
@@ -47,76 +46,44 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     // On the right is the node id (without the GR- prefix to simplify):
     // X -> Y "means X has child Y and Y is child of X"
 
-    // THE_CONTENT -> A1
-    // A1 -> A1-B1
-    // A1 -> A1-B2
-
-    // THE_CONTENT -> A2
-    // A2 -> A2-B1
-
     // ---------------------------
-    // A1.
+    // X Y Z
     // ---------------------------
+    // X (non-repeating group) -> Y (non-repeating group) -> Z (field)
     {
-      final ObjectNode visGroupA1 = mapper.createObjectNode();
-      visRootChildren.add(visGroupA1);
-      putGroupDef(visGroupA1);
-      visGroupA1.put(VIS_CONTENT_ID, "GR-A1");
-      visGroupA1.put(VIS_NODE_ID, ND_A);
-      final ArrayNode a1Children = visGroupA1.putArray(VIS_CHILDREN);
+      // IMPORTANT: even if the visual model is missing non-repeating nodes they will be added to
+      // the conceptual model.
+      // In practice this happens with a lot of fields because the visual model does not have to
+      // strictly follow the SDK node hierarchy, except for repeatability.
+      // When non-repeatable nodes are involved the only thing to be respected is their order (from
+      // root to field).
+      // In this dummy test example we deliberately omit two consecutive non-repeatable nodes.
+      // This means the field Z is directly attached to the root even if there could be X -> Y (or
+      // just X or just Y, but not Y -> X).
+      // The code building the conceptual model will automatically insert them to fill-in the gaps.
 
-      final ObjectNode visGroupB1 = mapper.createObjectNode();
-      a1Children.add(visGroupB1);
-      putGroupDef(visGroupB1);
-      visGroupB1.put(VIS_CONTENT_ID, "GR-A1-B1");
-      visGroupB1.put(VIS_NODE_ID, ND_B);
+      // final ObjectNode visGroupX = mapper.createObjectNode();
+      // visRootChildren.add(visGroupX);
+      // VisualModel.putGroupDef(visGroupX);
+      // visGroupX.put(VIS_CONTENT_ID, "GR-X");
+      // visGroupX.put(VIS_NODE_ID, ND_X);
+      // visGroupX.put(VIS_CONTENT_COUNT, "1"); // Override default.
+      // final ArrayNode xChildren = visGroupX.putArray(VIS_CHILDREN);
+      //
+      // // Add Y in X.
+      // final ObjectNode visGroupY = mapper.createObjectNode();
+      // xChildren.add(visGroupY);
+      // VisualModel.putGroupDef(visGroupY);
+      // visGroupY.put(VIS_CONTENT_ID, "GR-X-Y");
+      // visGroupY.put(VIS_NODE_ID, ND_Y);
+      // final ArrayNode yChildren = visGroupY.putArray(VIS_CHILDREN);
 
-      final ObjectNode visGroupB2 = mapper.createObjectNode();
-      a1Children.add(visGroupB2);
-      putGroupDef(visGroupB2);
-      visGroupB2.put(VIS_CONTENT_ID, "GR-A1-B2");
-      visGroupB2.put(VIS_NODE_ID, ND_B);
-      visGroupB2.put(VIS_CONTENT_COUNT, "2"); // Override default.
-    }
-
-    // ---------------------------
-    // A2.
-    // ---------------------------
-    {
-      final ObjectNode visGroupA2 = mapper.createObjectNode();
-      visRootChildren.add(visGroupA2);
-      putGroupDef(visGroupA2);
-      visGroupA2.put(VIS_CONTENT_ID, "GR-A2");
-      visGroupA2.put(VIS_NODE_ID, ND_A);
-      visGroupA2.put(VIS_CONTENT_COUNT, "2"); // Override default.
-      final ArrayNode a2Children = visGroupA2.putArray(VIS_CHILDREN);
-
-      // Add B1 in A2.
-      final ObjectNode visGroupB1 = mapper.createObjectNode();
-      a2Children.add(visGroupB1);
-      putGroupDef(visGroupB1);
-      visGroupB1.put(VIS_CONTENT_ID, "GR-A2-B1");
-      visGroupB1.put(VIS_NODE_ID, ND_B);
-      final ArrayNode b1Children = visGroupB1.putArray(VIS_CHILDREN);
-
-      // Add C in A2 B1.
-      final ObjectNode visGroupC = mapper.createObjectNode();
-      b1Children.add(visGroupC);
-      putGroupDef(visGroupC);
-      visGroupC.put(VIS_CONTENT_ID, "GR-A2-B1-C1");
-      final ArrayNode groupcChildren = visGroupC.putArray(VIS_CHILDREN);
-
-      // Add dummy field in C.
-      final ObjectNode visFieldC1 = mapper.createObjectNode();
-      groupcChildren.add(visFieldC1);
-      putFieldDef(visFieldC1, BT_FIELD_DUMMY_C_REP);
-      visFieldC1.put(VIS_VALUE, "value-of-field-c1");
-
-      // Add another dummy field in C.
-      final ObjectNode visFieldC2 = mapper.createObjectNode();
-      groupcChildren.add(visFieldC2);
-      putFieldDef(visFieldC2, BT_FIELD_DUMMY_C_REP, 2);
-      visFieldC2.put(VIS_VALUE, "value-of-field-c2");
+      // Add dummy field Z in Y.
+      final ObjectNode vis = mapper.createObjectNode();
+      visRootChildren.add(vis);
+      // yChildren.add(vis);
+      putFieldDef(vis, BT_FIELD_DUMMY_Z);
+      vis.put(VIS_VALUE, "value-of-field-z");
     }
 
     return new VisualModel(visRoot);
@@ -132,19 +99,19 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     final Map<String, JsonNode> nodeById = super.setupFieldsJsonXmlStructureNodes(mapper);
     {
       final ObjectNode node = mapper.createObjectNode();
-      nodeById.put(ND_A, node);
+      nodeById.put(ND_X, node);
       node.put(KEY_NODE_PARENT_ID, ND_ROOT);
-      node.put(KEY_XPATH_ABS, "/*/a");
-      node.put(KEY_XPATH_REL, "a");
-      SaveNoticeTest.fieldPutRepeatable(node, false);
+      node.put(KEY_XPATH_ABS, "/*/x");
+      node.put(KEY_XPATH_REL, "x");
+      SaveNoticeTest.fieldPutRepeatable(node, false); // NON-REPEATABLE!
     }
     {
       final ObjectNode node = mapper.createObjectNode();
-      nodeById.put(ND_B, node);
-      node.put(KEY_NODE_PARENT_ID, ND_ROOT);
-      node.put(KEY_XPATH_ABS, "/*/a/b");
-      node.put(KEY_XPATH_REL, "b");
-      SaveNoticeTest.fieldPutRepeatable(node, false);
+      nodeById.put(ND_Y, node);
+      node.put(KEY_NODE_PARENT_ID, ND_X);
+      node.put(KEY_XPATH_ABS, "/*/x/y");
+      node.put(KEY_XPATH_REL, "y");
+      SaveNoticeTest.fieldPutRepeatable(node, false); // NON-REPEATABLE TOO!
     }
     return Collections.unmodifiableMap(nodeById);
   }
@@ -160,10 +127,10 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     {
       // Add a repeatable field to also cover field repeatability.
       final ObjectNode field = mapper.createObjectNode();
-      fieldById.put(BT_FIELD_DUMMY_C_REP, field);
-      field.put(KEY_PARENT_NODE_ID, ND_B);
-      field.put(KEY_XPATH_ABS, "/*/a/b/c");
-      field.put(KEY_XPATH_REL, "c");
+      fieldById.put(BT_FIELD_DUMMY_Z, field);
+      field.put(KEY_PARENT_NODE_ID, ND_Y);
+      field.put(KEY_XPATH_ABS, "/*/x/y/z");
+      field.put(KEY_XPATH_REL, "z");
       field.put(KEY_TYPE, TYPE_TEXT);
       SaveNoticeTest.fieldPutRepeatable(field, true);
     }
@@ -250,30 +217,18 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     count(xml, 1, "<cbc:CustomizationID");
     count(xml, 1, "<cbc:SubTypeCode");
 
-    // Verify repeatable nodes at top level.
-    count(xml, 2, "<a");
-    count(xml, 2, "editorNodeId=\"ND_A\"");
+    // Verify nodes.
+    // x
+    count(xml, 1, "<x"); // 1 in total
+    count(xml, 1, "editorNodeId=\"ND_X\"");
 
-    // Verify nested repeatable nodes.
-    count(xml, 3, "<b"); // 3 in total
-    count(xml, 3, "editorNodeId=\"ND_B\""); // 3 in total
-    count(xml, 2, "editorCounterSelf=\"1\" editorNodeId=\"ND_B\"");
-    count(xml, 1, "editorCounterSelf=\"2\" editorNodeId=\"ND_B\"");
-    count(xml, 1, "<b editorCounterPrnt=\"1\" editorCounterSelf=\"1\" editorNodeId=\"ND_B\">");
+    // y
+    count(xml, 1, "<y"); // 1 in total
+    count(xml, 1, "editorNodeId=\"ND_Y\"");
 
-    // Verify repeatable field.
-
-    // Ensure the field is indeed repeatable so that the test itself is not broken.
-    assert fieldsAndNodes.isFieldRepeatable(BT_FIELD_DUMMY_C_REP) : BT_FIELD_DUMMY_C_REP
-        + " should be repeatable";
-
-    // c1
-    count(xml, 1, "editorFieldId=\"BT-field-c\">value-of-field-c1</c>");
-    count(xml, 1, "editorCounterSelf=\"1\" editorFieldId=\"BT-field-c\">value-of-field-c1</c>");
-
-    // c2
-    count(xml, 1, "editorFieldId=\"BT-field-c\">value-of-field-c2</c>");
-    count(xml, 1, "editorCounterSelf=\"2\" editorFieldId=\"BT-field-c\">value-of-field-c2</c>");
+    // Verify field z.
+    count(xml, 1, "editorFieldId=\"BT-field-z\">value-of-field-z</z>");
+    count(xml, 1, "editorCounterSelf=\"1\" editorFieldId=\"BT-field-z\">value-of-field-z</z>");
   }
 
 }

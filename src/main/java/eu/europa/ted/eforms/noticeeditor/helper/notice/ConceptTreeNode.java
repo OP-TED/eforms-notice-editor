@@ -13,11 +13,18 @@ public class ConceptTreeNode extends ConceptTreeItem {
   private final List<ConceptTreeField> conceptFields = new ArrayList<>();
   private final List<ConceptTreeNode> conceptNodes = new ArrayList<>();
 
+  /**
+   * @param idUnique A unique id, at least unique at the level of the siblings
+   * @param idInSdkFieldsJson The id of the item in the SDK fields.json
+   */
   public ConceptTreeNode(final String idUnique, final String idInSdkFieldsJson, final int counter,
       final int parentCounter) {
     super(idUnique, idInSdkFieldsJson, counter, parentCounter);
   }
 
+  /**
+   * @param item The item to add.
+   */
   public final void addConceptItem(final ConceptTreeItem item) {
     if (item instanceof ConceptTreeNode) {
       addConceptNode((ConceptTreeNode) item);

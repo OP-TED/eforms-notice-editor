@@ -48,6 +48,7 @@ public class VisualModel {
   static final String VIS_FIRST = "-1";
   static final String VIS_SECOND = "-2";
 
+  static final String NODE_PARENT_ID = "parentId";
 
   /**
    * As we use a web UI the data is received as JSON. We work directly on this JSON tree model.
@@ -202,6 +203,48 @@ public class VisualModel {
   }
 
   /**
+   * Fills in the gaps by adding non-repeatable nodes to the concept model. Filling. See unit test
+   * about filling to fully understand this.
+   *
+   * @param fieldsAndNodes SDK meta info
+   * @param closestParentNode This is the closest parent node we have in the model
+   * @param cn The current conceptual node
+   */
+  private static void addIntermediaryNonRepeatingNodesRec(final FieldsAndNodes fieldsAndNodes,
+      final ConceptTreeNode closestParentNode, final ConceptTreeNode cn) {
+    if (closestParentNode.getNodeId().equals(cn.getNodeId())) {
+      // cn is the closest parent, stop.
+      return;
+    }
+    final JsonNode nodeMeta = fieldsAndNodes.getNodeById(cn.getNodeId());
+    final String nodeParentId = JsonUtils.getTextStrict(nodeMeta, NODE_PARENT_ID);
+    if (nodeParentId.equals(closestParentNode.getNodeId())) {
+      // The closestParent is the parent, just attach it and stop.
+      // -> closestParent -> cn
+      closestParentNode.addConceptNode(cn);
+      return;
+    }
+
+    final JsonNode nodeParentMeta = fieldsAndNodes.getNodeById(nodeParentId);
+    if (FieldsAndNodes.isNodeRepeatable(nodeParentMeta)) {
+      // The SDK says the desired parentNodeId is repeatable and is missing in the
+      // visual model, thus we have a serious problem!
+      throw new RuntimeException(
+          String.format("Problem in visual node hierarchy, unexpected missing repeatable nodeId=%s",
+              nodeParentId));
+    }
+    // The parent is not the closest parent we know about and it is not repeatable.
+    // Try to create an intermediary node in the conceptual model.
+    // -> closestParent -> cnNew -> cn
+    final ConceptTreeNode cnNew =
+        new ConceptTreeNode(nodeParentId + VIS_FIRST + "-generated", nodeParentId, 1, 1);
+    cnNew.addConceptNode(cn);
+
+    // There may be more to add, recursion:
+    addIntermediaryNonRepeatingNodesRec(fieldsAndNodes, closestParentNode, cnNew);
+  }
+
+  /**
    * Visit the tree of the visual model and build the visual model. Depth-first order, recursive.
    *
    * @param jsonItem The current visual json item
@@ -226,7 +269,7 @@ public class VisualModel {
       final String sdkFieldId = JsonUtils.getTextStrict(jsonItem, VIS_FIELD_ID);
       // final String idUnique = idInSdkFieldsJson + "-" + childCounter;
       final String idUnique = jsonItem.get(VIS_CONTENT_ID).asText(null);
-      final ConceptTreeField field = new ConceptTreeField(idUnique, sdkFieldId,
+      final ConceptTreeField conceptField = new ConceptTreeField(idUnique, sdkFieldId,
           jsonItem.get(VIS_VALUE).asText(null), counter, parentCounter);
 
       final JsonNode sdkFieldMeta = fieldsAndNodes.getFieldById(sdkFieldId);
@@ -268,15 +311,18 @@ public class VisualModel {
           // By convention we will add "-generated" to these generated concept nodes.
           cn = new ConceptTreeNode(sdkParentNodeId + VIS_FIRST + "-generated", sdkParentNodeId, 1,
               1);
-          closestParentNode.addConceptNode(cn);
+
+          // See unit test about filling to fully understand this.
+          // closestParentNode.addConceptNode(cn); // NO: there may be more items to fill in.
+          addIntermediaryNonRepeatingNodesRec(fieldsAndNodes, closestParentNode, cn);
         }
 
         // Always add the current field.
-        cn.addConceptField(field);
+        cn.addConceptField(conceptField);
 
         return Optional.empty();
       }
-      return Optional.of(field); // Leaf of tree: just return.
+      return Optional.of(conceptField); // Leaf of tree: just return.
     }
 
     if (visualType == VIS_TYPE_GROUP) {
