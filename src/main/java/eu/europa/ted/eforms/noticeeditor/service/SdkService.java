@@ -639,7 +639,7 @@ public class SdkService {
     final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptModel,
         fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields, schemaInfo);
 
-    // Build physical model as XML.
+    // Transform physical model to XML.
     final String xmlAsText = physicalModel.toXmlText(buildFields);
     final String filenameForDownload = generateNoticeFilename(noticeUuid, sdkVersion);
     if (responseOpt.isPresent()) {

@@ -179,14 +179,9 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     final String rootElementName = "zzz";
     final String namespace =
         "http://data.europa.eu/p27/eforms-business-registration-information-notice/1";
-    //
-    // BUILD VISUAL MODEL.
-    //
+
     final VisualModel visualModel = setupVisualModel(mapper, sdkVersion, noticeSubType);
 
-    //
-    // BUILD PHYSICAL MODEL.
-    //
     final PhysicalModel physicalModel = setupPhysicalModel(mapper, noticeSubType,
         NOTICE_DOCUMENT_TYPE, visualModel, sdkVersion, rootElementName, namespace);
 
