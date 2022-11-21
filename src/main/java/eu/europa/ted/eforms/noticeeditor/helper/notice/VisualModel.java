@@ -66,6 +66,14 @@ public class VisualModel {
     this.getNoticeSubTypeStrict(); // This must not crash.
   }
 
+  public JsonNode getVisRoot() {
+    return this.visRoot;
+  }
+
+  public ArrayNode getVisRootChildren() {
+    return (ArrayNode) this.visRoot.get(VIS_CHILDREN);
+  }
+
   /**
    * Set default field info.
    */

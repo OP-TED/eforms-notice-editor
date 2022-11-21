@@ -1,10 +1,8 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 import static eu.europa.ted.eforms.noticeeditor.helper.notice.VisualModel.putFieldDef;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import javax.xml.parsers.ParserConfigurationException;
 import org.junit.jupiter.api.Test;
@@ -29,13 +27,14 @@ public class SaveNoticeFillingTest extends SaveNoticeTest {
 
   private static final String BT_FIELD_DUMMY_Z = "BT-field-z";
 
-  private static VisualModel setupVisualModel(final ObjectMapper mapper,
-      final String fakeSdkForTest, final String noticeSubTypeForTest) {
+  @Override
+  protected VisualModel setupVisualModel(final ObjectMapper mapper, final SdkVersion sdkVersion,
+      final String noticeSubTypeForTest) {
 
-    // Setup root of the visual model.
-    final ObjectNode visRoot = mapper.createObjectNode();
-    final ArrayNode visRootChildren =
-        VisualModel.setupVisualRootForTest(mapper, fakeSdkForTest, noticeSubTypeForTest, visRoot);
+    final VisualModel visualModel =
+        super.setupVisualModel(mapper, sdkVersion, noticeSubTypeForTest);
+    final JsonNode visRoot = visualModel.getVisRoot();
+    final ArrayNode visRootChildren = visualModel.getVisRootChildren();
 
     //
     // NOTICE CONTENT.
@@ -140,64 +139,19 @@ public class SaveNoticeFillingTest extends SaveNoticeTest {
   @Test
   public final void test() throws IOException, ParserConfigurationException {
     final ObjectMapper mapper = new ObjectMapper();
+
     // A dummy 1.3.0, not real 1.3.0
     final SdkVersion sdkVersion = new SdkVersion("1.3.0");
     final String prefixedSdkVersion = FieldsAndNodes.EFORMS_SDK_PREFIX + sdkVersion.toString();
     final String noticeSubType = "X02"; // A dummy X02, not the real X02 of 1.3.0
+    final String rootElementName = "bla";
+    final String namespace =
+        "http://data.europa.eu/p27/eforms-business-registration-information-notice/1";
 
-    //
-    // NODES like in fields.json
-    //
-    final Map<String, JsonNode> nodeById = setupFieldsJsonXmlStructureNodes(mapper);
+    final VisualModel visualModel = setupVisualModel(mapper, sdkVersion, noticeSubType);
 
-    //
-    // FIELDS like in fields.json
-    //
-    final Map<String, JsonNode> fieldById = setupFieldsJsonFields(mapper);
-
-    //
-    // Some data like notice-types.json
-    //
-    // Setup dummy notice-types.json info that we need for the XML generation.
-    final Map<String, JsonNode> noticeInfoBySubtype = new HashMap<>();
-    {
-      final ObjectNode info = mapper.createObjectNode();
-      info.put("documentType", NOTICE_DOCUMENT_TYPE);
-      noticeInfoBySubtype.put(noticeSubType, info);
-    }
-
-    final Map<String, JsonNode> documentInfoByType = new HashMap<>();
-    {
-      final ObjectNode info = mapper.createObjectNode();
-      info.put("namespace",
-          "http://data.europa.eu/p27/eforms-business-registration-information-notice/1");
-      info.put("rootElement", "bla");
-      documentInfoByType.put(NOTICE_DOCUMENT_TYPE, info);
-    }
-
-    //
-    // BUILD VISUAL MODEL.
-    //
-    final VisualModel visualModel = setupVisualModel(mapper, prefixedSdkVersion, noticeSubType);
-
-    //
-    // BUILD CONCEPTUAL MODEL.
-    //
-    final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldById, nodeById, sdkVersion);
-    final ConceptualModel conceptModel = visualModel.toConceptualModel(fieldsAndNodes);
-
-    assertEquals(noticeSubType, conceptModel.getNoticeSubType());
-    assertEquals(ConceptualModel.ND_ROOT, conceptModel.getTreeRootNode().getNodeId());
-
-    //
-    // BUILD PHYSICAL MODEL.
-    //
-    final boolean debug = true; // Adds field ids in the XML.
-    final boolean buildFields = true;
-    final XmlSchemaInfo schemaInfo = SchemaToolsTest.getTestSchemaInfo();
-
-    final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptModel,
-        fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields, schemaInfo);
+    final PhysicalModel physicalModel = setupPhysicalModel(mapper, noticeSubType,
+        NOTICE_DOCUMENT_TYPE, visualModel, sdkVersion, rootElementName, namespace);
 
     final String xml = physicalModel.toXmlText(false); // Not indented to avoid line breaks.
     System.out.println(physicalModel.toXmlText(true));

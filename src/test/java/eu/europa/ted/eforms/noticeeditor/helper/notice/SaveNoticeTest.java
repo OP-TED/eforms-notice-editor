@@ -143,9 +143,21 @@ public abstract class SaveNoticeTest {
     return fieldById;
   }
 
+  @SuppressWarnings("static-method")
+  protected VisualModel setupVisualModel(final ObjectMapper mapper, final SdkVersion sdkVersion,
+      final String noticeSubTypeForTest) {
+    final String prefixedSdkVersion = FieldsAndNodes.EFORMS_SDK_PREFIX + sdkVersion.toString();
+
+    // Setup root of the visual model.
+    final ObjectNode visRoot = mapper.createObjectNode();
+    VisualModel.setupVisualRootForTest(mapper, prefixedSdkVersion, noticeSubTypeForTest, visRoot);
+    return new VisualModel(visRoot);
+  }
+
   protected PhysicalModel setupPhysicalModel(final ObjectMapper mapper, final String noticeSubType,
-      final String documentType, final VisualModel visModel, final SdkVersion sdkVersion)
-      throws IOException, ParserConfigurationException {
+      final String documentType, final VisualModel visModel, final SdkVersion sdkVersion,
+      final String rootElementName, final String namespace) throws IOException, ParserConfigurationException {
+
     //
     // NODES like in fields.json
     //
@@ -170,9 +182,8 @@ public abstract class SaveNoticeTest {
     final Map<String, JsonNode> documentInfoByType = new HashMap<>();
     {
       final ObjectNode info = mapper.createObjectNode();
-      info.put("namespace",
-          "http://data.europa.eu/p27/eforms-business-registration-information-notice/1");
-      info.put("rootElement", "BusinessRegistrationInformationNotice");
+      info.put("namespace", namespace);
+      info.put("rootElement", rootElementName);
       documentInfoByType.put(documentType, info);
     }
 
@@ -196,16 +207,19 @@ public abstract class SaveNoticeTest {
 
   static void checkCommon(final String prefixedSdkVersion, final String noticeSubType,
       final String xml) {
-    count(xml, 1, "encoding=\"UTF-8\"");
 
-    // Check fields root node.
+    count(xml, 1, "encoding=\"UTF-8\"");
     contains(xml, " xmlns=");
 
-    // Check some metadata.
-    count(xml, 1, ">" + noticeSubType + "<");
-    count(xml, 1, ">" + prefixedSdkVersion + "<");
-
-    count(xml, 1, "<cbc:CustomizationID");
+    // Notice sub type.
     count(xml, 1, "<cbc:SubTypeCode");
+    count(xml, 1, " editorFieldId=\"" + ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE + "\""
+        + " listName=\"notice-subtype\">" + noticeSubType + "<");
+
+    // SDK version.
+    count(xml, 1, "<cbc:CustomizationID");
+    count(xml, 1, " editorFieldId=\"" + ConceptualModel.FIELD_ID_SDK_VERSION + "\">"
+        + prefixedSdkVersion + "<");
+
   }
 }

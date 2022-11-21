@@ -40,13 +40,14 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
   /**
    * Setup dummy test notice form data.
    */
-  private static VisualModel setupVisualModel(final ObjectMapper mapper,
-      final String fakeSdkForTest, final String noticeSubTypeForTest) {
+  @Override
+  protected VisualModel setupVisualModel(final ObjectMapper mapper, final SdkVersion sdkVersion,
+      final String noticeSubTypeForTest) {
 
-    // Setup root of the visual model.
-    final ObjectNode visRoot = mapper.createObjectNode();
-    final ArrayNode visRootChildren =
-        VisualModel.setupVisualRootForTest(mapper, fakeSdkForTest, noticeSubTypeForTest, visRoot);
+    final VisualModel visualModel =
+        super.setupVisualModel(mapper, sdkVersion, noticeSubTypeForTest);
+    final JsonNode visRoot = visualModel.getVisRoot();
+    final ArrayNode visRootChildren = visualModel.getVisRootChildren();
 
     final ObjectNode visBusinessParty = mapper.createObjectNode();
     visRootChildren.add(visBusinessParty);
@@ -279,17 +280,20 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     final SdkVersion sdkVersion = new SdkVersion("1.3.0");
     final String prefixedSdkVersion = FieldsAndNodes.EFORMS_SDK_PREFIX + sdkVersion.toString();
     final String noticeSubType = "X02"; // A dummy X02, not the real X02 of 1.3.0
+    final String rootElementName = "BusinessRegistrationInformationNotice";
+    final String namespace =
+        "http://data.europa.eu/p27/eforms-business-registration-information-notice/1";
 
     //
     // BUILD VISUAL MODEL.
     //
-    final VisualModel visualModel = setupVisualModel(mapper, prefixedSdkVersion, noticeSubType);
+    final VisualModel visualModel = setupVisualModel(mapper, sdkVersion, noticeSubType);
 
     //
     // BUILD PHYSICAL MODEL.
     //
-    final PhysicalModel physicalModel =
-        setupPhysicalModel(mapper, noticeSubType, NOTICE_DOCUMENT_TYPE, visualModel, sdkVersion);
+    final PhysicalModel physicalModel = setupPhysicalModel(mapper, noticeSubType,
+        NOTICE_DOCUMENT_TYPE, visualModel, sdkVersion, rootElementName, namespace);
 
     System.out.println("XML as text:");
     final String xml = physicalModel.toXmlText(false); // Not indented to avoid line breaks.
