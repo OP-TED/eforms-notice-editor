@@ -126,9 +126,9 @@ public class SdkRestController implements AsyncConfigurer {
    */
   @RequestMapping(value = "/notice/save", method = RequestMethod.POST,
       produces = SdkService.MIME_TYPE_XML, consumes = SdkService.MIME_TYPE_JSON)
-  public void saveNotice(final HttpServletResponse response, final @RequestBody String notice)
+  public void saveNotice(final HttpServletResponse response, final @RequestBody String noticeJson)
       throws ParserConfigurationException, IOException {
-    sdkService.saveNoticeAsXml(Optional.of(response), notice);
+    sdkService.saveNoticeAsXml(Optional.of(response), noticeJson);
   }
 
 }

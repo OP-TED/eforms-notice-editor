@@ -17,9 +17,14 @@
   const FALLBACK_LANGUAGE = "en"; // English, recommended for now.
   const KEY_NTD_LABEL = "_label";
 
+  const ND_ROOT = "ND-Root";
+  
+  const FIELD_ID_SDK_VERSION = "OPT-002-notice";
+  const FIELD_ID_NOTICE_SUB_TYPE = "OPP-070-notice";
+
   // Init: loads initial editor home page data, see afterInitDataLoaded.
   jsonGet("/sdk/info", timeOutDefaultMillis, afterInitDataLoaded, jsonGetOnError);
-
+  
   const DATA_EDITOR_CONTENT_ID = "data-editor-content-id";
   const DATA_EDITOR_ID_REFERENCE = "data-editor-id-reference";
   const DATA_EDITOR_ID_REF_PREFIX = "data-editor-id-ref-";
@@ -28,7 +33,10 @@
   const DATA_EDITOR_COUNT = "data-editor-count";
   const DATA_EDITOR_TYPE = "data-editor-type";
   const DATA_EDITOR_CONTENT_PARENT_ID = "data-editor-content-parent-id";
-
+  const DATA_EDITOR_CONTENT_NODE_ID = "data-editor-content-node-id";
+  
+  const EDITOR_COSMETIC = "editor-cosmetic";
+  
   const displayTypeToElemInfo = {};
   displayTypeToElemInfo["CHECKBOX"] = {"tag": "input", "type" : "checkbox"};
   displayTypeToElemInfo["COMBOBOX"] = {"tag": "select", "type" : "select"};
@@ -161,8 +169,7 @@
         const textAreaXml = document.getElementById("id-editor-log-xml-area");
         textAreaXml.value = '';
 
-        const dataModel = that.toModel();
-        //console.dir(dataModel);
+        const dataModel = that.toVisualModel();
         const jsonText = JSON.stringify(dataModel, null, 2);
         textAreaJson.value = jsonText;
         textAreaJson.style.display = 'block';
@@ -214,69 +221,112 @@
     /**
      * Reads from the Form and populates a model object.
      */
-    toModel() {
-      console.log("toModel");
+    toVisualModel() {
+      console.log("toVisualModel called");
 
-      // TODO idScheme id increment and handling of repeat, should be done after adding to page.
-
-		  // OUT
-      // 0. create array
-      // 1. use selector on custom attributes (put parentId into custom data-attribute)
-      // Select array of all element storing a value.
-      // 2. fill array (in order)
-      // 3. order should already be ok, just use data-...-parentId to rebuild the tree
+      const domRoot = this.noticeFormElement;
       
-      const dataModel = {};
-      const fieldElems = document.querySelectorAll("[" + DATA_EDITOR_VALUE_FIELD+ "='true']");
-      for (const fieldElem of fieldElems) {
-        const data = {};
+      // Extract tree of data from the form.
+      const vm = this.toVisualModelRec(domRoot, null);
+      
+      vm["contentId"] = "the_visual_root";
+      vm["visNodeId"] = ND_ROOT;
+      vm["type"] = "non-field";
+
+      console.dir(vm); // tttt
+      
+      // Put some info at the top level for convenience.
+   
+      // Put the notice SDK version at top level.
+      vm["sdkVersion"] = this.findInVisualModelRec(vm, FIELD_ID_SDK_VERSION).value;
+      if (!vm["sdkVersion"]) {
+        throw new Error("SDK version is not specified in visual model!");
+      }
+
+      // Put the notice sub type at top level.
+      vm["noticeSubType"] = this.findInVisualModelRec(vm, FIELD_ID_NOTICE_SUB_TYPE).value;
+      if (!vm["noticeSubType"]) {
+        throw new Error("The notice sub type is not specified in visual model!");
+      }
+      
+      return vm;
+    }
+    
+    toVisualModelRec(elem, parent) {
+      // The elem is a DOM element. 
+      // The data is the tree item we want to create.
+	    const data = {};
+
+		  // Maybe for debug.
+      //const domId = elem.getAttribute("id");
+      //data["domId"] = domId;
+
+      const contentId = elem.getAttribute(DATA_EDITOR_CONTENT_ID);
+      data["contentId"] = contentId;
+      
+      if (contentId === EDITOR_COSMETIC) {
+        // A cosmetic item is something we use for the visual part in the HTML to group. 
+        // For example a form input label and form input field.
+        // We do not want it in the visual model as it would only add unnecessary tree levels.
+        const parentChildren = parent.children;
+        const children = this.findElementsHavingAttributeInElem(elem, 'data-editor-content-id');
+        for (const child of children) {
+          parentChildren.push(this.toVisualModelRec(child, null));
+        }
+        return null;
+      }
+
+		  const contentCount = elem.getAttribute(DATA_EDITOR_COUNT);        
+			data["contentCount"] = contentCount;
+
+			const contentType = elem.getAttribute(DATA_EDITOR_TYPE);
+		  data["type"] = contentType;
+
+		  if (contentType === "field") {
         
-        const domId = fieldElem.getAttribute("id");
-        data["domId"] = domId;
-
-        const contentId = fieldElem.getAttribute(DATA_EDITOR_CONTENT_ID);
-        data["contentId"] = contentId;
-
-				const contentType = fieldElem.getAttribute(DATA_EDITOR_TYPE);        
-				data["type"] = contentType;
-
-				const contentCount = fieldElem.getAttribute(DATA_EDITOR_COUNT);        
-				data["contentCount"] = contentCount;
-
         // The form value (text inside of form fields, input, select, textarea, ...).
-        const value = fieldElem.value;        
+        const value = elem.value;        
 				data["value"] = value;
-				
-				//
-				// Parent related logic.
-				//
-        const contentParentId = fieldElem.getAttribute(DATA_EDITOR_CONTENT_PARENT_ID);
-        data["contentParentId"] = contentParentId;
-        const parentSelector = "[" + DATA_EDITOR_CONTENT_ID + "='" + contentParentId + "']";
-
-			  // IMPORTANT: this is not the direct DOM parent, but the logical content container (group).
-				const containerParentElem = fieldElem.closest(parentSelector);
-				
-				// TODO Need to find a way to group them by the parent same. probably via the DOM.
-        const contentParentCount = containerParentElem.getAttribute(DATA_EDITOR_COUNT);        
-				data["contentParentCount"] = contentParentCount;
         
-        const field = this.fieldMap[contentId];
-        if (!field) {
+        const sdkFieldMeta = this.fieldMap[contentId];
+        if (!sdkFieldMeta) {
           throw new Error("Unknown fieldId=" + contentId);
         }
-        data["contentNodeId"] = field["parentNodeId"];  
-        
-				// Unique identifier.
-        // IMPORTANT: the content id is unique in the notice type definition, but not 
-        // in the form due to repeatable elements !!!
-        const uniqueId =  contentId + "-" + contentCount //fieldElem.getAttribute("id");
-        if (dataModel[uniqueId]) {
-          throw new Error("dataModel[uniqueId] already exists for uniqueId=" + uniqueId + ", domId=" + domId);
+		  } else {
+		    const nodeId = elem.getAttribute(DATA_EDITOR_CONTENT_NODE_ID);
+		    if (nodeId) {
+  		    data["visNodeId"] = nodeId;
+		    }
+		  }
+    
+      if (elem.hasChildNodes()) {
+        const visualModelChildren = [];
+        const children = this.findElementsHavingAttributeInElem(elem, 'data-editor-content-id');
+        data["children"] = visualModelChildren;
+        for (const child of children) {
+          const dataChild = this.toVisualModelRec(child, data);
+          // There may be no data in case of a cosmetic item, in that case the data has already been pushed.
+          if (dataChild) {
+            visualModelChildren.push(dataChild);
+          }
         }
-        dataModel[uniqueId] = data;
       }
-      return dataModel;
+      return data;
+    }
+    
+    findInVisualModelRec(visualModelItem, idToSearch) {
+      if (visualModelItem.contentId === idToSearch) {
+        return visualModelItem;
+      }
+      if (visualModelItem.children) {
+      	for (const child of visualModelItem.children) {
+          const found = this.findInVisualModelRec(child, idToSearch);
+          if (found) {
+            return found;
+          }
+        }
+      }
+      return null;
     }
     
     fromModel() {
@@ -298,7 +348,7 @@
       this.getContentElemByIdUnique("OPT-001-notice").value = this.ublVersion;
 
       // Set SDK version in the form.
-      this.getContentElemByIdUnique("OPT-002-notice").value = this.sdkVersion;
+      this.getContentElemByIdUnique(FIELD_ID_SDK_VERSION).value = this.sdkVersion;
 
       // Set the version id
       this.getContentElemByIdUnique("BT-757-notice").value = "01";
@@ -415,14 +465,28 @@
 	      }
 	    }
     }
+    
+    getDirectChildren(elem, selector){
+      const tempId = buildUuidv4();
+      elem.dataset.tempid = tempId; // Sets data-tempId
+      const fullSelector = '[data-tempid="' + tempId + '"] > ' + selector;
+      const returnObj = elem.parentElement.querySelectorAll(fullSelector);
+      elem.dataset.tempid = '';
+      return returnObj == null ? [] : returnObj;
+    }
+    
+    findElementsHavingAttributeInElem(elem, attributeName) {
+      const selector = "[" + attributeName + "]";
+      return this.getDirectChildren(elem, selector);
+    }
 
     findElementsHavingAttribute(attributeName) {
-      const selector =  "[" + attributeName + "]";
+      const selector = "[" + attributeName + "]";
       return document.querySelectorAll(selector);
     }
 
     findElementsWithAttribute(attributeName, attributeText) {
-      const selector =  '[' + attributeName + '="' + attributeText + '"]';
+      const selector = '[' + attributeName + '="' + attributeText + '"]';
       return document.querySelectorAll(selector);
     }
     
@@ -512,13 +576,9 @@
         labelElem = resultMap["labelElem"];
 	      formElem = resultMap["formElem"];
 	      field = resultMap["field"];
-      }
-
-      if (isField) {
         formElem.setAttribute(DATA_EDITOR_TYPE, "field");
-      } else {
-        containerElem.setAttribute(DATA_EDITOR_TYPE, "non-field");
       }
+      containerElem.setAttribute(DATA_EDITOR_TYPE, "non-field");
        
 	    // Prefix the ids to avoid conflict with various other identifiers existing in the same page.
 	    // For repeatable fields the content editorCount ensures the ids are unique.
@@ -526,10 +586,16 @@
 	    // This is the container and not the actual element that will contain the field value.
 	    containerElem.setAttribute("id", this.buildIdUniqueNew(content) + "-container-elem");
 	    
-	    containerElem.setAttribute(DATA_EDITOR_CONTENT_ID, content.id + "-container-elem");
+	    // If it is a field: containerElem is the container DOM element, not the field element.
+	    // If is is not a field: containerElem is an instance of an NTD group and we want the raw content id.
+	    containerElem.setAttribute(DATA_EDITOR_CONTENT_ID, isField ? EDITOR_COSMETIC : content.id);
+	    
 	    containerElem.setAttribute(DATA_EDITOR_CONTENT_PARENT_ID, parentElem.getAttribute(DATA_EDITOR_CONTENT_ID));
-	     
 	    containerElem.setAttribute(DATA_EDITOR_COUNT, content.editorCount);
+	    
+	    if (content.nodeId) {
+	      containerElem.setAttribute(DATA_EDITOR_CONTENT_NODE_ID, content.nodeId);
+      }
 
 	    // 
 	    // Style: CSS classes and more.

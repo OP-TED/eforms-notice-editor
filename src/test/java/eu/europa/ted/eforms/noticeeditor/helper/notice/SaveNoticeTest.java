@@ -156,7 +156,8 @@ public abstract class SaveNoticeTest {
 
   protected PhysicalModel setupPhysicalModel(final ObjectMapper mapper, final String noticeSubType,
       final String documentType, final VisualModel visModel, final SdkVersion sdkVersion,
-      final String rootElementName, final String namespace) throws IOException, ParserConfigurationException {
+      final String rootElementName, final String namespace)
+      throws IOException, ParserConfigurationException {
 
     //
     // NODES like in fields.json
