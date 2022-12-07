@@ -245,6 +245,7 @@ public class SdkService {
   public static Map<String, Object> getNoticeSubTypes(final SdkVersion sdkVersion,
       final Path eformsSdkDir) {
     final Map<String, Object> map = new LinkedHashMap<>();
+    // Just proxy this back to the UI as XHR calls could be async.
     map.put("sdkVersion", sdkVersion);
     try {
       final List<String> availableNoticeTypes = JavaTools.listFiles(
@@ -252,7 +253,8 @@ public class SdkService {
 
       final List<String> noticeTypes = availableNoticeTypes.stream()//
           // Remove some files.
-          .filter(filename -> filename.endsWith(".json") && !SDK_NOTICE_TYPES_JSON.equals(filename))//
+          .filter(filename -> filename.endsWith(".json")//
+              && !SDK_NOTICE_TYPES_JSON.equals(filename))//
           // Remove extension.
           .map(filename -> filename.substring(0, filename.lastIndexOf('.')))//
           .sorted(new IntuitiveStringComparator<>())//
@@ -556,18 +558,21 @@ public class SdkService {
     final String sdkVersionStr;
     {
       // Example: the SDK value looks like "eforms-sdk-1.1.0".
-      // We are only interested in 1.1.0 or just 1.1
-      // The concatenated -1 means first field
-      final String sdkVersionFieldId = ConceptualModel.FIELD_ID_SDK_VERSION + "-1";
+      // final String sdkVersionFieldId = ConceptualModel.FIELD_ID_SDK_VERSION;
+      // final JsonNode visualField = visualRoot.get(sdkVersionFieldId);
+      // final String eFormsSdkVersion = getTextStrict(visualField, "value");
 
-      final JsonNode visualField = visualRoot.get(sdkVersionFieldId);
-      final String eFormsSdkVersion = getTextStrict(visualField, "value");
-      Validate.notBlank(eFormsSdkVersion, "eFormsSdkVersion is blank");
+      // Use the shortcut we put at the virtual root top level:
+      final String eFormsSdkVersion =
+          JsonUtils.getTextStrict(visualRoot, VisualModel.VIS_SDK_VERSION);
+
+      Validate.notBlank(eFormsSdkVersion, "virtual root eFormsSdkVersion is blank");
       final String prefix = SdkConstants.NOTICE_CUSTOMIZATION_ID_VERSION_PREFIX;
       Validate.isTrue(eFormsSdkVersion.startsWith(prefix),
           "Expecting sdk version to start with prefix=%s", prefix);
       final String sdkVersionStrTmp = eFormsSdkVersion.substring(prefix.length());
 
+      // We are only interested in 1.1.0 or just 1.1
       // For now we will only handle versions major and minor.
       // TODO maybe handle precise versions like "1.1.0" later on (patch level).
       sdkVersionStr = sdkVersionStrTmp.substring(0, sdkVersionStrTmp.lastIndexOf('.'));

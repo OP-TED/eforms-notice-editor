@@ -1,5 +1,6 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
+import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -39,4 +40,32 @@ public abstract class ConceptTreeItem {
   public int getCounter() {
     return counter;
   }
+
+  @Override
+  public String toString() {
+    return "ConceptTreeItem [idUnique=" + idUnique + ", idInSdkFieldsJson=" + idInSdkFieldsJson
+        + ", counter=" + counter + "]";
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(counter, idInSdkFieldsJson, idUnique);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    ConceptTreeItem other = (ConceptTreeItem) obj;
+    return counter == other.counter && Objects.equals(idInSdkFieldsJson, other.idInSdkFieldsJson)
+        && Objects.equals(idUnique, other.idUnique);
+  }
+
 }

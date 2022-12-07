@@ -30,6 +30,8 @@ public class VisualModel {
 
   private static final Logger logger = LoggerFactory.getLogger(VisualModel.class);
 
+  public static final String VIS_SDK_VERSION = "sdkVersion";
+
   static final String VIS_CHILDREN = "children";
 
   static final String VIS_CONTENT_PARENT_COUNT = "contentParentCount";
@@ -45,8 +47,6 @@ public class VisualModel {
   private static final String VIS_TYPE_FIELD = "field";
   private static final String VIS_TYPE_GROUP = "group";
 
-  static final String VIS_FIRST = "-1";
-  static final String VIS_SECOND = "-2";
 
   static final String NODE_PARENT_ID = "parentId";
 
@@ -244,8 +244,7 @@ public class VisualModel {
     // The parent is not the closest parent we know about and it is not repeatable.
     // Try to create an intermediary node in the conceptual model.
     // -> closestParent -> cnNew -> cn
-    final ConceptTreeNode cnNew =
-        new ConceptTreeNode(nodeParentId + VIS_FIRST + "-generated", nodeParentId, 1);
+    final ConceptTreeNode cnNew = new ConceptTreeNode(nodeParentId + "-generated", nodeParentId, 1);
     cnNew.addConceptNode(cn);
 
     // There may be more to add, recursion:
@@ -316,7 +315,7 @@ public class VisualModel {
           // this is not the case.
           // ND-Root -> ... -> closestParentNode -> newConceptNode -> ... -> field
           // By convention we will add "-generated" to these generated concept nodes.
-          cn = new ConceptTreeNode(sdkParentNodeId + VIS_FIRST + "-generated", sdkParentNodeId, 1);
+          cn = new ConceptTreeNode(sdkParentNodeId + "-generated", sdkParentNodeId, 1);
 
           // See unit test about filling to fully understand this.
           // closestParentNode.addConceptNode(cn); // NO: there may be more items to fill in.
@@ -346,6 +345,8 @@ public class VisualModel {
         // the tree.
         final JsonNode maybeNull = jsonItem.get(VIS_CHILDREN);
         // Could be "null if empty" depending on how the JSON is constructed.
+        // No children in JSON could be a value like [] or just no key value pair.
+        // Both are tolerated.
         if (maybeNull != null) {
           final ArrayNode visChildren = (ArrayNode) maybeNull;
           int childCounterB = 1;

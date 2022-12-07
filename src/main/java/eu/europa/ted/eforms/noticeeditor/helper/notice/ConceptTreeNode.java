@@ -88,7 +88,7 @@ public class ConceptTreeNode extends ConceptTreeItem {
 
   @Override
   public String toString() {
-    return "ConceptTreeNode [conceptFields=" + conceptFields + ", conceptNodes=" + conceptNodes
+    return super.toString() + " [conceptFields=" + conceptFields + ", conceptNodes=" + conceptNodes
         + "]";
   }
 

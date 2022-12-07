@@ -229,7 +229,7 @@
       // Extract tree of data from the form.
       const vm = this.toVisualModelRec(domRoot, null);
       
-      vm["contentId"] = "the_visual_root";
+      vm["contentId"] = "the_visual_root"; // visualRoot.
       vm["visNodeId"] = ND_ROOT;
       vm["type"] = "non-field";
 
@@ -311,6 +311,12 @@
           }
         }
       }
+
+      // Remove children array if it is empty.
+      if (data["children"] && data["children"].length === 0) {
+        delete data["children"];
+      }
+      
       return data;
     }
     

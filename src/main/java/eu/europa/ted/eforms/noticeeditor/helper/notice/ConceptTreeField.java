@@ -23,4 +23,10 @@ public class ConceptTreeField extends ConceptTreeItem {
   public String getValue() {
     return value;
   }
+
+  @Override
+  public String toString() {
+    return super.toString() + " [value=" + value + "]";
+  }
+
 }
