@@ -26,9 +26,12 @@
   const VIS_CONTENT_COUNT = "contentCount";
   const VIS_VALUE = "value";
   const VIS_TYPE = "visType"; // Has nothing to do with HTML element type!
-
+  
+  const SDK_SERVICE_URL = "/sdk";
+  const XML_SERVICE_URL = "/xml";
+  
   // Init: loads initial editor home page data, see afterInitDataLoaded.
-  jsonGet("/sdk/info", timeOutDefaultMillis, afterInitDataLoaded, jsonGetOnError);
+  jsonGet(SDK_SERVICE_URL + "/info", timeOutDefaultMillis, afterInitDataLoaded, jsonGetOnError);
   
   const DATA_EDITOR_CONTENT_ID = "data-editor-content-id";
   const DATA_EDITOR_ID_REFERENCE = "data-editor-id-reference";
@@ -103,7 +106,8 @@
       return;
     }
     // XHR to load translations (i18n) for fields and more.
-    jsonGet("/sdk/" + sdkVersion + "/translations/" + languageCode + ".json", 5000, callbackFunc, jsonGetOnError);
+    const url = SDK_SERVICE_URL + "/" + sdkVersion + "/translations/" + languageCode + ".json";
+    jsonGet(url, 5000, callbackFunc, jsonGetOnError);
   }
   
   /**
@@ -184,7 +188,7 @@
           textAreaXml.value = data;
           textAreaXml.style.display = 'block';
         };
-        const url = "xml/notice/save";
+        const url = XML_SERVICE_URL + "/notice/save";
         const body = jsonText;
         jsonPostRespXml(url, timeOutLargeMillis, afterModelPost, jsonPostOnError, body);
       };
@@ -390,6 +394,7 @@
      */
     handleValueSourceLogic(content) {
       const that = this;
+      
       // Define the content visitor.
       const visitorFunc = function(visitedContent) {
         if (visitedContent.contentType !== "group") {
@@ -1080,7 +1085,8 @@
       return;
     }
     // XHR to load existing notice types of selected SDK version. See afterSdkNoticeTypesLoaded.
-    jsonGet("/sdk/" + sdkVersion + "/notice-types", timeOutDefaultMillis, afterSdkNoticeTypesLoaded, jsonGetOnError);
+    const url = SDK_SERVICE_URL + "/" + sdkVersion + "/notice-types";
+    jsonGet(url, timeOutDefaultMillis, afterSdkNoticeTypesLoaded, jsonGetOnError);
   }
   
   function afterSdkNoticeTypesLoaded(data) {
@@ -1138,14 +1144,14 @@
         };
         
         // GET available notice types.
-        const urlToGetNoticeTypeJsonData = "/sdk/" + sdkVersion + "/notice-types/" + noticeId;
+        const urlToGetNoticeTypeJsonData = SDK_SERVICE_URL + "/" + sdkVersion + "/notice-types/" + noticeId;
         jsonGet(urlToGetNoticeTypeJsonData, timeOutLargeMillis, jsonOkNoticeTypeFunc, jsonGetOnError);
       };
       
       // GET SDK fields.json data (and more) for the given SDK version.
       // You could also dynamically load data only when it is needed, but this would create many requests which may be slow.
       // This is a URL to the editor back-end REST API.
-      const urlToGetBasicJsonData = "/sdk/" + sdkVersion + "/basic-meta-data";
+      const urlToGetBasicJsonData = SDK_SERVICE_URL + "/" + sdkVersion + "/basic-meta-data";
       jsonGet(urlToGetBasicJsonData, timeOutLargeMillis, jsonOkBasicFunc, jsonGetOnError);
     });
   }
