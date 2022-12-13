@@ -641,6 +641,7 @@ public class PhysicalModel {
     // If these namespaces evolve they could start to differ by SDK version.
     // TODO load from XSDs?
     // TODO maybe provide a simple mapping in notice-types.json or an index json file in /schemas?
+    // TODO see upcoming TEDEFO-1710 for namespaces in notice-types.json
     map.put("xsi", "http://www.w3.org/2001/XMLSchema-instance");
     map.put("cbc", "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2");
     map.put("cac", "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2");

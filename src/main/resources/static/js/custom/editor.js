@@ -112,9 +112,9 @@
   class Editor {
     constructor(dataBasicJson, dataNoticeType, dataI18n, noticeFormElement) {
     
-    	const dataFieldsJson = dataBasicJson.fieldsJson;
-    	const dataCodelistsJson = dataBasicJson.codelistsJson;
-    	
+      const dataFieldsJson = dataBasicJson.fieldsJson;
+      const dataCodelistsJson = dataBasicJson.codelistsJson;
+      
       if (!dataFieldsJson.sdkVersion) {
         throw new Error("Invalid sdkVersion");
       }
@@ -186,7 +186,7 @@
         };
         const url = "sdk/notice/save";
         const body = jsonText;
-	      jsonPostRespXml(url, timeOutLargeMillis, afterModelPost, jsonPostOnError, body);
+        jsonPostRespXml(url, timeOutLargeMillis, afterModelPost, jsonPostOnError, body);
       };
       serializeBtnElem.addEventListener("click", serializeToJsonFunc, false);
     }
@@ -267,9 +267,9 @@
     toVisualModelRec(elem, parent) {
       // The elem is a DOM element. 
       // The data is the tree item we want to create.
-	    const data = {};
+      const data = {};
 
-		  // Maybe for debug.
+      // Maybe for debug.
       //const domId = elem.getAttribute("id");
       //data["domId"] = domId;
 
@@ -289,27 +289,28 @@
       }
 
       const contentCount = elem.getAttribute(DATA_EDITOR_COUNT);        
-	  data[VIS_CONTENT_COUNT] = contentCount;
+      data[VIS_CONTENT_COUNT] = contentCount;
 
-	  const contentType = elem.getAttribute(DATA_EDITOR_TYPE);
-	  data[VIS_TYPE] = contentType;
+      const contentType = elem.getAttribute(DATA_EDITOR_TYPE);
+      data[VIS_TYPE] = contentType;
 
-	  if (contentType === "field") {
-        
-        // The form value (text inside of form fields, input, select, textarea, ...).
-        const value = elem.value;        
-		data[VIS_VALUE] = value;
-        
-        const sdkFieldMeta = this.fieldMap[contentId];
-        if (!sdkFieldMeta) {
-          throw new Error("Unknown fieldId=" + contentId);
+      if (contentType === "field") {
+          // The form value (text inside of form fields, input, select, textarea, ...).
+          const value = elem.value;
+          
+          // TODO: upcoming TEDEFO-1727
+          data[VIS_VALUE] = value;
+          
+          const sdkFieldMeta = this.fieldMap[contentId];
+          if (!sdkFieldMeta) {
+            throw new Error("Unknown fieldId=" + contentId);
+          }
+      } else {
+        const nodeId = elem.getAttribute(DATA_EDITOR_CONTENT_NODE_ID);
+        if (nodeId) {
+          data["visNodeId"] = nodeId;
         }
-	  } else {
-	    const nodeId = elem.getAttribute(DATA_EDITOR_CONTENT_NODE_ID);
-		if (nodeId) {
-  		  data["visNodeId"] = nodeId;
-		}
-	  }
+      }
     
       if (elem.hasChildNodes()) {
         const visualModelChildren = [];
@@ -337,7 +338,7 @@
         return visualModelItem;
       }
       if (visualModelItem.children) {
-      	for (const child of visualModelItem.children) {
+        for (const child of visualModelItem.children) {
           const found = this.findInVisualModelRec(child, idToSearch);
           if (found) {
             return found;
@@ -446,11 +447,11 @@
 
     buildPaddedIdNumber(content) {
       return this.buildPaddedIdNumberForIdNumber(content.editorCount);
-	  }
+    }
 
     buildPaddedIdNumberForIdNumber(idNumber) {
       return lpad("0", String(idNumber), 4); // 0001, 0002, ...
-	  }
+    }
     
     getContentElemByIdPair(contentId, contentIdNum) {
       const elementId = this.buildIdUniqueFromPair(contentId, contentIdNum);
@@ -477,11 +478,11 @@
       }
       // Is there more sub content?
       if (content.content && !content.editorExpanded) {
-	      // Visit sub items. Recursion.
-	      for (const contentSub of content.content) {
-	        this.visitContentRec(contentSub, contentVisitorFuncs);
-	      }
-	    }
+        // Visit sub items. Recursion.
+        for (const contentSub of content.content) {
+          this.visitContentRec(contentSub, contentVisitorFuncs);
+        }
+      }
     }
     
     getDirectChildren(elem, selector){
@@ -570,186 +571,186 @@
     }
     
     readContentRecur(parentElem, content, level, isForRepeat, elemToExpandOpt, siblingOpt) {
-	    const noticeId = this.noticeId;
-	  
-	    const documentFragment = document.createDocumentFragment();
-	    content.editorLevel = level; // Enrich model for later.
-	    
-	    // The editorCount will allow to make the id of this element unique.
-	    content.editorCount = content.editorCount >= 0 ? content.editorCount : 1;
-	
-	    const isField =  content.contentType === "field" // !content.content;
-	    const isSection = content.section;
-	    const isCollapsed = content.collapsed ? true : false;
-	    const isContentRepeatable = content._repeatable ? true : false; // Can be reassigned if field...
-	     
-	    // The container element may already exist in the case of uncollapsing (expand).
-	    const containerElem = elemToExpandOpt ? elemToExpandOpt : document.createElement("div");
-	
-	    var field; // Can remain undefined or null.
-	    var formElem;
+      const noticeId = this.noticeId;
+    
+      const documentFragment = document.createDocumentFragment();
+      content.editorLevel = level; // Enrich model for later.
+      
+      // The editorCount will allow to make the id of this element unique.
+      content.editorCount = content.editorCount >= 0 ? content.editorCount : 1;
+  
+      const isField =  content.contentType === "field" // !content.content;
+      const isSection = content.section;
+      const isCollapsed = content.collapsed ? true : false;
+      const isContentRepeatable = content._repeatable ? true : false; // Can be reassigned if field...
+       
+      // The container element may already exist in the case of uncollapsing (expand).
+      const containerElem = elemToExpandOpt ? elemToExpandOpt : document.createElement("div");
+  
+      var field; // Can remain undefined or null.
+      var formElem;
       var labelElem;
-	    if (isField) {
-	      const resultMap = this.buildFieldContainerElem(containerElem, content);
+      if (isField) {
+        const resultMap = this.buildFieldContainerElem(containerElem, content);
         labelElem = resultMap["labelElem"];
-	      formElem = resultMap["formElem"];
-	      field = resultMap["field"];
+        formElem = resultMap["formElem"];
+        field = resultMap["field"];
         formElem.setAttribute(DATA_EDITOR_TYPE, "field");
       }
       containerElem.setAttribute(DATA_EDITOR_TYPE, "non-field");
        
-	    // Prefix the ids to avoid conflict with various other identifiers existing in the same page.
-	    // For repeatable fields the content editorCount ensures the ids are unique.
-	    
-	    // This is the container and not the actual element that will contain the field value.
-	    containerElem.setAttribute("id", this.buildIdUniqueNew(content) + "-container-elem");
-	    
-	    // If it is a field: containerElem is the container DOM element, not the field element.
-	    // If is is not a field: containerElem is an instance of an NTD group and we want the raw content id.
-	    containerElem.setAttribute(DATA_EDITOR_CONTENT_ID, isField ? EDITOR_COSMETIC : content.id);
-	    
-	    containerElem.setAttribute(DATA_EDITOR_CONTENT_PARENT_ID, parentElem.getAttribute(DATA_EDITOR_CONTENT_ID));
-	    containerElem.setAttribute(DATA_EDITOR_COUNT, content.editorCount);
-	    
-	    if (content.nodeId) {
-	      containerElem.setAttribute(DATA_EDITOR_CONTENT_NODE_ID, content.nodeId);
+      // Prefix the ids to avoid conflict with various other identifiers existing in the same page.
+      // For repeatable fields the content editorCount ensures the ids are unique.
+      
+      // This is the container and not the actual element that will contain the field value.
+      containerElem.setAttribute("id", this.buildIdUniqueNew(content) + "-container-elem");
+      
+      // If it is a field: containerElem is the container DOM element, not the field element.
+      // If is is not a field: containerElem is an instance of an NTD group and we want the raw content id.
+      containerElem.setAttribute(DATA_EDITOR_CONTENT_ID, isField ? EDITOR_COSMETIC : content.id);
+      
+      containerElem.setAttribute(DATA_EDITOR_CONTENT_PARENT_ID, parentElem.getAttribute(DATA_EDITOR_CONTENT_ID));
+      containerElem.setAttribute(DATA_EDITOR_COUNT, content.editorCount);
+      
+      if (content.nodeId) {
+        containerElem.setAttribute(DATA_EDITOR_CONTENT_NODE_ID, content.nodeId);
       }
 
-	    // 
-	    // Style: CSS classes and more.
-	    //
-	    
-	    containerElem.classList.add("notice-content"); 
-	    containerElem.classList.add("notice-content-level" + level);
-	    
-	    if (isSection) {
-	      containerElem.classList.add("notice-content-section");
-	    } else {
-	      containerElem.classList.add("notice-content-non-section");
-	    }
-	    
-	    if (content.hidden) {
+      // 
+      // Style: CSS classes and more.
+      //
+      
+      containerElem.classList.add("notice-content"); 
+      containerElem.classList.add("notice-content-level" + level);
+      
+      if (isSection) {
+        containerElem.classList.add("notice-content-section");
+      } else {
+        containerElem.classList.add("notice-content-non-section");
+      }
+      
+      if (content.hidden) {
         // Hide in production, but for development it is better to see what is going on.
         const hiddenClass = this.isDebug ? "notice-content-hidden-devel" : "notice-content-hidden";
-	      containerElem.classList.add(hiddenClass); 
-	    }
-	
-	    if (content.readOnly) {
-	      containerElem.classList.add("notice-content-readOnly"); 
-	    }
-	    
-	    if (isCollapsed) {
-	      containerElem.classList.add("notice-content-collapsed"); 
-	    }
-	    
-	    if (isContentRepeatable) {
-	      containerElem.classList.add("notice-content-repeatable");
-	    }
-	    
-	    if (isField) {
-	      // The content is a field.
-	      if (formElem) {
+        containerElem.classList.add(hiddenClass); 
+      }
+  
+      if (content.readOnly) {
+        containerElem.classList.add("notice-content-readOnly"); 
+      }
+      
+      if (isCollapsed) {
+        containerElem.classList.add("notice-content-collapsed"); 
+      }
+      
+      if (isContentRepeatable) {
+        containerElem.classList.add("notice-content-repeatable");
+      }
+      
+      if (isField) {
+        // The content is a field.
+        if (formElem) {
           if (formElem.getAttribute("type") != "checkbox") {
             formElem.classList.add("notice-content-field");
           }
-	        if (field.type === "id") {
-	          formElem.classList.add("notice-content-idRef");
-	        }
-	        if (field.type === "id-ref") {
-	          formElem.classList.add("notice-content-id");
-	        }
-	      }
-	    } else {
-	      // This content is not a field.
-	      if (!elemToExpandOpt) { // Always add title except if expanding.
-	        // We use the word "header" here to avoid confusion with the HTML title attribute.
-	      
-	        const headerContainer = document.createElement("div");
-	        headerContainer.classList.add("notice-content-container");
-	       
-	        const header = document.createElement("h4");
-	        header.classList.add("notice-content-header");
-	        
-	        const paddedEditorCount = this.buildPaddedIdNumber(content);
-	        
-	        // Set the translation.
-	        // Get translations for group|name|...
+          if (field.type === "id") {
+            formElem.classList.add("notice-content-idRef");
+          }
+          if (field.type === "id-ref") {
+            formElem.classList.add("notice-content-id");
+          }
+        }
+      } else {
+        // This content is not a field.
+        if (!elemToExpandOpt) { // Always add title except if expanding.
+          // We use the word "header" here to avoid confusion with the HTML title attribute.
+        
+          const headerContainer = document.createElement("div");
+          headerContainer.classList.add("notice-content-container");
+         
+          const header = document.createElement("h4");
+          header.classList.add("notice-content-header");
+          
+          const paddedEditorCount = this.buildPaddedIdNumber(content);
+          
+          // Set the translation.
+          // Get translations for group|name|...
           // There is an exception for the root dummy element.
-	        const i18nText = this.getTranslationById(content[KEY_NTD_LABEL]);
-	        
-	        const headerText = isContentRepeatable ? i18nText + " (" + paddedEditorCount + ")" : i18nText;
-	        if (headerText === undefined) {
-	          alert("header text is undefined: " + content.id);
-	        }
+          const i18nText = this.getTranslationById(content[KEY_NTD_LABEL]);
+          
+          const headerText = isContentRepeatable ? i18nText + " (" + paddedEditorCount + ")" : i18nText;
+          if (headerText === undefined) {
+            alert("header text is undefined: " + content.id);
+          }
           if (headerText === null) {
-	          alert("header text is null: " + content.id);
-	        }
-	        header.appendChild(document.createTextNode(headerText));
-	        headerContainer.appendChild(header);
-	        containerElem.appendChild(headerContainer);
-	        containerElem.setAttribute("title", i18nText); // Mouse over text on any section.
-	      }
-	    }
-	    
-	    // If collapsed the child content should not be loaded yet.
-	    if (isCollapsed && !elemToExpandOpt) {
-	      // EXPAND LOGIC SETUP.
-	      // Setup of on click event so that content can be loaded into DOM on demand later on.
-	      const clickExpandFunc = this.createContentOnClickFunc(containerElem, content, level, false, containerElem, null);
+            alert("header text is null: " + content.id);
+          }
+          header.appendChild(document.createTextNode(headerText));
+          headerContainer.appendChild(header);
+          containerElem.appendChild(headerContainer);
+          containerElem.setAttribute("title", i18nText); // Mouse over text on any section.
+        }
+      }
+      
+      // If collapsed the child content should not be loaded yet.
+      if (isCollapsed && !elemToExpandOpt) {
+        // EXPAND LOGIC SETUP.
+        // Setup of on click event so that content can be loaded into DOM on demand later on.
+        const clickExpandFunc = this.createContentOnClickFunc(containerElem, content, level, false, containerElem, null);
 
-	      const isUseCapture = true; // As the child elements do not exist yet.
-	      containerElem.addEventListener("click", clickExpandFunc, isUseCapture);
+        const isUseCapture = true; // As the child elements do not exist yet.
+        containerElem.addEventListener("click", clickExpandFunc, isUseCapture);
 
-	      content.editorExpanded = false;
-	    } else {
-	      // The content should have sub content and not have been expanded yet.
-	      if (content.content && !content.editorExpanded) {
-	        // Load sub items.
-	        for (const contentSub of content.content) {
-	          this.readContentRecur(containerElem, contentSub, level + 1, false, null, null); // Recursion on sub content.
-	        }
-	      }
-	    }
-	    
-	    if (isContentRepeatable && !content.hidden) {
+        content.editorExpanded = false;
+      } else {
+        // The content should have sub content and not have been expanded yet.
+        if (content.content && !content.editorExpanded) {
+          // Load sub items.
+          for (const contentSub of content.content) {
+            this.readContentRecur(containerElem, contentSub, level + 1, false, null, null); // Recursion on sub content.
+          }
+        }
+      }
+      
+      if (isContentRepeatable && !content.hidden) {
 
-	      // REPEAT LOGIC SETUP.
-	      const elemButtonAddMore = document.createElement("button");
-	      elemButtonAddMore.setAttribute("type", "button");
-	      elemButtonAddMore.textContent = getEditorLabel("editor.add.more");
-	      elemButtonAddMore.classList.add("notice-content-button");
-	      elemButtonAddMore.classList.add("notice-content-button-add");
-	      
-	      // NOTE: here we add the content to the same parent as this is a sibling content and not a child content.
+        // REPEAT LOGIC SETUP.
+        const elemButtonAddMore = document.createElement("button");
+        elemButtonAddMore.setAttribute("type", "button");
+        elemButtonAddMore.textContent = getEditorLabel("editor.add.more");
+        elemButtonAddMore.classList.add("notice-content-button");
+        elemButtonAddMore.classList.add("notice-content-button-add");
+        
+        // NOTE: here we add the content to the same parent as this is a sibling content and not a child content.
         const siblingOpt = containerElem; // Also specify the sibling so it can be added in the correct place inside the parent.
-	      const clickRepeatFunc = this.createContentOnClickFunc(parentElem, content, level, true, null, siblingOpt);
-	      elemButtonAddMore.addEventListener("click", clickRepeatFunc, false);
-	      containerElem.appendChild(elemButtonAddMore);
-	    }
-	    
-	    if (isContentRepeatable && !content.hidden && content.editorCount > 1) {
-	      // This element should have a remove button.
-	      const elemButtonRemove = document.createElement("button");
-	      elemButtonRemove.setAttribute("type", "button");
-	      elemButtonRemove.textContent = getEditorLabel("editor.remove");
-	      elemButtonRemove.classList.add("notice-content-button");
-	      elemButtonRemove.classList.add("notice-content-button-remove");
-	    
+        const clickRepeatFunc = this.createContentOnClickFunc(parentElem, content, level, true, null, siblingOpt);
+        elemButtonAddMore.addEventListener("click", clickRepeatFunc, false);
+        containerElem.appendChild(elemButtonAddMore);
+      }
+      
+      if (isContentRepeatable && !content.hidden && content.editorCount > 1) {
+        // This element should have a remove button.
+        const elemButtonRemove = document.createElement("button");
+        elemButtonRemove.setAttribute("type", "button");
+        elemButtonRemove.textContent = getEditorLabel("editor.remove");
+        elemButtonRemove.classList.add("notice-content-button");
+        elemButtonRemove.classList.add("notice-content-button-remove");
+      
         elemButtonRemove.addEventListener("click", function() {
-	        parentElem.removeChild(containerElem);
-	        // TODO really or just keep incrementing?
-	        //content.editorCount--; // Decrease the counter.
-	      }, false);
+          parentElem.removeChild(containerElem);
+          // TODO really or just keep incrementing?
+          //content.editorCount--; // Decrease the counter.
+        }, false);
 
-	      containerElem.appendChild(elemButtonRemove);    
-	    }
-	    
-	    if (elemToExpandOpt) {
-	      // The existing element has been expanded.
-	      content.editorExpanded = true;
-	    } else {
-	      // Add fragment to DOM (browser will update).
-	      documentFragment.appendChild(containerElem);
+        containerElem.appendChild(elemButtonRemove);    
+      }
+      
+      if (elemToExpandOpt) {
+        // The existing element has been expanded.
+        content.editorExpanded = true;
+      } else {
+        // Add fragment to DOM (browser will update).
+        documentFragment.appendChild(containerElem);
 
         if (siblingOpt) {
           // Add to parent next to sibling.
@@ -758,23 +759,23 @@
           // Add to parent.
           parentElem.appendChild(documentFragment);
         }
-	      // The element is in the page now.
-	    }
-	    
-	    // This is the container and not the actual element that will contain the field value.
-	    if (formElem) {
+        // The element is in the page now.
+      }
+      
+      // This is the container and not the actual element that will contain the field value.
+      if (formElem) {
         const formElemDomIdNew = this.buildIdUniqueNew(content);
-	      formElem.setAttribute("id", formElemDomIdNew);
+        formElem.setAttribute("id", formElemDomIdNew);
 
         // IMPORTANT: this links the form items with the NTD and thus in some cases with the field and node map.
-	      formElem.setAttribute(DATA_EDITOR_CONTENT_ID, content.id);
+        formElem.setAttribute(DATA_EDITOR_CONTENT_ID, content.id);
 
-	      formElem.setAttribute(DATA_EDITOR_CONTENT_PARENT_ID, parentElem.getAttribute(DATA_EDITOR_CONTENT_ID)); 
+        formElem.setAttribute(DATA_EDITOR_CONTENT_PARENT_ID, parentElem.getAttribute(DATA_EDITOR_CONTENT_ID)); 
 
-	      formElem.setAttribute(DATA_EDITOR_COUNT, content.editorCount);
-	      
-	      // This is used later on to retrieve form values.
-	      formElem.setAttribute(DATA_EDITOR_VALUE_FIELD, "true");
+        formElem.setAttribute(DATA_EDITOR_COUNT, content.editorCount);
+        
+        // This is used later on to retrieve form values.
+        formElem.setAttribute(DATA_EDITOR_VALUE_FIELD, "true");
 
         // Set the translation.
         const i18nText = this.getTranslationById(content._label);
@@ -791,18 +792,18 @@
         if (!formElem.getAttribute("title")) {
           formElem.setAttribute("title", i18nText + " (" + field.id + ")");
         }
-	    }
-	    
-	    if (isForRepeat) {
-	      this.handleValueSourceLogic(content);
-	    }
-	    
-	    // DO THIS AT THE VERY END.
-	    content.editorCount++; // The content has been added.
-	  }
-	  
-	  createContentOnClickFunc(containerElem, content, level, isForRepeat, elemToExpandOpt, siblingOpt) {
-	    const that = this;
+      }
+      
+      if (isForRepeat) {
+        this.handleValueSourceLogic(content);
+      }
+      
+      // DO THIS AT THE VERY END.
+      content.editorCount++; // The content has been added.
+    }
+    
+    createContentOnClickFunc(containerElem, content, level, isForRepeat, elemToExpandOpt, siblingOpt) {
+      const that = this;
       return function onClick(event) {
         console.debug("clicked content=" + content.id);
         event.stopPropagation();
@@ -813,49 +814,49 @@
     
     buildFieldContainerElem(containerElem, content) {
   
-	    const noticeId = this.noticeId;
-	    const fieldMap = this.fieldMap;
-	    const codelistMap = this.codelistMap;
-	
-	    // Find the fields.json field associated with this notice type definition field.
-	    const fieldId = content.id;
-	    const field = fieldMap[fieldId];
-	    if (!field) {
-	      throw new Error("Field is null for " + fieldId);
-	    }
-	    
-	    var formElem = null;
-	    if (field.type === "code") {
-	
-	      formElem = this.buildFormElem(content);
-	      containerElem.appendChild(formElem);
-	      
-	      const fieldCodeListVal = field.codeList.value;
-	      
-	      var codelistId = fieldCodeListVal.id;
-	      const codelistInfo = codelistMap[codelistId];
-	   		const codelistGc = codelistInfo.filename;
-	      
-	      const isHierarchical = fieldCodeListVal.type === "hierarchical";
-	      if (isHierarchical) {
-	        // TODO the data could be loaded in two steps (big category, then sub items).
-	        // Currently the editor demo does not suppose this feature.
+      const noticeId = this.noticeId;
+      const fieldMap = this.fieldMap;
+      const codelistMap = this.codelistMap;
+  
+      // Find the fields.json field associated with this notice type definition field.
+      const fieldId = content.id;
+      const field = fieldMap[fieldId];
+      if (!field) {
+        throw new Error("Field is null for " + fieldId);
+      }
+      
+      var formElem = null;
+      if (field.type === "code") {
+  
+        formElem = this.buildFormElem(content);
+        containerElem.appendChild(formElem);
+        
+        const fieldCodeListVal = field.codeList.value;
+        
+        var codelistId = fieldCodeListVal.id;
+        const codelistInfo = codelistMap[codelistId];
+         const codelistGc = codelistInfo.filename;
+        
+        const isHierarchical = fieldCodeListVal.type === "hierarchical";
+        if (isHierarchical) {
+          // TODO the data could be loaded in two steps (big category, then sub items).
+          // Currently the editor demo does not suppose this feature.
           console.log("Editor: hierarchical codelists are not handled yet, codelistId=" + codelistId);
-	      }
-	      
-	      const select = formElem;
-	      const sdkVersion = getSdkVersion();
-	      
-	      const that = this;
+        }
+        
+        const select = formElem;
+        const sdkVersion = getSdkVersion();
+        
+        const that = this;
         // TODO use getSelectedLanguage() after /lang, use "en" for now as translations are missing.
-	      const urlToCodelistJson = "sdk/" + sdkVersion + "/codelists/" + codelistGc + "/lang/" + FALLBACK_LANGUAGE;
-	      const afterCodelistLoad = function(data) {
-	        // Dynamically load the options.
-	        // const i18nText = that.getTranslationById(content._label);
-	        select.appendChild(createOption("", "")); // Empty option, has no value.
-	        for (const code of data.codes) {
-	          select.appendChild(createOption(code.codeValue, code.en));
-	        }
+        const urlToCodelistJson = "sdk/" + sdkVersion + "/codelists/" + codelistGc + "/lang/" + FALLBACK_LANGUAGE;
+        const afterCodelistLoad = function(data) {
+          // Dynamically load the options.
+          // const i18nText = that.getTranslationById(content._label);
+          select.appendChild(createOption("", "")); // Empty option, has no value.
+          for (const code of data.codes) {
+            select.appendChild(createOption(code.codeValue, code.en));
+          }
 
           // After the select options have been set, an option can be selected.
           // Special case for some of the metadata fields.
@@ -866,115 +867,115 @@
             const value = getSelectedLanguage();
             select.value = lang2To3Map[value];
           }
-	      };
-	      
-	      // Give this a larger timeout as some codelists could be quite big.
-	      // Ideally the JSON response should be cached for a while, you have to allow this server-side.
-	      jsonGet(urlToCodelistJson, timeOutLargeMillis, afterCodelistLoad, jsonGetOnError);
-	      
-	    } else if (field.type === "indicator") {
-	      formElem = this.buildFormElem(content);
-	      const input = formElem;
-	      containerElem.appendChild(formElem);
-	      
-	    } else if (field.type === "id-ref") {
-	      formElem = this.buildFormElem(content);
-	      containerElem.appendChild(formElem);
-	      const select = formElem;
-	      const idSchemes = content._idSchemes;
-	      if (idSchemes && idSchemes.length > 0) {
-
-	        select.appendChild(createOption("", "")); // Empty option, has no value.
-		      //select.appendChild(createOption("", getEditorLabel("editor.select") + " " + String(idSchemes))); // Empty option, has no value.
-
-	        // Allows to find back select even if not knowing the idScheme, to find all in use idSchemes later on.
-	        select.setAttribute(DATA_EDITOR_ID_REFERENCE, JSON.stringify(idSchemes));
-	        for (const idScheme of idSchemes) {
-	          // Allows to find back select by idScheme later on.
-	          select.setAttribute(DATA_EDITOR_ID_REF_PREFIX + idScheme, "true");
-	        }
-	
-	        const foundElements = this.findElementsWithAttributeIdSchemes(idSchemes);
-	        for (const foundElement of foundElements) {
-	          select.appendChild(createOption(foundElement.value, foundElement.value));
-	        }
-	      } else {
-	        if (!content.valueSource) {
-    	      console.error("content _idSchemes not found for contentId=" + content.id);
-	        }
-	      }
-	
-	    } else {
-	      // Fallback.
-	      formElem = this.buildFormElem(content);
-	      containerElem.appendChild(formElem);
+        };
+        
+        // Give this a larger timeout as some codelists could be quite big.
+        // Ideally the JSON response should be cached for a while, you have to allow this server-side.
+        jsonGet(urlToCodelistJson, timeOutLargeMillis, afterCodelistLoad, jsonGetOnError);
+        
+      } else if (field.type === "indicator") {
+        formElem = this.buildFormElem(content);
         const input = formElem;
-	      
-	      // The provided pattern is be used instead.
-	      //if (field.type === "email") {
-	      //  input.setAttribute("type", "email");
-	      //}
-	
-	      if (field.type === "url") {
-	        input.classList.add("notice-content-field-url");
-	      }
-	      
-	      if (isFieldTypeNumeric(field.type)) {
-	      
-	        // Nice to have but not required.
-	        input.setAttribute("type", "number");
-	        if (field.type !== "integer") {
-	          input.setAttribute("steps", "any"); // Allow decimals like 3.1415
-	        }
-	        
-	        // Min of zero would make sense in a lot of situations but a temperature could be negative.
-	        // TODO should we use range / intervals like MinZero [0, NULL] for that?
-	        //input.setAttribute("min", "0");
-	        //input.setAttribute("max", ...);
-	      }
-	      
-	      // DATE.
-	      if (field.type === "date") {
-	        input.setAttribute("type", "date"); // Nice to have but not required.
-	      }
-	      // TIME.
-	      if (field.type === "time") {
-	        input.setAttribute("type", "time"); // Nice to have but not required.
-	      }
-	      
-	      // Pattern, regex for validation.
-	      if (field.pattern && field.pattern.severity === "ERROR") {
-	        input.setAttribute("pattern", field.pattern.value);
-	        
-	        // The browser will show: "Please match the requested format: _TITLE_HERE_"
-	        // TODO the fields json pattern should come with english text explaining the pattern for error messages. 
-	        input.setAttribute("title", field.pattern.value);
-	      }
-	      
-	      if (field.type === "id") {
-	        const idScheme = content._idScheme; // In this case there is only one element, not an array.
-	        if (!idScheme) {
-	          console.warn("no content._idScheme found for contentId=" + content.id + ". This may be OK.");
-	        } else {
-	          input.setAttribute(DATA_EDITOR_INSTANCE_ID_FIELD, idScheme);
-	          const countStr = this.buildPaddedIdNumber(content);
-	          input.value = idScheme + "-" + countStr; // Something like "XYZ-0001"
-	          
-	          // TODO remove options if they are removed? This is problematic for a select.
-	      
-	          // NOTE: this will not work on the first pass during creation as elements are not yet in the DOM.
-	          // This will work during addition of extra elements 0002 and so on.
-	          const foundReferencingElements = this.findElementsWithAttributeIdRef(idScheme);
-	          for (const selectElem of foundReferencingElements) {
-	            selectElem.appendChild(createOption(input.value, input.value));
-	          }
-	        }
-	      }
-	    }
-	    
-	    if (!formElem) {
-	      throw new Error("A form element should have been defined at this point, for fieldId=" + fieldId);
-	    }
+        containerElem.appendChild(formElem);
+        
+      } else if (field.type === "id-ref") {
+        formElem = this.buildFormElem(content);
+        containerElem.appendChild(formElem);
+        const select = formElem;
+        const idSchemes = content._idSchemes;
+        if (idSchemes && idSchemes.length > 0) {
+
+          select.appendChild(createOption("", "")); // Empty option, has no value.
+          //select.appendChild(createOption("", getEditorLabel("editor.select") + " " + String(idSchemes))); // Empty option, has no value.
+
+          // Allows to find back select even if not knowing the idScheme, to find all in use idSchemes later on.
+          select.setAttribute(DATA_EDITOR_ID_REFERENCE, JSON.stringify(idSchemes));
+          for (const idScheme of idSchemes) {
+            // Allows to find back select by idScheme later on.
+            select.setAttribute(DATA_EDITOR_ID_REF_PREFIX + idScheme, "true");
+          }
+  
+          const foundElements = this.findElementsWithAttributeIdSchemes(idSchemes);
+          for (const foundElement of foundElements) {
+            select.appendChild(createOption(foundElement.value, foundElement.value));
+          }
+        } else {
+          if (!content.valueSource) {
+            console.error("content _idSchemes not found for contentId=" + content.id);
+          }
+        }
+  
+      } else {
+        // Fallback.
+        formElem = this.buildFormElem(content);
+        containerElem.appendChild(formElem);
+        const input = formElem;
+        
+        // The provided pattern is be used instead.
+        //if (field.type === "email") {
+        //  input.setAttribute("type", "email");
+        //}
+  
+        if (field.type === "url") {
+          input.classList.add("notice-content-field-url");
+        }
+        
+        if (isFieldTypeNumeric(field.type)) {
+        
+          // Nice to have but not required.
+          input.setAttribute("type", "number");
+          if (field.type !== "integer") {
+            input.setAttribute("steps", "any"); // Allow decimals like 3.1415
+          }
+          
+          // Min of zero would make sense in a lot of situations but a temperature could be negative.
+          // TODO should we use range / intervals like MinZero [0, NULL] for that?
+          //input.setAttribute("min", "0");
+          //input.setAttribute("max", ...);
+        }
+        
+        // DATE.
+        if (field.type === "date") {
+          input.setAttribute("type", "date"); // Nice to have but not required.
+        }
+        // TIME.
+        if (field.type === "time") {
+          input.setAttribute("type", "time"); // Nice to have but not required.
+        }
+        
+        // Pattern, regex for validation.
+        if (field.pattern && field.pattern.severity === "ERROR") {
+          input.setAttribute("pattern", field.pattern.value);
+          
+          // The browser will show: "Please match the requested format: _TITLE_HERE_"
+          // TODO the fields json pattern should come with english text explaining the pattern for error messages. 
+          input.setAttribute("title", field.pattern.value);
+        }
+        
+        if (field.type === "id") {
+          const idScheme = content._idScheme; // In this case there is only one element, not an array.
+          if (!idScheme) {
+            console.warn("no content._idScheme found for contentId=" + content.id + ". This may be OK.");
+          } else {
+            input.setAttribute(DATA_EDITOR_INSTANCE_ID_FIELD, idScheme);
+            const countStr = this.buildPaddedIdNumber(content);
+            input.value = idScheme + "-" + countStr; // Something like "XYZ-0001"
+            
+            // TODO remove options if they are removed? This is problematic for a select.
+        
+            // NOTE: this will not work on the first pass during creation as elements are not yet in the DOM.
+            // This will work during addition of extra elements 0002 and so on.
+            const foundReferencingElements = this.findElementsWithAttributeIdRef(idScheme);
+            for (const selectElem of foundReferencingElements) {
+              selectElem.appendChild(createOption(input.value, input.value));
+            }
+          }
+        }
+      }
+      
+      if (!formElem) {
+        throw new Error("A form element should have been defined at this point, for fieldId=" + fieldId);
+      }
 
       // Add a label tag.
       const labelElem = document.createElement("label");
@@ -986,62 +987,62 @@
         labelElem.setAttribute("for", formElem.getAttribute("id"));
       }
       containerElem.insertBefore(labelElem, formElem);
-	    
-	    // Set the language of the input text.
-	    if (field.type === "text" || field.type === "text-multilingual") {
-	      
-	      // Let the browser know in which language the text is, for example for spell checkers orscreen readers.
-	      formElem.setAttribute("lang", getSelectedLanguage());
-	      
-	      if (field.type === "text-multilingual") {
-	        // TODO the text and the associated language should be given by the form.
-	      }
-	    }
-	    
-	    if (field.maxLength) {
-	      formElem.setAttribute("maxlength", field.maxLength); 
-	    }
-	
-	    if (content.readOnly) {
-	      // TODO is there a default technical value to set or is readOnly only for edition?
+      
+      // Set the language of the input text.
+      if (field.type === "text" || field.type === "text-multilingual") {
+        
+        // Let the browser know in which language the text is, for example for spell checkers orscreen readers.
+        formElem.setAttribute("lang", getSelectedLanguage());
+        
+        if (field.type === "text-multilingual") {
+          // TODO the text and the associated language should be given by the form.
+        }
+      }
+      
+      if (field.maxLength) {
+        formElem.setAttribute("maxlength", field.maxLength); 
+      }
+  
+      if (content.readOnly) {
+        // TODO is there a default technical value to set or is readOnly only for edition?
         // TODO there is another part of the code which sets readonly, see if this can be harmonized.
-	      formElem.setAttribute("readonly", "readonly");
-	    }
-	
-	    const isRequired = isFieldValueMandatory(field, noticeId);
-	    if (isRequired) {
-	      formElem.setAttribute("required", "required");
+        formElem.setAttribute("readonly", "readonly");
+      }
+  
+      const isRequired = isFieldValueMandatory(field, noticeId);
+      if (isRequired) {
+        formElem.setAttribute("required", "required");
         if (labelElem) {
           labelElem.classList.add("notice-content-required");
         }
-	    }
-	
-	    // TODO repeatable, severity is a bit confusing ...
-	    const isFieldRepeatable = field.repeatable.value;
-	    if (isFieldRepeatable) {
-	      // Allow to add / remove fields.
-	      containerElem.classList.add("notice-content-field-repeatable");
-	      
-	      if (content._repeatable && !isFieldRepeatable) {
-	        console.error("fields.json repeatable mismatch on: " + field.id);
-	        containerElem.classList.add("notice-content-field-repeatable-mismatch");
-	      }
-	    }
-	    
-	    if (field.privacy) {
-	      console.debug(field.id + ", field privacy code=" + field.privacy.code);
-	      containerElem.classList.add("notice-content-field-privacy");
-	       
-	      // "code" : "cro-bor-law",
+      }
+  
+      // TODO repeatable, severity is a bit confusing ...
+      const isFieldRepeatable = field.repeatable.value;
+      if (isFieldRepeatable) {
+        // Allow to add / remove fields.
+        containerElem.classList.add("notice-content-field-repeatable");
+        
+        if (content._repeatable && !isFieldRepeatable) {
+          console.error("fields.json repeatable mismatch on: " + field.id);
+          containerElem.classList.add("notice-content-field-repeatable-mismatch");
+        }
+      }
+      
+      if (field.privacy) {
+        console.debug(field.id + ", field privacy code=" + field.privacy.code);
+        containerElem.classList.add("notice-content-field-privacy");
+         
+        // "code" : "cro-bor-law",
         // "unpublishedFieldId" : "BT-195(BT-09)-Procedure",
         // "reasonCodeFieldId" : "BT-197(BT-09)-Procedure",
         // "reasonDescriptionFieldId" : "BT-196(BT-09)-Procedure",
         // "publicationDateFieldId" : "BT-198(BT-09)-Procedure"
-	    }
-			
-	    return {"containerElem" : containerElem, "formElem" : formElem, "labelElem" : labelElem, "field" : field};
-	  }
-	  
+      }
+      
+      return {"containerElem" : containerElem, "formElem" : formElem, "labelElem" : labelElem, "field" : field};
+    }
+    
   } // End of Editor class.
   
   /**
@@ -1114,38 +1115,38 @@
     // GET the translations for the default language.
     downloadSdkTranslations(getSelectedLanguage(), function(dataI18n) {
       
-	    const jsonOkBasicFunc = function(dataBasicJson) {
+      const jsonOkBasicFunc = function(dataBasicJson) {
         if (!dataBasicJson.fieldsJson.sdkVersion) {
-	        throw new Error("Invalid sdkVersion");
-	      }
+          throw new Error("Invalid sdkVersion");
+        }
         console.log("basic json data has been loaded");
 
-	      const jsonOkNoticeTypeFunc = function(dataNoticeType) {
+        const jsonOkNoticeTypeFunc = function(dataNoticeType) {
           const sdkVersion = dataNoticeType.sdkVersion;
-	        if (!sdkVersion) {
+          if (!sdkVersion) {
             throw new Error("Invalid sdkVersion: " + sdkVersion);
-	        }
-	        setText("notice-sdkVersion", sdkVersion);
-	        setText("notice-noticeId", dataNoticeType.noticeId); // Notice sub-type.
-	        
+          }
+          setText("notice-sdkVersion", sdkVersion);
+          setText("notice-noticeId", dataNoticeType.noticeId); // Notice sub-type.
+          
           // Use the Editor class.
-	        const editor = new Editor(dataBasicJson, dataNoticeType, dataI18n, noticeFormElem);
-	        editor.buildForm(); // Build the form. Initialize.
-	        
-	        funcCallbackWhenLoadedDefinition();
-	        console.log("Loaded editor notice type: " + urlToGetNoticeTypeJsonData);
-	      };
+          const editor = new Editor(dataBasicJson, dataNoticeType, dataI18n, noticeFormElem);
+          editor.buildForm(); // Build the form. Initialize.
+          
+          funcCallbackWhenLoadedDefinition();
+          console.log("Loaded editor notice type: " + urlToGetNoticeTypeJsonData);
+        };
         
         // GET available notice types.
         const urlToGetNoticeTypeJsonData = "/sdk/" + sdkVersion + "/notice-types/" + noticeId;
-	      jsonGet(urlToGetNoticeTypeJsonData, timeOutLargeMillis, jsonOkNoticeTypeFunc, jsonGetOnError);
-	    };
+        jsonGet(urlToGetNoticeTypeJsonData, timeOutLargeMillis, jsonOkNoticeTypeFunc, jsonGetOnError);
+      };
       
       // GET SDK fields.json data (and more) for the given SDK version.
       // You could also dynamically load data only when it is needed, but this would create many requests which may be slow.
       // This is a URL to the editor back-end REST API.
       const urlToGetBasicJsonData = "/sdk/" + sdkVersion + "/basic-meta-data";
-	    jsonGet(urlToGetBasicJsonData, timeOutLargeMillis, jsonOkBasicFunc, jsonGetOnError);
+      jsonGet(urlToGetBasicJsonData, timeOutLargeMillis, jsonOkBasicFunc, jsonGetOnError);
     });
   }
   

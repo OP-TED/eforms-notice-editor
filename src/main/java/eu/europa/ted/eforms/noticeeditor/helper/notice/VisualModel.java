@@ -158,40 +158,6 @@ public class VisualModel {
   }
 
   /**
-   * @param toSearch The json item to be searched into
-   * @param nodeId The node id to find
-   *
-   * @return the json of the node, an exception is thrown if not found
-   */
-  private static JsonNode findByNodeIdStrict(final JsonNode toSearch, final String nodeId) {
-    final ArrayNode visChildren = (ArrayNode) toSearch.get(VIS_CHILDREN);
-    for (final JsonNode item : visChildren) {
-      final Optional<String> nodeIdOpt = JsonUtils.getTextOpt(item, VIS_NODE_ID);
-      if (nodeIdOpt.isPresent() && nodeIdOpt.get().equals(nodeId)) {
-        return item; // Found the item.
-      }
-    }
-    throw new RuntimeException(String.format("Node %s not found in visual model!", nodeId));
-  }
-
-  /**
-   * @param toSearch The json item to be searched into
-   * @param fieldId The field id to find
-   *
-   * @return the json of the field, an exception is thrown if not found
-   */
-  private static JsonNode findByFieldIdStrict(final JsonNode toSearch, final String fieldId) {
-    final ArrayNode visChildren = (ArrayNode) toSearch.get(VIS_CHILDREN);
-    for (final JsonNode item : visChildren) {
-      final String type = JsonUtils.getTextStrict(item, VIS_TYPE);
-      if (VIS_TYPE_FIELD.equals(type)) {
-        return item; // Found the item.
-      }
-    }
-    throw new RuntimeException(String.format("Field %s not found in visual model!", fieldId));
-  }
-
-  /**
    * Build the conceptual model from the visual model.
    *
    * @param fieldsAndNodes Field and node metadata
@@ -409,6 +375,40 @@ public class VisualModel {
     }
 
     throw new RuntimeException(String.format("Unsupported visual type '%s'", visualType));
+  }
+
+  /**
+   * @param toSearch The json item to be searched into
+   * @param nodeId The node id to find
+   *
+   * @return the json of the node, an exception is thrown if not found
+   */
+  private static JsonNode findByNodeIdStrict(final JsonNode toSearch, final String nodeId) {
+    final ArrayNode visChildren = (ArrayNode) toSearch.get(VIS_CHILDREN);
+    for (final JsonNode item : visChildren) {
+      final Optional<String> nodeIdOpt = JsonUtils.getTextOpt(item, VIS_NODE_ID);
+      if (nodeIdOpt.isPresent() && nodeIdOpt.get().equals(nodeId)) {
+        return item; // Found the item.
+      }
+    }
+    throw new RuntimeException(String.format("Node %s not found in visual model!", nodeId));
+  }
+
+  /**
+   * @param toSearch The json item to be searched into
+   * @param fieldId The field id to find
+   *
+   * @return the json of the field, an exception is thrown if not found
+   */
+  private static JsonNode findByFieldIdStrict(final JsonNode toSearch, final String fieldId) {
+    final ArrayNode visChildren = (ArrayNode) toSearch.get(VIS_CHILDREN);
+    for (final JsonNode item : visChildren) {
+      final String type = JsonUtils.getTextStrict(item, VIS_TYPE);
+      if (VIS_TYPE_FIELD.equals(type)) {
+        return item; // Found the item.
+      }
+    }
+    throw new RuntimeException(String.format("Field %s not found in visual model!", fieldId));
   }
 
 }
