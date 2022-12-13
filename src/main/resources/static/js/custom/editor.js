@@ -21,6 +21,11 @@
   
   const FIELD_ID_SDK_VERSION = "OPT-002-notice";
   const FIELD_ID_NOTICE_SUB_TYPE = "OPP-070-notice";
+  const FIELD_ID_NOTICE_UUID = "BT-701-notice";
+  
+  const VIS_CONTENT_COUNT = "contentCount";
+  const VIS_VALUE = "value";
+  const VIS_TYPE = "visType"; // Has nothing to do with HTML element type!
 
   // Init: loads initial editor home page data, see afterInitDataLoaded.
   jsonGet("/sdk/info", timeOutDefaultMillis, afterInitDataLoaded, jsonGetOnError);
@@ -231,7 +236,8 @@
       
       vm["contentId"] = "the_visual_root"; // visualRoot.
       vm["visNodeId"] = ND_ROOT;
-      vm["type"] = "non-field";
+      vm[VIS_TYPE] = "non-field";
+      vm[VIS_CONTENT_COUNT] = "1";
 
       console.dir(vm); // tttt
       
@@ -242,9 +248,15 @@
       if (!vm["sdkVersion"]) {
         throw new Error("SDK version is not specified in visual model!");
       }
-
+      
       // Put the notice sub type at top level.
       vm["noticeSubType"] = this.findInVisualModelRec(vm, FIELD_ID_NOTICE_SUB_TYPE).value;
+      if (!vm["noticeSubType"]) {
+        throw new Error("The notice sub type is not specified in visual model!");
+      }
+
+      // Put the notice UUID top level.
+      vm["noticeUuid"] = this.findInVisualModelRec(vm, FIELD_ID_NOTICE_UUID).value;
       if (!vm["noticeSubType"]) {
         throw new Error("The notice sub type is not specified in visual model!");
       }
@@ -276,28 +288,28 @@
         return null;
       }
 
-		  const contentCount = elem.getAttribute(DATA_EDITOR_COUNT);        
-			data["contentCount"] = contentCount;
+      const contentCount = elem.getAttribute(DATA_EDITOR_COUNT);        
+	  data[VIS_CONTENT_COUNT] = contentCount;
 
-			const contentType = elem.getAttribute(DATA_EDITOR_TYPE);
-		  data["type"] = contentType;
+	  const contentType = elem.getAttribute(DATA_EDITOR_TYPE);
+	  data[VIS_TYPE] = contentType;
 
-		  if (contentType === "field") {
+	  if (contentType === "field") {
         
         // The form value (text inside of form fields, input, select, textarea, ...).
         const value = elem.value;        
-				data["value"] = value;
+		data[VIS_VALUE] = value;
         
         const sdkFieldMeta = this.fieldMap[contentId];
         if (!sdkFieldMeta) {
           throw new Error("Unknown fieldId=" + contentId);
         }
-		  } else {
-		    const nodeId = elem.getAttribute(DATA_EDITOR_CONTENT_NODE_ID);
-		    if (nodeId) {
-  		    data["visNodeId"] = nodeId;
-		    }
-		  }
+	  } else {
+	    const nodeId = elem.getAttribute(DATA_EDITOR_CONTENT_NODE_ID);
+		if (nodeId) {
+  		  data["visNodeId"] = nodeId;
+		}
+	  }
     
       if (elem.hasChildNodes()) {
         const visualModelChildren = [];
@@ -360,7 +372,7 @@
       this.getContentElemByIdUnique("BT-757-notice").value = "01";
 
       // Set the notice id.
-      this.getContentElemByIdUnique("BT-701-notice").value = buildUuidv4();
+      this.getContentElemByIdUnique(FIELD_ID_NOTICE_UUID).value = buildUuidv4();
 
       // This builds the initial empty form, the content part (non-metadata).
       this.readContentRecur(this.noticeFormElement, this.noticeRootContent, rootLevel, false, null, null);
