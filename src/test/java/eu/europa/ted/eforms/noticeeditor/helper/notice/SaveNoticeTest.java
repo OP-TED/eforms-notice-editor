@@ -24,10 +24,8 @@ public abstract class SaveNoticeTest {
   // UI FORM RELATED.
   //
   static final String VIS_CHILDREN = VisualModel.VIS_CHILDREN;
-  static final String VIS_CONTENT_PARENT_COUNT = VisualModel.VIS_CONTENT_PARENT_COUNT;
   static final String VIS_CONTENT_COUNT = VisualModel.VIS_CONTENT_COUNT;
   static final String VIS_CONTENT_ID = VisualModel.VIS_CONTENT_ID;
-  static final String VIS_FIELD_ID = VisualModel.VIS_FIELD_ID;
   static final String VIS_VALUE = VisualModel.VIS_VALUE;
   static final String VIS_NODE_ID = "visNodeId";
 

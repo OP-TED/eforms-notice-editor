@@ -49,11 +49,9 @@ public class SdkRestController implements AsyncConfigurer {
 
   /**
    * Get JSON containing basic home info.
-   *
-   * @throws IOException
    */
   @RequestMapping(value = "/info", method = RequestMethod.GET, produces = SdkService.MIME_TYPE_JSON)
-  public Map<String, Object> selectHomeInfo() throws IOException {
+  public Map<String, Object> selectHomeInfo() {
     return SdkService.getHomePageInfo(supportedSdks);
   }
 
@@ -122,7 +120,7 @@ public class SdkRestController implements AsyncConfigurer {
   /**
    * Save: Takes notice as JSON and builds notice XML. The SDK version is in the notice metadata.
    *
-   * @throws IOException
+   * @throws IOException If there is a problem reading the notice JSON
    */
   @RequestMapping(value = "/notice/save", method = RequestMethod.POST,
       produces = SdkService.MIME_TYPE_XML, consumes = SdkService.MIME_TYPE_JSON)

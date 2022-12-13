@@ -56,7 +56,7 @@ public class GraphvizDotTool {
     }
 
     sb.append(dotContent)//
-        .append("}\n");//
+        .append("}\n");
   }
 
 }

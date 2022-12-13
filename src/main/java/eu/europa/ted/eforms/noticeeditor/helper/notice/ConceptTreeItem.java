@@ -22,9 +22,10 @@ public abstract class ConceptTreeItem {
 
   protected ConceptTreeItem(final String idUnique, final String idInSdkFieldsJson,
       final int counter) {
-    Validate.notBlank(idUnique, "idUnique of concept node is blank");
-    Validate.notBlank(idInSdkFieldsJson, "idInSdkFieldsJson of concept node is blank");
-    Validate.isTrue(counter >= 1);
+    Validate.notBlank(idUnique, "idUnique of concept node is blank for %s", idInSdkFieldsJson);
+    Validate.notBlank(idInSdkFieldsJson, "idInSdkFieldsJson of concept node is blank for %s",
+        idUnique);
+    Validate.isTrue(counter >= 1, "counter must be >= 1 but found %s for %s", counter, idUnique);
     this.idUnique = idUnique;
     this.idInSdkFieldsJson = idInSdkFieldsJson;
     this.counter = counter;

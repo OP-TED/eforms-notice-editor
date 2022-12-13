@@ -1,6 +1,5 @@
 package eu.europa.ted.eforms.noticeeditor.service;
 
-import static eu.europa.ted.eforms.noticeeditor.util.JsonUtils.getTextStrict;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,6 +35,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -53,8 +53,8 @@ import eu.europa.ted.eforms.noticeeditor.helper.notice.ConceptualModel;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.DocumentTypeInfo;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.PhysicalModel;
-import eu.europa.ted.eforms.noticeeditor.helper.notice.XmlSchemaInfo;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.VisualModel;
+import eu.europa.ted.eforms.noticeeditor.helper.notice.XmlSchemaInfo;
 import eu.europa.ted.eforms.noticeeditor.util.IntuitiveStringComparator;
 import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
@@ -417,8 +417,11 @@ public class SdkService {
   public Path readSdkPath(final SdkVersion sdkVersion, final SdkResource resourceType,
       final String filenameForDownload) {
     Validate.notNull(sdkVersion, "SDK version is null");
-    return SdkResourceLoader.getResourceAsPath(sdkVersion, resourceType, filenameForDownload,
-        Path.of(eformsSdkPath));
+    // For the moment the way the folders work is that the folder "1.1.2" would be in folder "1.1",
+    // if "1.1.3" exists it would overwrite "1.1.2", but the folder would still be "1.1".
+    final String sdkVersionNoPatch = sdkVersion.getMajor() + "." + sdkVersion.getMinor();
+    return SdkResourceLoader.getResourceAsPath(new SdkVersion(sdkVersionNoPatch), resourceType,
+        filenameForDownload, Path.of(eformsSdkPath));
   }
 
   /**
@@ -546,56 +549,30 @@ public class SdkService {
    * @param noticeJson The notice as JSON as built by the front-end form.
    */
   public void saveNoticeAsXml(final Optional<HttpServletResponse> responseOpt,
-      final String noticeJson) throws ParserConfigurationException, IOException {
-
+      final String noticeJson)
+      throws ParserConfigurationException, JsonProcessingException, JsonMappingException {
     Validate.notBlank(noticeJson, "noticeJson is blank");
-    logger.info("Attempting to save notice as XML.");
 
+    logger.info("Attempting to save notice as XML.");
     final ObjectMapper mapper = new ObjectMapper();
     final JsonNode visualRoot = mapper.readTree(noticeJson);
-
-    // Find the SDK version.
-    final String sdkVersionStr;
-    {
-      // Example: the SDK value looks like "eforms-sdk-1.1.0".
-      // final String sdkVersionFieldId = ConceptualModel.FIELD_ID_SDK_VERSION;
-      // final JsonNode visualField = visualRoot.get(sdkVersionFieldId);
-      // final String eFormsSdkVersion = getTextStrict(visualField, "value");
-
-      // Use the shortcut we put at the virtual root top level:
-      final String eFormsSdkVersion =
-          JsonUtils.getTextStrict(visualRoot, VisualModel.VIS_SDK_VERSION);
-
-      Validate.notBlank(eFormsSdkVersion, "virtual root eFormsSdkVersion is blank");
-      final String prefix = SdkConstants.NOTICE_CUSTOMIZATION_ID_VERSION_PREFIX;
-      Validate.isTrue(eFormsSdkVersion.startsWith(prefix),
-          "Expecting sdk version to start with prefix=%s", prefix);
-      final String sdkVersionStrTmp = eFormsSdkVersion.substring(prefix.length());
-
-      // We are only interested in 1.1.0 or just 1.1
-      // For now we will only handle versions major and minor.
-      // TODO maybe handle precise versions like "1.1.0" later on (patch level).
-      sdkVersionStr = sdkVersionStrTmp.substring(0, sdkVersionStrTmp.lastIndexOf('.'));
-      logger.info("Found SDK version: {}, using {}", eFormsSdkVersion, sdkVersionStr);
-    }
-
-    // Find the notice UUID ("notice-id").
+    final SdkVersion sdkVersion = parseSdkVersion(visualRoot);
     final UUID noticeUuid = parseNoticeUuid(visualRoot);
     try {
-      saveXmlSubMethod(responseOpt, visualRoot, sdkVersionStr, noticeUuid);
+      saveXmlSubMethod(responseOpt, visualRoot, sdkVersion, noticeUuid);
     } catch (final Exception e) {
       // Catch any error, log some useful context and rethrow.
-      logger.error("Error for notice uuid={}, sdkVersion={}", noticeUuid, sdkVersionStr);
+      logger.error("Error for notice uuid={}, sdkVersion={}", noticeUuid,
+          sdkVersion.toNormalisedString(true));
       throw e;
     }
   }
 
   private void saveXmlSubMethod(final Optional<HttpServletResponse> responseOpt,
-      final JsonNode visualRoot, final String sdkVersionStr, final UUID noticeUuid)
+      final JsonNode visualRoot, final SdkVersion sdkVersion, final UUID noticeUuid)
       throws ParserConfigurationException {
-    // Load fields json depending of the correct SDK version.
-    // I would like to load a precise version of the SDK.
-    final SdkVersion sdkVersion = new SdkVersion(sdkVersionStr);
+    Validate.notNull(visualRoot);
+    Validate.notNull(noticeUuid);
 
     final JsonNode fieldsJson = readSdkJsonFile(sdkVersion, SdkResource.FIELDS, SDK_FIELDS_JSON);
     final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldsJson, sdkVersion);
@@ -607,8 +584,9 @@ public class SdkService {
     final Map<String, JsonNode> noticeInfoBySubtype = new HashMap<>(512);
     {
       // TODO add noticeSubTypes to the SDK constants.
+      // SdkResource.NOTICE_SUB_TYPES
       final JsonNode noticeSubTypes = noticeTypesJson.get("noticeSubTypes");
-      for (JsonNode item : noticeSubTypes) {
+      for (final JsonNode item : noticeSubTypes) {
         // TODO add subTypeId to the SDK constants.
         final String subTypeId = JsonUtils.getTextStrict(item, "subTypeId");
         noticeInfoBySubtype.put(subTypeId, item);
@@ -619,7 +597,7 @@ public class SdkService {
     {
       final JsonNode documentTypes =
           noticeTypesJson.get(SdkConstants.NOTICE_TYPES_JSON_DOCUMENT_TYPES_KEY);
-      for (JsonNode item : documentTypes) {
+      for (final JsonNode item : documentTypes) {
         // TODO add document type id to the SDK constants.
         final String id = JsonUtils.getTextStrict(item, "id");
         documentInfoByType.put(id, item);
@@ -652,11 +630,45 @@ public class SdkService {
     }
   }
 
-  private static UUID parseNoticeUuid(final JsonNode visualRoot) {
-    final JsonNode visualItem = visualRoot.get("BT-701-notice-1");
-    Validate.notNull(visualItem, "Json item holding notice UUID is null!");
+  /**
+   * Get the SDK version.
+   *
+   * @param visualRoot root of the visual JSON
+   */
+  private static SdkVersion parseSdkVersion(final JsonNode visualRoot) {
+    // Example: the SDK value looks like "eforms-sdk-1.1.0".
+    // final String sdkVersionFieldId = ConceptualModel.FIELD_ID_SDK_VERSION;
+    // final JsonNode visualField = visualRoot.get(sdkVersionFieldId);
+    // final String eFormsSdkVersion = getTextStrict(visualField, "value");
 
-    final String uuidStr = getTextStrict(visualItem, "value");
+    // Use the shortcut we put at the virtual root top level:
+    final String eFormsSdkVersion =
+        JsonUtils.getTextStrict(visualRoot, VisualModel.VIS_SDK_VERSION);
+    Validate.notBlank(eFormsSdkVersion, "virtual root eFormsSdkVersion is blank");
+
+    final String prefix = SdkConstants.NOTICE_CUSTOMIZATION_ID_VERSION_PREFIX;
+    Validate.isTrue(eFormsSdkVersion.startsWith(prefix),
+        "Expecting sdk version to start with prefix=%s", prefix);
+    final String sdkVersionStr = eFormsSdkVersion.substring(prefix.length());
+
+    // If we have "eforms-sdk-1.1.0" we want "1.1.0".
+    logger.info("Found SDK version: {}, using {}", eFormsSdkVersion, sdkVersionStr);
+
+    // Load fields json depending of the correct SDK version.
+    return new SdkVersion(sdkVersionStr);
+  }
+
+  /**
+   * Get the notice id, notice UUID.
+   *
+   * @param visualRoot Root of the visual JSON
+   */
+  private static UUID parseNoticeUuid(final JsonNode visualRoot) {
+    // final JsonNode visualItem = visualRoot.get("BT-701-notice");
+    // Validate.notNull(visualItem, "Json item holding notice UUID is null!");
+    // final String uuidStr = getTextStrict(visualItem, "value");
+
+    final String uuidStr = JsonUtils.getTextStrict(visualRoot, VisualModel.VIS_NOTICE_UUID);
     Validate.notBlank(uuidStr, "The notice UUID is blank!");
 
     final UUID uuidV4 = UUID.fromString(uuidStr);

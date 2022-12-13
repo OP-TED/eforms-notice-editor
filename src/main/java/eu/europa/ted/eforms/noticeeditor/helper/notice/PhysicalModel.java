@@ -72,25 +72,27 @@ public class PhysicalModel {
   private final Document domDocument;
 
   private final FieldsAndNodes fieldsAndNodes;
-  private XPath xPathInst;
+  private XPath xpathInst;
 
   /**
    * @param document W3C DOM document
-   * @param xPathInst Used for xpath evaluation
+   * @param xpathInst Used for xpath evaluation
    * @param fieldsAndNodes Holds SDK field and node metadata
    */
-  public PhysicalModel(final Document document, final XPath xPathInst,
+  public PhysicalModel(final Document document, final XPath xpathInst,
       final FieldsAndNodes fieldsAndNodes) {
     this.domDocument = document;
     this.fieldsAndNodes = fieldsAndNodes;
-    this.xPathInst = xPathInst;
+    this.xpathInst = xpathInst;
   }
 
   /**
    * This is provided for convenience for the unit tests.
    *
+   * <p>
    * Evaluates xpath and returns a nodelist. Note: this works when the required notice values are
    * present as some xpath may rely on their presence (codes, indicators, ...).
+   * </p>
    *
    * @param contextElem The XML context element in which the xpath is evaluated
    * @param xpathExpr The XPath expression relative to the passed context
@@ -98,7 +100,7 @@ public class PhysicalModel {
    * @return The result of evaluating the XPath expression as a NodeList
    */
   NodeList evaluateXpathForTests(final String xpathExpr, String idForError) {
-    return evaluateXpath(this.xPathInst, this.getDomDocument(), xpathExpr, idForError);
+    return evaluateXpath(this.xpathInst, this.getDomDocument(), xpathExpr, idForError);
   }
 
   public Document getDomDocument() {
@@ -160,7 +162,7 @@ public class PhysicalModel {
     // TEDEFO-1426
     // For the moment do as if it was there.
     final String xsdPath = docTypeInfo.getXsdFile();
-    final XPath xPathInst = setXmlNamespaces(namespaceUri, xmlDocRoot);
+    final XPath xpathInst = setXmlNamespaces(namespaceUri, xmlDocRoot);
 
     // Attempt to put schemeName first.
     // buildPhysicalModelXmlRec(fieldsAndNodes, doc, concept.getRoot(), rootElem, debug,
@@ -188,12 +190,12 @@ public class PhysicalModel {
     final boolean onlyIfPriority = false;
     final int depth = 0;
     buildPhysicalModelRec(xmlDoc, fieldsAndNodes, conceptualModelTreeRootNode, xmlDocRoot, debug,
-        buildFields, depth, onlyIfPriority, xPathInst);
+        buildFields, depth, onlyIfPriority, xpathInst);
 
     // Reorder the physical model.
-    reorderPhysicalModel(xmlDocRoot, xPathInst, schemaInfo);
+    reorderPhysicalModel(xmlDocRoot, xpathInst, schemaInfo);
 
-    return new PhysicalModel(xmlDoc, xPathInst, fieldsAndNodes);
+    return new PhysicalModel(xmlDoc, xpathInst, fieldsAndNodes);
   }
 
   /**
@@ -210,7 +212,7 @@ public class PhysicalModel {
   private static void buildPhysicalModelRec(final Document doc, final FieldsAndNodes fieldsAndNodes,
       final ConceptTreeNode conceptElem, final Element xmlNodeElem, final boolean debug,
       final boolean buildFields, final int depth, final boolean onlyIfPriority,
-      final XPath xPathInst) {
+      final XPath xpathInst) {
     Validate.notNull(conceptElem, "conceptElem is null");
     Validate.notNull(xmlNodeElem, "xmlElem is null, conceptElem=%s", conceptElem.getIdUnique());
 
@@ -224,14 +226,14 @@ public class PhysicalModel {
     // NODES.
     int childCounter = 0;
     for (final ConceptTreeNode conceptNode : conceptElem.getConceptNodes()) {
-      buildNodesAndFields(doc, fieldsAndNodes, conceptNode, xPathInst, xmlNodeElem, debug, depth,
+      buildNodesAndFields(doc, fieldsAndNodes, conceptNode, xpathInst, xmlNodeElem, debug, depth,
           onlyIfPriority, buildFields, childCounter++);
     }
 
     // FIELDS.
     childCounter = 0;
     for (final ConceptTreeField conceptField : conceptElem.getConceptFields()) {
-      buildFields(doc, fieldsAndNodes, conceptField, xPathInst, xmlNodeElem, debug, depth,
+      buildFields(doc, fieldsAndNodes, conceptField, xpathInst, xmlNodeElem, debug, depth,
           onlyIfPriority, buildFields, childCounter++);
     }
 
@@ -249,18 +251,19 @@ public class PhysicalModel {
    *
    * @param doc The XML document, modified as a SIDE-EFFECT!
    * @param fieldsAndNodes Field and node meta information (no form values)
-   * @param xPathInst Allows to evaluate xpath expressions
+   * @param xpathInst Allows to evaluate xpath expressions
    * @param xmlNodeElem The current xml node element (modified as a SIDE-EFFECT!)
    * @param debug Adds extra debugging info in the XML if true, for humans or unit tests, the XML
    *        may become invalid
    * @param depth The current depth level passed for debugging and logging purposes
-   * @param onlyIfPriority
+   * @param onlyIfPriority Only build priority items (for xpath of other items which refer to them
+   *        later)
    * @param buildFields True if fields have to be built, false otherwise
    * @param childCounter Current position in the children
    * @param conceptElem The current conceptual element
    */
   private static boolean buildNodesAndFields(final Document doc,
-      final FieldsAndNodes fieldsAndNodes, final ConceptTreeNode conceptNode, final XPath xPathInst,
+      final FieldsAndNodes fieldsAndNodes, final ConceptTreeNode conceptNode, final XPath xpathInst,
       final Element xmlNodeElem, final boolean debug, final int depth, boolean onlyIfPriority,
       final boolean buildFields, final int childCounter) {
 
@@ -319,7 +322,7 @@ public class PhysicalModel {
         // TODO this may be fixed by TEDEFO-1466
         continue; // Skip this tag.
       }
-      foundElements = evaluateXpath(xPathInst, previousElem, xpathExpr, nodeId);
+      foundElements = evaluateXpath(xpathInst, previousElem, xpathExpr, nodeId);
 
       if (foundElements.getLength() > 0) {
         assert foundElements.getLength() == 1;
@@ -372,7 +375,7 @@ public class PhysicalModel {
 
     // Build child nodes recursively.
     buildPhysicalModelRec(doc, fieldsAndNodes, conceptNode, nodeElem, debug, buildFields, depth + 1,
-        onlyIfPriority, xPathInst);
+        onlyIfPriority, xpathInst);
 
     return nodeMetaRepeatable;
   }
@@ -390,7 +393,7 @@ public class PhysicalModel {
    * @param childCounter The current position in the children.
    */
   private static void buildFields(final Document doc, final FieldsAndNodes fieldsAndNodes,
-      final ConceptTreeField conceptField, final XPath xPathInst, final Element xmlNodeElem,
+      final ConceptTreeField conceptField, final XPath xpathInst, final Element xmlNodeElem,
       final boolean debug, final int depth, final boolean onlyIfPriority, final boolean buildFields,
       final int childCounter) {
 
@@ -450,7 +453,7 @@ public class PhysicalModel {
       final boolean isAttribute = tagOrAttr.startsWith("@") && tagOrAttr.length() > 1;
 
       final Optional<NodeList> foundElementsOpt = !isAttribute && xpathExprOpt.isPresent()
-          ? Optional.of(evaluateXpath(xPathInst, previousElem, xpathExprOpt.get(), fieldId))
+          ? Optional.of(evaluateXpath(xpathInst, previousElem, xpathExprOpt.get(), fieldId))
           : Optional.empty();
 
       if (foundElementsOpt.isPresent() && foundElementsOpt.get().getLength() > 0) {
@@ -609,11 +612,11 @@ public class PhysicalModel {
    * Changes the order of the elements to the schema sequence order. The XML DOM model is modified
    * as a side effect.
    */
-  private static void reorderPhysicalModel(final Element rootElem, final XPath xPathInst,
+  private static void reorderPhysicalModel(final Element rootElem, final XPath xpathInst,
       final XmlSchemaInfo schemaInfo) {
     final List<String> rootOrder = schemaInfo.getRootOrder();
     for (final String tagName : rootOrder) {
-      final NodeList elementsFound = evaluateXpath(xPathInst, rootElem, tagName, tagName);
+      final NodeList elementsFound = evaluateXpath(xpathInst, rootElem, tagName, tagName);
       for (int i = 0; i < elementsFound.getLength(); i++) {
         final Node elem = elementsFound.item(i);
         rootElem.removeChild(elem); // Removes child from old location.
@@ -666,7 +669,7 @@ public class PhysicalModel {
       final String objectModelSaxon = NamespaceConstant.OBJECT_MODEL_SAXON;
       System.setProperty("javax.xml.xpath.XPathFactory:" + objectModelSaxon,
           "net.sf.saxon.xpath.XPathFactoryImpl");
-      final XPath xPathInst = XPathFactory.newInstance(objectModelSaxon).newXPath();
+      final XPath xpathInst = XPathFactory.newInstance(objectModelSaxon).newXPath();
 
       // Custom namespace context.
       // https://stackoverflow.com/questions/13702637/xpath-with-namespace-in-java
@@ -688,8 +691,8 @@ public class PhysicalModel {
           return null;
         }
       };
-      xPathInst.setNamespaceContext(namespaceCtx);
-      return xPathInst;
+      xpathInst.setNamespaceContext(namespaceCtx);
+      return xpathInst;
 
     } catch (XPathFactoryConfigurationException ex) {
       throw new RuntimeException(ex);
@@ -700,13 +703,13 @@ public class PhysicalModel {
    * Evaluates xpath and returns a nodelist. Note: this works when the required notice values are
    * present as some xpath may rely on their presence (codes, indicators, ...).
    *
-   * @param xPathInst The XPath instance (reusable)
+   * @param xpathInst The XPath instance (reusable)
    * @param contextElem The XML context element in which the xpath is evaluated
    * @param xpathExpr The XPath expression relative to the passed context
    * @param idForError An identifier which is shown in case of errors
    * @return The result of evaluating the XPath expression as a NodeList
    */
-  static NodeList evaluateXpath(final XPath xPathInst, final Object contextElem,
+  static NodeList evaluateXpath(final XPath xpathInst, final Object contextElem,
       final String xpathExpr, String idForError) {
     Validate.notBlank(xpathExpr, "xpathExpr is blank for %s, %s", contextElem, idForError);
     try {
@@ -715,7 +718,7 @@ public class PhysicalModel {
       // (NodeList) xPathInst.compile(xpathExpr).evaluate(contextElem, XPathConstants.NODESET);
 
       final NodeList nodeList =
-          (NodeList) xPathInst.evaluate(xpathExpr, contextElem, XPathConstants.NODESET);
+          (NodeList) xpathInst.evaluate(xpathExpr, contextElem, XPathConstants.NODESET);
 
       return nodeList;
     } catch (XPathExpressionException e) {
