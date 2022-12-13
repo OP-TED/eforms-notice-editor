@@ -184,7 +184,7 @@
           textAreaXml.value = data;
           textAreaXml.style.display = 'block';
         };
-        const url = "sdk/notice/save";
+        const url = "xml/notice/save";
         const body = jsonText;
         jsonPostRespXml(url, timeOutLargeMillis, afterModelPost, jsonPostOnError, body);
       };

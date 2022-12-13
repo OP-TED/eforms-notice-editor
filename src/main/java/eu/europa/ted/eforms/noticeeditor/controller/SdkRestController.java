@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.parsers.ParserConfigurationException;
@@ -13,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -21,7 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.xml.sax.SAXException;
 import eu.europa.ted.eforms.noticeeditor.domain.Language;
 import eu.europa.ted.eforms.noticeeditor.service.SdkService;
-import eu.europa.ted.eforms.noticeeditor.service.XmlWriteService;
 import eu.europa.ted.eforms.sdk.SdkConstants.SdkResource;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
@@ -38,9 +35,6 @@ public class SdkRestController implements AsyncConfigurer {
 
   @Autowired
   private SdkService sdkService;
-
-  @Autowired
-  private XmlWriteService xmlService;
 
   public SdkRestController(@Value("${eforms.sdk.path}") final String eformsSdkDir,
       @Value("${eforms.sdk.versions}") final List<String> supportedSdks) {
@@ -119,18 +113,6 @@ public class SdkRestController implements AsyncConfigurer {
     final String filenameForDownload = String.format("i18n_%s.xml", lang.getLocale().getLanguage());
     SdkService.serveTranslations(response, new SdkVersion(sdkVersion), eformsSdkDir, langCode,
         filenameForDownload);
-  }
-
-  /**
-   * Save: Takes notice as JSON and builds notice XML. The SDK version is in the notice metadata.
-   *
-   * @throws IOException If there is a problem reading the notice JSON
-   */
-  @RequestMapping(value = "/notice/save", method = RequestMethod.POST,
-      produces = SdkService.MIME_TYPE_XML, consumes = SdkService.MIME_TYPE_JSON)
-  public void saveNotice(final HttpServletResponse response, final @RequestBody String noticeJson)
-      throws ParserConfigurationException, IOException {
-    xmlService.saveNoticeAsXml(Optional.of(response), noticeJson);
   }
 
 }

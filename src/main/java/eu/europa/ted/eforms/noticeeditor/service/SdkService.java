@@ -566,6 +566,4 @@ public class SdkService {
   JsonNode readSdkFieldsJson(final SdkVersion sdkVersion) {
     return readSdkJsonFile(sdkVersion, SdkResource.FIELDS, SdkService.SDK_FIELDS_JSON);
   }
-
-
 }
