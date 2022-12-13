@@ -8,16 +8,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletResponse;
@@ -35,7 +32,6 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -49,22 +45,15 @@ import eu.europa.ted.eforms.noticeeditor.domain.Language;
 import eu.europa.ted.eforms.noticeeditor.genericode.CustomGenericodeMarshaller;
 import eu.europa.ted.eforms.noticeeditor.genericode.GenericodeTools;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
-import eu.europa.ted.eforms.noticeeditor.helper.notice.ConceptualModel;
-import eu.europa.ted.eforms.noticeeditor.helper.notice.DocumentTypeInfo;
-import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
-import eu.europa.ted.eforms.noticeeditor.helper.notice.PhysicalModel;
-import eu.europa.ted.eforms.noticeeditor.helper.notice.VisualModel;
-import eu.europa.ted.eforms.noticeeditor.helper.notice.XmlSchemaInfo;
 import eu.europa.ted.eforms.noticeeditor.util.IntuitiveStringComparator;
 import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
-import eu.europa.ted.eforms.sdk.SdkConstants;
 import eu.europa.ted.eforms.sdk.SdkConstants.SdkResource;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 import eu.europa.ted.eforms.sdk.resource.SdkResourceLoader;
 
 /**
- * Reads and serves data from the SDK.
+ * Reads data from the SDK files and serves it.
  */
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
     value = "EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS", justification = "Checked to Runtime OK here")
@@ -88,9 +77,9 @@ public class SdkService {
    */
   public static final String MIME_TYPE_XML = "application/xml";
 
-  private static final String SDK_NOTICE_TYPES_JSON = "notice-types.json";
-  public static final String SDK_FIELDS_JSON = "fields.json";
-  public static final String SDK_CODELISTS_JSON = "codelists.json";
+  static final String SDK_NOTICE_TYPES_JSON = "notice-types.json";
+  static final String SDK_FIELDS_JSON = "fields.json";
+  static final String SDK_CODELISTS_JSON = "codelists.json";
 
   public static final String ND_ROOT = "ND-Root";
 
@@ -337,7 +326,7 @@ public class SdkService {
    * @param mimeType The response mime type
    * @throws IOException If a problem occurs during flush buffer
    */
-  private static void serveStringUtf8(final HttpServletResponse response, final String text,
+  static void serveStringUtf8(final HttpServletResponse response, final String text,
       final String filenameForDownload, final boolean isAsDownload, String mimeType)
       throws IOException {
     Validate.notBlank(text, "jsonString is blank");
@@ -442,26 +431,6 @@ public class SdkService {
   }
 
   /**
-   * Common SDK XML string logic.
-   */
-  public static void serveSdkXmlStringAsDownload(final HttpServletResponse response,
-      final String jsonStr, final String filenameForDownload) {
-    Validate.notBlank(jsonStr, "JSON string is blank");
-    try {
-      // As the sdkVersion and other details are in the url this can be cached for a while.
-      setResponseCacheControl(response, CACHE_MAX_AGE_SECONDS);
-
-      final String responseMimeType = MIME_TYPE_XML;
-      serveStringUtf8(response, jsonStr, filenameForDownload, true, responseMimeType);
-
-    } catch (Exception ex) {
-      logger.error(ex.toString(), ex);
-      throw new RuntimeException(
-          String.format("Exception serving JSON file %s", filenameForDownload), ex);
-    }
-  }
-
-  /**
    * Reads an SDK translation file for given SDK and language. The files are in XML format but they
    * will be converted to JSON.
    *
@@ -546,155 +515,6 @@ public class SdkService {
   }
 
   /**
-   * @param noticeJson The notice as JSON as built by the front-end form.
-   */
-  public void saveNoticeAsXml(final Optional<HttpServletResponse> responseOpt,
-      final String noticeJson)
-      throws ParserConfigurationException, JsonProcessingException, JsonMappingException {
-    Validate.notBlank(noticeJson, "noticeJson is blank");
-
-    logger.info("Attempting to save notice as XML.");
-    final ObjectMapper mapper = new ObjectMapper();
-    final JsonNode visualRoot = mapper.readTree(noticeJson);
-    final SdkVersion sdkVersion = parseSdkVersion(visualRoot);
-    final UUID noticeUuid = parseNoticeUuid(visualRoot);
-    try {
-      saveXmlSubMethod(responseOpt, visualRoot, sdkVersion, noticeUuid);
-    } catch (final Exception e) {
-      // Catch any error, log some useful context and rethrow.
-      logger.error("Error for notice uuid={}, sdkVersion={}", noticeUuid,
-          sdkVersion.toNormalisedString(true));
-      throw e;
-    }
-  }
-
-  private void saveXmlSubMethod(final Optional<HttpServletResponse> responseOpt,
-      final JsonNode visualRoot, final SdkVersion sdkVersion, final UUID noticeUuid)
-      throws ParserConfigurationException {
-    Validate.notNull(visualRoot);
-    Validate.notNull(noticeUuid);
-
-    final JsonNode fieldsJson = readSdkJsonFile(sdkVersion, SdkResource.FIELDS, SDK_FIELDS_JSON);
-    final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldsJson, sdkVersion);
-    final VisualModel visualModel = new VisualModel(visualRoot);
-
-    final JsonNode noticeTypesJson =
-        readSdkJsonFile(sdkVersion, SdkResource.NOTICE_TYPES, SDK_NOTICE_TYPES_JSON);
-
-    final Map<String, JsonNode> noticeInfoBySubtype = new HashMap<>(512);
-    {
-      // TODO add noticeSubTypes to the SDK constants.
-      // SdkResource.NOTICE_SUB_TYPES
-      final JsonNode noticeSubTypes = noticeTypesJson.get("noticeSubTypes");
-      for (final JsonNode item : noticeSubTypes) {
-        // TODO add subTypeId to the SDK constants.
-        final String subTypeId = JsonUtils.getTextStrict(item, "subTypeId");
-        noticeInfoBySubtype.put(subTypeId, item);
-      }
-    }
-
-    final Map<String, JsonNode> documentInfoByType = new HashMap<>();
-    {
-      final JsonNode documentTypes =
-          noticeTypesJson.get(SdkConstants.NOTICE_TYPES_JSON_DOCUMENT_TYPES_KEY);
-      for (final JsonNode item : documentTypes) {
-        // TODO add document type id to the SDK constants.
-        final String id = JsonUtils.getTextStrict(item, "id");
-        documentInfoByType.put(id, item);
-      }
-    }
-
-    // Go from visual model to conceptual model.
-    final ConceptualModel conceptModel = visualModel.toConceptualModel(fieldsAndNodes);
-    final DocumentTypeInfo docTypeInfo =
-        PhysicalModel.getDocumentTypeInfo(noticeInfoBySubtype, documentInfoByType, conceptModel);
-
-    // Get schema info.
-    final String sdkXsdFile = docTypeInfo.getXsdFile();
-    final Path sdkXsdPath = readSdkPath(sdkVersion, SdkResource.SCHEMAS_MAINDOC, sdkXsdFile);
-    // final String rootElementTagName = docTypeInfo.getRootElementTagName();
-    // final SchemaInfo schemaInfo = SchemaTools.getSchemaInfo(sdkXsdPath, rootElementTagName);
-    final XmlSchemaInfo schemaInfo = new XmlSchemaInfo(new ArrayList<>());
-
-    // Build physical model.
-    final boolean debug = true;
-    final boolean buildFields = true;
-    final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptModel,
-        fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields, schemaInfo);
-
-    // Transform physical model to XML.
-    final String xmlAsText = physicalModel.toXmlText(buildFields);
-    final String filenameForDownload = generateNoticeFilename(noticeUuid, sdkVersion);
-    if (responseOpt.isPresent()) {
-      serveSdkXmlStringAsDownload(responseOpt.get(), xmlAsText, filenameForDownload);
-    }
-  }
-
-  /**
-   * Get the SDK version.
-   *
-   * @param visualRoot root of the visual JSON
-   */
-  private static SdkVersion parseSdkVersion(final JsonNode visualRoot) {
-    // Example: the SDK value looks like "eforms-sdk-1.1.0".
-    // final String sdkVersionFieldId = ConceptualModel.FIELD_ID_SDK_VERSION;
-    // final JsonNode visualField = visualRoot.get(sdkVersionFieldId);
-    // final String eFormsSdkVersion = getTextStrict(visualField, "value");
-
-    // Use the shortcut we put at the virtual root top level:
-    final String eFormsSdkVersion =
-        JsonUtils.getTextStrict(visualRoot, VisualModel.VIS_SDK_VERSION);
-    Validate.notBlank(eFormsSdkVersion, "virtual root eFormsSdkVersion is blank");
-
-    final String prefix = SdkConstants.NOTICE_CUSTOMIZATION_ID_VERSION_PREFIX;
-    Validate.isTrue(eFormsSdkVersion.startsWith(prefix),
-        "Expecting sdk version to start with prefix=%s", prefix);
-    final String sdkVersionStr = eFormsSdkVersion.substring(prefix.length());
-
-    // If we have "eforms-sdk-1.1.0" we want "1.1.0".
-    logger.info("Found SDK version: {}, using {}", eFormsSdkVersion, sdkVersionStr);
-
-    // Load fields json depending of the correct SDK version.
-    return new SdkVersion(sdkVersionStr);
-  }
-
-  /**
-   * Get the notice id, notice UUID.
-   *
-   * @param visualRoot Root of the visual JSON
-   */
-  private static UUID parseNoticeUuid(final JsonNode visualRoot) {
-    // final JsonNode visualItem = visualRoot.get("BT-701-notice");
-    // Validate.notNull(visualItem, "Json item holding notice UUID is null!");
-    // final String uuidStr = getTextStrict(visualItem, "value");
-
-    final String uuidStr = JsonUtils.getTextStrict(visualRoot, VisualModel.VIS_NOTICE_UUID);
-    Validate.notBlank(uuidStr, "The notice UUID is blank!");
-
-    final UUID uuidV4 = UUID.fromString(uuidStr);
-    // The UUID supports multiple versions but we are only interested in version 4.
-    // Instead of failing later, it is better to catch problems early!
-    final int version = uuidV4.version();
-    Validate.isTrue(version == 4, "Expecting notice UUID to be version 4 but found %s for %s",
-        version, uuidStr);
-
-    return uuidV4;
-  }
-
-  /**
-   * Generate the filename for the notice XML file.
-   *
-   * @param noticeUuid The UUID of this notice (a universally unique identifier)
-   * @param sdkVersion The version of the SDK
-   * @return The filename for the notice XML file
-   */
-  @SuppressWarnings("static-method")
-  private String generateNoticeFilename(final UUID noticeUuid, final SdkVersion sdkVersion) {
-    // Not sure about the filename, including the sdkVersion plus the notice UUID is good enough.
-    return String.format("notice-%s-%s.xml", sdkVersion, noticeUuid);
-  }
-
-  /**
    * HTTP header, cache related.
    */
   public static void setResponseCacheControl(final HttpServletResponse response,
@@ -724,11 +544,8 @@ public class SdkService {
       final SdkVersion sdkVersion) {
     Validate.notNull(sdkVersion, "sdkVersion is null");
 
-    final JsonNode fieldsJson =
-        readSdkJsonFile(sdkVersion, SdkResource.FIELDS, SdkService.SDK_FIELDS_JSON);
-
-    final JsonNode codelistsJson =
-        readSdkJsonFile(sdkVersion, SdkResource.CODELISTS, SdkService.SDK_CODELISTS_JSON);
+    final JsonNode fieldsJson = readSdkFieldsJson(sdkVersion);
+    final JsonNode codelistsJson = readSdkCodelistsJson(sdkVersion);
 
     // Instead of doing several separate calls, it is simpler to group basic information in one go.
     final ObjectNode basicInfoJson = JsonUtils.createObjectNode();
@@ -737,5 +554,18 @@ public class SdkService {
 
     serveSdkJsonString(response, basicInfoJson.toPrettyString(), "basic.json");
   }
+
+  JsonNode readSdkCodelistsJson(final SdkVersion sdkVersion) {
+    return readSdkJsonFile(sdkVersion, SdkResource.CODELISTS, SdkService.SDK_CODELISTS_JSON);
+  }
+
+  JsonNode readNoticeTypesJson(final SdkVersion sdkVersion) {
+    return readSdkJsonFile(sdkVersion, SdkResource.NOTICE_TYPES, SdkService.SDK_NOTICE_TYPES_JSON);
+  }
+
+  JsonNode readSdkFieldsJson(final SdkVersion sdkVersion) {
+    return readSdkJsonFile(sdkVersion, SdkResource.FIELDS, SdkService.SDK_FIELDS_JSON);
+  }
+
 
 }

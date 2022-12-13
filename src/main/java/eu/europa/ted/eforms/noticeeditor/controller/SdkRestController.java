@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.xml.sax.SAXException;
 import eu.europa.ted.eforms.noticeeditor.domain.Language;
 import eu.europa.ted.eforms.noticeeditor.service.SdkService;
+import eu.europa.ted.eforms.noticeeditor.service.XmlWriteService;
 import eu.europa.ted.eforms.sdk.SdkConstants.SdkResource;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
@@ -37,6 +38,9 @@ public class SdkRestController implements AsyncConfigurer {
 
   @Autowired
   private SdkService sdkService;
+
+  @Autowired
+  private XmlWriteService xmlService;
 
   public SdkRestController(@Value("${eforms.sdk.path}") final String eformsSdkDir,
       @Value("${eforms.sdk.versions}") final List<String> supportedSdks) {
@@ -126,7 +130,7 @@ public class SdkRestController implements AsyncConfigurer {
       produces = SdkService.MIME_TYPE_XML, consumes = SdkService.MIME_TYPE_JSON)
   public void saveNotice(final HttpServletResponse response, final @RequestBody String noticeJson)
       throws ParserConfigurationException, IOException {
-    sdkService.saveNoticeAsXml(Optional.of(response), noticeJson);
+    xmlService.saveNoticeAsXml(Optional.of(response), noticeJson);
   }
 
 }
