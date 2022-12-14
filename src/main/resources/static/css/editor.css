@@ -122,6 +122,7 @@ textarea:read-only {
 
 .notice-content-field-label {
   padding-right: 1em;
+  color: #004494; /* Label color */
 }
 
 .notice-content-field-label-block {
@@ -182,7 +183,6 @@ textarea:read-only {
   font-size: 1em;
 }
 
-
 .editor-link {
   color: #fff;
   background-color: #339933;
@@ -205,6 +205,11 @@ textarea:read-only {
 
 #id-editor-log-json-area {
   display: none;
-  width: 50em;
+  width: 70em;
 }
 
+#id-editor-log-xml-area {
+  display: none;
+  width: 70em;
+  height: 20em;
+}

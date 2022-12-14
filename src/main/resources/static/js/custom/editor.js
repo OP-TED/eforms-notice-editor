@@ -1,7 +1,9 @@
-// The front-end editor script written in plain JavaScript and using plain HTML for demo purposes.
+//
+// The front-end editor script written in plain JavaScript (ecmascript) and using plain HTML for demo purposes.
 // The script is responsible for loading SDK data from the back-end for the front-end UI and creating the dynamic form (HTML DOM manipulation).
 // index.html <- document -> editor.js <- XHR ("ajax") -> back-end REST API
 // NOTE: For bigger scripts and maintenability you could also use something like TypeScript instead.
+//
 (function() {
   console.log("Loading editor script.");
   
@@ -11,14 +13,16 @@
   const timeOutDefaultMillis = 3000;
   const timeOutLargeMillis = 6000;
 
-  // Avoids conflicts with other identifiers in the context of this browser tab.
-  const ID_PREFIX = "editor-id-";
-
-  const FALLBACK_LANGUAGE = "en"; // English, recommended for now.
-  const KEY_NTD_LABEL = "_label";
-
-  const ND_ROOT = "ND-Root";
+  const SDK_SERVICE_URL = "/sdk";
+  const XML_SERVICE_URL = "/xml";
   
+  // Init: loads initial editor home page data, see afterInitDataLoaded.
+  jsonGet(SDK_SERVICE_URL + "/info", timeOutDefaultMillis, afterInitDataLoaded, jsonGetOnError);
+
+  // Avoids conflicts with other identifiers in the context of this browser tab.
+  const EDITOR_ID_PREFIX = "editor-id-";
+
+  const NODE_ID_FOR_ROOT = "ND-Root";
   const FIELD_ID_SDK_VERSION = "OPT-002-notice";
   const FIELD_ID_NOTICE_SUB_TYPE = "OPP-070-notice";
   const FIELD_ID_NOTICE_UUID = "BT-701-notice";
@@ -26,12 +30,8 @@
   const VIS_CONTENT_COUNT = "contentCount";
   const VIS_VALUE = "value";
   const VIS_TYPE = "visType"; // Has nothing to do with HTML element type!
-  
-  const SDK_SERVICE_URL = "/sdk";
-  const XML_SERVICE_URL = "/xml";
-  
-  // Init: loads initial editor home page data, see afterInitDataLoaded.
-  jsonGet(SDK_SERVICE_URL + "/info", timeOutDefaultMillis, afterInitDataLoaded, jsonGetOnError);
+  const VIS_TYPE_FIELD = "field";
+  const VIS_TYPE_NON_FIELD = "non-field";
   
   const DATA_EDITOR_CONTENT_ID = "data-editor-content-id";
   const DATA_EDITOR_ID_REFERENCE = "data-editor-id-reference";
@@ -39,10 +39,13 @@
   const DATA_EDITOR_INSTANCE_ID_FIELD = "data-editor-instance-id-field";
   const DATA_EDITOR_VALUE_FIELD = "data-editor-value-field";
   const DATA_EDITOR_COUNT = "data-editor-count";
-  const DATA_EDITOR_TYPE = "data-editor-type";
   const DATA_EDITOR_CONTENT_PARENT_ID = "data-editor-content-parent-id";
   const DATA_EDITOR_CONTENT_NODE_ID = "data-editor-content-node-id";
+  const DATA_EDITOR_TYPE = "data-editor-type"; // For the VIS TYPE.
   
+  // A cosmetic item is something we use for the visual part in the HTML to group. 
+  // For example a form input label and form input field.
+  // We do not want it in the visual model as it would only add unnecessary tree levels.
   const EDITOR_COSMETIC = "editor-cosmetic";
   
   const displayTypeToElemInfo = {};
@@ -52,13 +55,20 @@
   displayTypeToElemInfo["TEXTAREA"] = {"tag": "textarea"};
   displayTypeToElemInfo["TEXTBOX"] = {"tag": "input", "type": "text"};
   
+  const FALLBACK_LANGUAGE = "en"; // English, recommended for now.
+  const NTD_LABEL = "_label";
+  const NTD_CONTENT_TYPE_FIELD = "field";
+  const NTD_CONTENT_TYPE_GROUP = "group";
+  
   // This could be covered by "auxiliary labels" or be something fully custom.
   // The i18nOfEditor is loaded before other translations, thus it can be used to override them.
   // This could be used to fix a typo while waiting for the next version of the SDK.
   // This can also be used to define arbitrary translated texts for use in the editor.
   const i18nOfEditor = {};
 
-  // Some custom english translations for the editor itself.
+  /**
+  * Some custom english translations for the editor itself.
+  */
   i18nOfEditor["en"] = {
     "editor.the.metadata": "Metadata",
     "editor.the.root": "Content",
@@ -67,7 +77,9 @@
     "editor.select": "Select"
   };
   
-  // Some custom french translations for the editor itself.
+  /**
+  * Some custom french translations for the editor itself.
+  */
   i18nOfEditor["fr"] = {
     "editor.the.metadata": "Méta données",
     "editor.the.root": "Contenu",
@@ -76,6 +88,10 @@
     "editor.select": "Choisir"
   };
 
+  /** 
+  * For demo purposes only two editor demo UI languages are provided.
+  * You could also separate the UI language from the notice language if desired.
+  */ 
   const lang2To3Map = {
     "en" : "ENG",
     "fr" : "FRA"
@@ -100,6 +116,9 @@
     return dataForLang[labelKey];
   }
   
+  /**
+  * Gets the SDK translations for a given language code (codelists excluded).
+  */
   function downloadSdkTranslations(languageCode, callbackFunc) {
     const sdkVersion = getSdkVersion();
     if (!sdkVersion) {
@@ -120,17 +139,23 @@
       const dataCodelistsJson = dataBasicJson.codelistsJson;
       
       if (!dataFieldsJson.sdkVersion) {
-        throw new Error("Invalid sdkVersion");
+        throw new Error("No sdkVersion in fields JSON!");
+      }
+      if (!dataFieldsJson.ublVersion) {
+        throw new Error("No ublVersion in fields JSON!");
       }
 
-      this.ublVersion = dataFieldsJson.ublVersion;
       this.sdkVersion = dataFieldsJson.sdkVersion;
+      this.ublVersion = dataFieldsJson.ublVersion;
+      this.dataI18n = dataI18n;
+      
       this.isDebug = true;
       console.log("Editor, isDebug=" + this.isDebug);
+      console.log("sdkVersion=" + this.sdkVersion);
 
-      this.dataI18n = dataI18n;
-
-      // MAP FIELDS BY ID.
+      //
+      // MAP SDK FIELDS BY ID.
+      //
       const fields = dataFieldsJson.fields;
       console.log("Loaded fields: " + fields.length);
       const fieldMap = {};
@@ -139,7 +164,9 @@
       }
       this.fieldMap = fieldMap;
       
-      // MAP NODES BY ID.
+      //
+      // MAP SDK NODES BY ID.
+      //
       const nodes = dataFieldsJson.xmlStructure;
       console.log("Loaded nodes: " + nodes.length);
       const nodeMap = {};
@@ -148,6 +175,9 @@
       }
       this.nodeMap = nodeMap;
       
+      //
+      // MAP SDK CODELISTS BY ID.
+      //
       const codelists = dataCodelistsJson.codelists;
       const codelistMap = {};
       for (const codelist of codelists) {
@@ -157,11 +187,11 @@
       
       // The top section containing the metadata, most of these fields are hidden or read only.
       this.noticeMetadata = {"id" : "THE_METADATA", "content" : dataNoticeType.metadata};
-      this.noticeMetadata[KEY_NTD_LABEL] = "editor.the.metadata";
+      this.noticeMetadata[NTD_LABEL] = "editor.the.metadata";
 
       // The root content is an array. Build a dummy element to hold the content.
       this.noticeRootContent = {"id" : "THE_ROOT", "content" : dataNoticeType.content};
-      this.noticeRootContent[KEY_NTD_LABEL] = "editor.the.root";
+      this.noticeRootContent[NTD_LABEL] = "editor.the.root";
 
       this.noticeId = dataNoticeType.noticeId;
       this.noticeFormElement = noticeFormElement;
@@ -169,25 +199,28 @@
       const serializeBtnElem = document.getElementById("id-editor-log-json");
       const that = this;
       const serializeToJsonFunc = function(event) {
-        console.debug("Attempting to serialize form to JSON.");
+        console.debug("Attempting to serialize form to visual model JSON.");
         event.preventDefault();
         
         const textAreaJson = document.getElementById("id-editor-log-json-area");
-        textAreaJson.value = '';
+        textAreaJson.value = "";
 
         const textAreaXml = document.getElementById("id-editor-log-xml-area");
-        textAreaXml.value = '';
+        textAreaXml.value = "";
 
         const dataModel = that.toVisualModel();
+        
+        // Transform visual model to JSON text and show it in the UI.
         const jsonText = JSON.stringify(dataModel, null, 2);
         textAreaJson.value = jsonText;
-        textAreaJson.style.display = 'block';
+        textAreaJson.style.display = "block"; // Unhide.
 
         const afterModelPost = function(data) {
-          console.log("After model post:" + data);
+          //console.log("After model post:" + data);
           textAreaXml.value = data;
-          textAreaXml.style.display = 'block';
+          textAreaXml.style.display = "block";
         };
+        
         const url = XML_SERVICE_URL + "/notice/save";
         const body = jsonText;
         jsonPostRespXml(url, timeOutLargeMillis, afterModelPost, jsonPostOnError, body);
@@ -201,11 +234,14 @@
       if (!label) {
         console.log("Missing label for key='" + labelId + "'");
       }
-      return label ? label : labelId; 
       // Showing the labelId instead of null helps debugging.
       // return label ? label : null;
+      return label ? label : labelId; 
     }
 
+    /**
+    * Builds a form element from an NTD content item.
+    */
     buildFormElem(content) {
       var elemInfo = displayTypeToElemInfo[content.displayType];
       if (!elemInfo) {
@@ -213,7 +249,7 @@
       }
       // This works well for a single input or textarea.
       // But for radio multiple inputs are needed.
-      // For now the editor will not support radio for this reason.
+      // For now the editor will not support radio for simplification reasons.
       const elem = document.createElement(elemInfo.tag);
       if (elemInfo.type) {
         elem.setAttribute("type", elemInfo.type);
@@ -228,24 +264,20 @@
     }
     
     /**
-     * Reads from the Form and populates a model object.
+     * Reads from the HTML form and returns a visual model object from it.
      */
     toVisualModel() {
       console.log("toVisualModel called");
-
-      const domRoot = this.noticeFormElement;
       
       // Extract tree of data from the form.
-      const vm = this.toVisualModelRec(domRoot, null);
-      
-      vm["contentId"] = "the_visual_root"; // visualRoot.
-      vm["visNodeId"] = ND_ROOT;
-      vm[VIS_TYPE] = "non-field";
-      vm[VIS_CONTENT_COUNT] = "1";
-
-      console.dir(vm); // tttt
+      const domRoot = this.noticeFormElement;
+      const vm = this.toVisualModelRecursive(domRoot, null);
       
       // Put some info at the top level for convenience.
+      vm["contentId"] = "the_visual_root"; // visualRoot.
+      vm["visNodeId"] = NODE_ID_FOR_ROOT;
+      vm[VIS_TYPE] = VIS_TYPE_NON_FIELD;
+      vm[VIS_CONTENT_COUNT] = "1";
    
       // Put the notice SDK version at top level.
       vm["sdkVersion"] = this.findInVisualModelRec(vm, FIELD_ID_SDK_VERSION).value;
@@ -268,7 +300,11 @@
       return vm;
     }
     
-    toVisualModelRec(elem, parent) {
+    /**
+    * Starting from the passed DOM element and parent data. Initially the parent data is null.
+    */
+    toVisualModelRecursive(elem, parentData) {
+
       // The elem is a DOM element. 
       // The data is the tree item we want to create.
       const data = {};
@@ -281,13 +317,10 @@
       data["contentId"] = contentId;
       
       if (contentId === EDITOR_COSMETIC) {
-        // A cosmetic item is something we use for the visual part in the HTML to group. 
-        // For example a form input label and form input field.
-        // We do not want it in the visual model as it would only add unnecessary tree levels.
-        const parentChildren = parent.children;
-        const children = this.findElementsHavingAttributeInElem(elem, 'data-editor-content-id');
+        const parentChildren = parentData.children;
+        const children = this.findElementsHavingAttributeInElem(elem, DATA_EDITOR_CONTENT_ID);
         for (const child of children) {
-          parentChildren.push(this.toVisualModelRec(child, null));
+          parentChildren.push(this.toVisualModelRecursive(child, null));
         }
         return null;
       }
@@ -298,17 +331,17 @@
       const contentType = elem.getAttribute(DATA_EDITOR_TYPE);
       data[VIS_TYPE] = contentType;
 
-      if (contentType === "field") {
-          // The form value (text inside of form fields, input, select, textarea, ...).
-          const value = elem.value;
+      if (contentType === NTD_CONTENT_TYPE_FIELD) {
+        // The form value (text inside of form fields, input, select, textarea, ...).
+        const value = elem.value;
           
-          // TODO: upcoming TEDEFO-1727
-          data[VIS_VALUE] = value;
+        // TODO: upcoming TEDEFO-1727
+        data[VIS_VALUE] = value;
           
-          const sdkFieldMeta = this.fieldMap[contentId];
-          if (!sdkFieldMeta) {
-            throw new Error("Unknown fieldId=" + contentId);
-          }
+        const sdkFieldMeta = this.fieldMap[contentId];
+        if (!sdkFieldMeta) {
+          throw new Error("Unknown fieldId=" + contentId);
+        }
       } else {
         const nodeId = elem.getAttribute(DATA_EDITOR_CONTENT_NODE_ID);
         if (nodeId) {
@@ -318,10 +351,10 @@
     
       if (elem.hasChildNodes()) {
         const visualModelChildren = [];
-        const children = this.findElementsHavingAttributeInElem(elem, 'data-editor-content-id');
+        const children = this.findElementsHavingAttributeInElem(elem, DATA_EDITOR_CONTENT_ID);
         data["children"] = visualModelChildren;
         for (const child of children) {
-          const dataChild = this.toVisualModelRec(child, data);
+          const dataChild = this.toVisualModelRecursive(child, data);
           // There may be no data in case of a cosmetic item, in that case the data has already been pushed.
           if (dataChild) {
             visualModelChildren.push(dataChild);
@@ -337,6 +370,9 @@
       return data;
     }
     
+    /**
+    * Looks for the content id to search in the visual model item.
+    */
     findInVisualModelRec(visualModelItem, idToSearch) {
       if (visualModelItem.contentId === idToSearch) {
         return visualModelItem;
@@ -352,17 +388,26 @@
       return null;
     }
     
+    /**
+    * Load data from an existing model.
+    */
     fromModel() {
-      // Loading of form data into form
-      // 0. recurse through data
+      // Loading of model data into the HTML form
+      // create an empty form
+      // recurse through data
+      // fill the form (repeat on elements)
       // This will be done later.
     }
     
+    /**
+    * Builds the HTML form dynamically.
+    */
     buildForm() {
       const rootLevel = 1; // Top level, sub items will be on level 2, 3, 4 ...
 
-      // Load empty form.
+      // Create an empty form.
 
+      // BUILD METADATA SECTION.
       // This builds the initial empty form metadata section on top.
       // Most of these fields are either readonly and/or hidden.
       this.readContentRecur(this.noticeFormElement, this.noticeMetadata, rootLevel, false, null, null);
@@ -377,8 +422,9 @@
       this.getContentElemByIdUnique("BT-757-notice").value = "01";
 
       // Set the notice id.
-      this.getContentElemByIdUnique(FIELD_ID_NOTICE_UUID).value = buildUuidv4();
+      this.getContentElemByIdUnique(FIELD_ID_NOTICE_UUID).value = buildRandomUuidv4();
 
+      // BUILD NON-METADATA SECTION.
       // This builds the initial empty form, the content part (non-metadata).
       this.readContentRecur(this.noticeFormElement, this.noticeRootContent, rootLevel, false, null, null);
       
@@ -431,7 +477,7 @@
     }
 
     buildIdPartialFromContentId(contentId) {
-      return ID_PREFIX + contentId;
+      return EDITOR_ID_PREFIX + contentId;
     }
     
     /**
@@ -469,7 +515,7 @@
     }
     
     /**
-     * Applies the contentVistorFunctions in order to the content.
+     * Applies the contentVistorFunctions in tree depth first order to the content.
      */
     visitContentRec(content, contentVisitorFuncs) {
       if (!content) {
@@ -490,12 +536,15 @@
       }
     }
     
+    /**
+    * Get direct children of the element filtered by the passed selector.
+    */
     getDirectChildren(elem, selector){
-      const tempId = buildUuidv4();
+      const tempId = buildRandomUuidv4();
       elem.dataset.tempid = tempId; // Sets data-tempId
       const fullSelector = '[data-tempid="' + tempId + '"] > ' + selector;
       const returnObj = elem.parentElement.querySelectorAll(fullSelector);
-      elem.dataset.tempid = '';
+      elem.dataset.tempid = "";
       return returnObj == null ? [] : returnObj;
     }
     
@@ -544,7 +593,6 @@
     populateIdRefSelectsForIdScheme(idScheme) {
       const foundReferencedElements = this.findElementsWithAttributeIdScheme(idScheme);
       const foundReferencingElements = this.findElementsWithAttributeIdRef(idScheme);
-
       for (const selectElem of foundReferencingElements) {
          const selectedValue = selectElem.value;
         selectElem.innerHtml = "";
@@ -584,7 +632,7 @@
       // The editorCount will allow to make the id of this element unique.
       content.editorCount = content.editorCount >= 0 ? content.editorCount : 1;
   
-      const isField =  content.contentType === "field" // !content.content;
+      const isField =  content.contentType === NTD_CONTENT_TYPE_FIELD; // !content.content;
       const isSection = content.section;
       const isCollapsed = content.collapsed ? true : false;
       const isContentRepeatable = content._repeatable ? true : false; // Can be reassigned if field...
@@ -599,10 +647,10 @@
         const resultMap = this.buildFieldContainerElem(containerElem, content);
         labelElem = resultMap["labelElem"];
         formElem = resultMap["formElem"];
-        field = resultMap["field"];
-        formElem.setAttribute(DATA_EDITOR_TYPE, "field");
+        field = resultMap["theField"];
+        formElem.setAttribute(DATA_EDITOR_TYPE, VIS_TYPE_FIELD);
       }
-      containerElem.setAttribute(DATA_EDITOR_TYPE, "non-field");
+      containerElem.setAttribute(DATA_EDITOR_TYPE, VIS_TYPE_NON_FIELD);
        
       // Prefix the ids to avoid conflict with various other identifiers existing in the same page.
       // For repeatable fields the content editorCount ensures the ids are unique.
@@ -654,6 +702,7 @@
       
       if (isField) {
         // The content is a field.
+        
         if (formElem) {
           if (formElem.getAttribute("type") != "checkbox") {
             formElem.classList.add("notice-content-field");
@@ -665,8 +714,10 @@
             formElem.classList.add("notice-content-id");
           }
         }
+        
       } else {
         // This content is not a field.
+        
         if (!elemToExpandOpt) { // Always add title except if expanding.
           // We use the word "header" here to avoid confusion with the HTML title attribute.
         
@@ -681,7 +732,7 @@
           // Set the translation.
           // Get translations for group|name|...
           // There is an exception for the root dummy element.
-          const i18nText = this.getTranslationById(content[KEY_NTD_LABEL]);
+          const i18nText = this.getTranslationById(content[NTD_LABEL]);
           
           const headerText = isContentRepeatable ? i18nText + " (" + paddedEditorCount + ")" : i18nText;
           if (headerText === undefined) {
@@ -707,12 +758,14 @@
         containerElem.addEventListener("click", clickExpandFunc, isUseCapture);
 
         content.editorExpanded = false;
+
       } else {
         // The content should have sub content and not have been expanded yet.
         if (content.content && !content.editorExpanded) {
           // Load sub items.
           for (const contentSub of content.content) {
-            this.readContentRecur(containerElem, contentSub, level + 1, false, null, null); // Recursion on sub content.
+            // Recursion on sub content.
+            this.readContentRecur(containerElem, contentSub, level + 1, false, null, null); 
           }
         }
       }
@@ -753,6 +806,7 @@
       if (elemToExpandOpt) {
         // The existing element has been expanded.
         content.editorExpanded = true;
+        
       } else {
         // Add fragment to DOM (browser will update).
         documentFragment.appendChild(containerElem);
@@ -1037,7 +1091,7 @@
       if (field.privacy) {
         console.debug(field.id + ", field privacy code=" + field.privacy.code);
         containerElem.classList.add("notice-content-field-privacy");
-         
+        // Example:
         // "code" : "cro-bor-law",
         // "unpublishedFieldId" : "BT-195(BT-09)-Procedure",
         // "reasonCodeFieldId" : "BT-197(BT-09)-Procedure",
@@ -1045,11 +1099,17 @@
         // "publicationDateFieldId" : "BT-198(BT-09)-Procedure"
       }
       
-      return {"containerElem" : containerElem, "formElem" : formElem, "labelElem" : labelElem, "field" : field};
+      // Return multiple values.
+      return {
+        "containerElem" : containerElem, 
+        "formElem" : formElem, 
+        "labelElem" : labelElem, 
+        "theField" : field
+      };
     }
     
   } // End of Editor class.
-  
+
   /**
    * Displays the notice info after loading.
    */
@@ -1078,7 +1138,10 @@
     sdkVersionChanged(); // Initialize.
     console.log("Loaded editor init info.");
   }
-  
+
+  /**
+  * Called when the SDK version changed (it could be empty).
+  */
   function sdkVersionChanged() {
     const sdkVersion = getSdkVersion();
     if (!sdkVersion) {
@@ -1088,9 +1151,9 @@
     const url = SDK_SERVICE_URL + "/" + sdkVersion + "/notice-types";
     jsonGet(url, timeOutDefaultMillis, afterSdkNoticeTypesLoaded, jsonGetOnError);
   }
-  
+
   function afterSdkNoticeTypesLoaded(data) {
-    console.log("Loaded available noticeTypes");
+    console.log("Loaded available noticeTypes.");
     const noticeTypes = data.noticeTypes;
     const elemNoticeTypeSelector = getElemNoticeTypeSelector();
     elemNoticeTypeSelector.innerHtml = "";
@@ -1109,23 +1172,48 @@
     };
     document.getElementById("notice-sub-type-selector").onchange();
   }
-  
+
   function createNoticeForm(sdkVersion, noticeId) {
     const noticeFormElem = document.getElementById("notice-type"); // Root content container element.
     noticeFormElem.innerHTML = ""; // Remove previous form.
-    
     if (!sdkVersion || !noticeId) {
       return;
     }
+
+    const selectedLanguage = getSelectedLanguage();
+    noticeFormElem.setAttribute("lang", selectedLanguage);
+    document.documentElement.setAttribute('lang', selectedLanguage);
+
+    const htmlFormElem = document.getElementById("editor-id-form");
+
+    // Spell check.
+    // SECURITY: You should consider setting spellcheck to false for elements 
+    // that can contain sensitive information.
+    // Browsers have different behavior in how they deal with spellchecking in combination with the the lang attribute. 
+    // Generally spelling is based on the browser language, not the language of the document.
+    // Up to you.
+    // This can be done on each input, here we do it on the entire form.
+    // https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/spellcheck
+    // https://caniuse.com/?search=spellcheck
+    const activateSpellCheck = false;
+    htmlFormElem.setAttribute("spellcheck", activateSpellCheck);
+    htmlFormElem.setAttribute("translate", "no");
+    
+    // Form auto complete.
+    // SECURITY: maybe deactivate autocomplete for sensitive information.
+    // Up to you.
+    // This can be done on each input, here we do it on the entire form.
+    // https://caniuse.com/?search=autocomplete
+    //htmlFormElem.setAttribute("autocomplete", "off");
     
     // GET the translations for the default language.
-    downloadSdkTranslations(getSelectedLanguage(), function(dataI18n) {
+    downloadSdkTranslations(selectedLanguage, function(dataI18n) {
       
       const jsonOkBasicFunc = function(dataBasicJson) {
         if (!dataBasicJson.fieldsJson.sdkVersion) {
           throw new Error("Invalid sdkVersion");
         }
-        console.log("basic json data has been loaded");
+        console.log("Basic JSON meta data has been loaded.");
 
         const jsonOkNoticeTypeFunc = function(dataNoticeType) {
           const sdkVersion = dataNoticeType.sdkVersion;
@@ -1155,14 +1243,15 @@
       jsonGet(urlToGetBasicJsonData, timeOutLargeMillis, jsonOkBasicFunc, jsonGetOnError);
     });
   }
-  
+
   // fields.json data related functions.
-  
+
   function isFieldTypeNumeric(fieldType) {
     // TODO having to do so many ORs is annoying.
+    // It would be better to have main type and and more precise sub type.
     return fieldType === "number" || fieldType === "integer" || fieldType === "amount";
   }
-  
+
   function isFieldValueMandatory(field, noticeId) {
     const mandatory = field.mandatory;
     if (mandatory && mandatory.severity === "ERROR") {
@@ -1179,17 +1268,19 @@
     }
     return false;
   }
-  
+
+  // HELPER FUNCTIONS.
+
   // Functions specific to the HTML, DOM.
-  
+
   function getElemSdkSelector() {
     return document.getElementById("notice-sdk-selector");
   }
-  
+
   function getSdkVersion() {
     return getElemSdkSelector().value;
   }
-  
+
   function getElemNoticeTypeSelector() {
     return document.getElementById("notice-sub-type-selector");
   }
@@ -1201,13 +1292,13 @@
     }
     return lang;
   }
-   
+
   // Generic reusable helper functions.
-  
+
   function show(id) {
     document.getElementById(id).style.display = "block";
   }
-  
+
   function setText(id, text) {
     document.getElementById(id).textContent = text;
   }
@@ -1218,7 +1309,7 @@
   function editorInsertAfter(nodeToInsert, existingNode) {
     existingNode.parentNode.insertBefore(nodeToInsert, existingNode.nextSibling);
   }
-  
+
   /**
    * Creates an option tag for use in a select.
    */
@@ -1228,7 +1319,7 @@
     elemOption.textContent = valueLabel;
     return elemOption;
   }
-  
+
   /**
    * Generic GET error handling, provided as a demo.
    */
@@ -1239,7 +1330,7 @@
     } else {
       console.log(msg);
     }
-    alert(msg);
+    alert(msg); // For demo purposes alert is good enough.
   }
 
   /**
@@ -1252,9 +1343,9 @@
     } else {
       console.log(msg);
     }
-    alert(msg);
+    alert(msg); // For demo purposes alert is good enough.
   }
-    
+
   function jsonGet(url, timeoutMillis, fnOk, fnErr) {
     buildXhr("GET", url, timeoutMillis, fnOk, fnErr, MIME_TYPE_JSON).send();
   }
@@ -1262,7 +1353,7 @@
   function jsonPost(url, timeoutMillis, fnOk, fnErr, body) {
     buildXhr("POST", url, timeoutMillis, fnOk, fnErr, MIME_TYPE_JSON).send(body);
   }
-  
+
   function jsonPostRespXml(url, timeoutMillis, fnOk, fnErr, body) {
     buildXhr("POST", url, timeoutMillis, fnOk, fnErr, MIME_TYPE_XML).send(body);
   }
@@ -1272,7 +1363,7 @@
    * In general the back-end REST API is called from here.
    */
   function buildXhr(method, url, timeoutMillis, fnOk, fnErr, responseMimeType) {
-    const xhr = new XMLHttpRequest();
+    const xhr = new XMLHttpRequest(); // XHR.
     xhr.open(method, url, true);  // Asnyc HTTP by default.
     xhr.setRequestHeader("Content-Type", "application/json");
     xhr.timeout = timeoutMillis;
@@ -1292,7 +1383,7 @@
     };
     return xhr;
   }
-  
+
   /**
    * Left pad text.
    */
@@ -1303,13 +1394,12 @@
     return textToPad;
   }
 
-  function buildUuidv4() {
-    // This is for demo purposes, you could also generate this UUID on the server-side.
+  function buildRandomUuidv4() {
+    // This is for demo purposes, you could generate this UUID on the server-side using Java, C#,...
     // https://stackoverflow.com/questions/105034/how-do-i-create-a-guid-uuid/2117523#2117523
     return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
       (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
     );
   }
-  
   
 })();
