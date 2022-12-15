@@ -47,7 +47,7 @@
     <maven.compiler.target>${java.version}</maven.compiler.target>
 
     <!-- Versions - eForms -->
-    <version.eforms-core>0.1.2-SNAPSHOT</version.eforms-core>
+    <version.eforms-core>1.0.0</version.eforms-core>
 
     <!-- Versions - Third-party libraries -->
     <version.xml.bind-api>2.3.3</version.xml.bind-api>
@@ -204,6 +204,12 @@
   </dependencyManagement>
 
   <dependencies>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+
     <!-- eForms -->
     <dependency>
       <groupId>eu.europa.ted.eforms</groupId>
