@@ -595,7 +595,7 @@
       const foundReferencingElements = this.findElementsWithAttributeIdRef(idScheme);
       for (const selectElem of foundReferencingElements) {
          const selectedValue = selectElem.value;
-        selectElem.innerHtml = "";
+        selectElem.innerHTML = "";
         for (const inputElem of foundReferencedElements) {
           selectElem.appendChild(createOption(inputElem.value, inputElem.value));
         }
@@ -1126,7 +1126,7 @@
     setText("editor-version", appVersion);
     
     const elemSdkSelector = getElemSdkSelector();
-    elemSdkSelector.innerHtml = "";
+    elemSdkSelector.innerHTML = "";
     
      // Dynamically load the options.   
     for (const sdkVersion of sdkVersions) {
@@ -1156,21 +1156,20 @@
     console.log("Loaded available noticeTypes.");
     const noticeTypes = data.noticeTypes;
     const elemNoticeTypeSelector = getElemNoticeTypeSelector();
-    elemNoticeTypeSelector.innerHtml = "";
+    elemNoticeTypeSelector.innerHTML = "";
     elemNoticeTypeSelector.value = ""; // Reset the value.
     
     // Dynamically load the options.   
     for (const noticeType of noticeTypes) {
-      elemNoticeTypeSelector.innerHtml = "";
       elemNoticeTypeSelector.appendChild(createOption(noticeType, noticeType));
     } 
 
-    document.getElementById("notice-sub-type-selector").onchange = function() {
+    getElemNoticeTypeSelector().onchange = function() {
       const noticeId = this.value;
       const selectedSdkVersion = getSdkVersion();
       createNoticeForm(selectedSdkVersion, noticeId, funcCallbackWhenLoadedDefinition);
     };
-    document.getElementById("notice-sub-type-selector").onchange();
+    getElemNoticeTypeSelector().onchange();
   }
 
   function createNoticeForm(sdkVersion, noticeId) {
