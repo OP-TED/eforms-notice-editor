@@ -938,6 +938,8 @@
             const value = getSelectedLanguage();
             select.value = lang2To3Map[value];
           }
+          
+          applyNiceSelector(select);
         };
         
         // Give this a larger timeout as some codelists could be quite big.
@@ -1161,13 +1163,13 @@
     if (!sdkVersion) {
       return;
     }
-    // XHR to load existing notice types of selected SDK version. See afterSdkNoticeTypesLoaded.
+    // XHR to load existing notice types of selected SDK version. See afterSdkNoticeSubTypesLoaded.
     const url = SDK_SERVICE_URL + "/" + sdkVersion + "/notice-types";
-    jsonGet(url, timeOutDefaultMillis, afterSdkNoticeTypesLoaded, jsonGetOnError);
+    jsonGet(url, timeOutDefaultMillis, afterSdkNoticeSubTypesLoaded, jsonGetOnError);
   }
 
-  function afterSdkNoticeTypesLoaded(data) {
-    console.log("Loaded available noticeTypes.");
+  function afterSdkNoticeSubTypesLoaded(data) {
+    console.log("Loaded available notice sub types.");
     const noticeTypes = data.noticeTypes;
     const elemNoticeTypeSelector = getElemNoticeTypeSelector();
     elemNoticeTypeSelector.innerHTML = "";
@@ -1182,6 +1184,7 @@
       const noticeId = this.value;
       const selectedSdkVersion = getSdkVersion();
       createNoticeForm(selectedSdkVersion, noticeId, funcCallbackWhenLoadedDefinition);
+      applyNiceSelector(elemNoticeTypeSelector);
     };
     getElemNoticeTypeSelector().onchange();
   }
@@ -1405,6 +1408,11 @@
     return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
       (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
     );
+  }
+  
+  function applyNiceSelector(elemSelector) {
+    const settings = {};
+    new TomSelect(elemSelector, settings);
   }
   
 })();

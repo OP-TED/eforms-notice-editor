@@ -213,3 +213,13 @@ textarea:read-only {
   width: 70em;
   height: 20em;
 }
+
+/* Override */
+.ts-wrapper {
+  width: 30em;
+  max-width: 30em;
+}
+
+.ts-control {
+  border: none;
+}
