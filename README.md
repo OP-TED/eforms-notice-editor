@@ -6,6 +6,14 @@ For edition it reads a notice file (xml) and the corresponding notice type file 
 
 ## Run server
 
+You need the eForms Core Library: 
+
+https://github.com/OP-TED/eforms-core-java
+
+`mvn clean install` in the core library project.
+
+After this also install the editor demo:
+
 `mvn clean install`
 
 This is Jetty based (a bit like Tomcat but self contained, you could easily switch to Tomcat).
