@@ -70,17 +70,19 @@
   * Some custom english translations for the editor itself.
   */
   i18nOfEditor["en"] = {
+    "editor.are.you.sure": "Are you sure?",
     "editor.the.metadata": "Metadata",
     "editor.the.root": "Content",
     "editor.add.more": "Add one",
     "editor.remove": "Remove",
-    "editor.select": "Select"
+    "editor.select": "Select",
   };
   
   /**
   * Some custom french translations for the editor itself.
   */
   i18nOfEditor["fr"] = {
+    "editor.are.you.sure": "Êtes-vous sûr ?",
     "editor.the.metadata": "Méta données",
     "editor.the.root": "Contenu",
     "editor.add.more": "En ajouter",
@@ -96,18 +98,22 @@
     "en" : "ENG",
     "fr" : "FRA"
   };
-
-  /**
-   * Gets editor specific label for given key and currently selected language.
-   */
-  function getEditorLabel(labelKey) {
-    getEditorLabel(labelKey, getSelectedLanguage());
+  
+  function getSelectedLanguage() {
+    const lang = document.getElementById("notice-lang-selector").value;
+    if (!lang) {
+      throw new Error("No language selected!");
+    }
+    return lang;
   }
 
-  /**
-   * Gets editor specific label for given key and language.
+   /*
+   * Gets editor specific label for given key and language. If the language is not specified it takes the selected language.
    */
   function getEditorLabel(labelKey, lang) {
+    if (!lang) {
+      lang = getSelectedLanguage();
+    }
     // How you get and handle i18n label data is up to you.
     var dataForLang = i18nOfEditor[lang];
     if (!dataForLang && i18nOfEditor[FALLBACK_LANGUAGE] && lang !== FALLBACK_LANGUAGE) {
@@ -905,16 +911,22 @@
         
         const select = formElem;
         const sdkVersion = getSdkVersion();
+        const selectedLanguage = getSelectedLanguage();
+
+        // TODO use getSelectedLanguage() after /lang, use "en" for now as translations are missing.
+        const urlLang = selectedLanguage;
+        //const urlLang = FALLBACK_LANGUAGE;
         
         const that = this;
-        // TODO use getSelectedLanguage() after /lang, use "en" for now as translations are missing.
-        const urlToCodelistJson = "sdk/" + sdkVersion + "/codelists/" + codelistGc + "/lang/" + FALLBACK_LANGUAGE;
+        const urlToCodelistJson = "sdk/" + sdkVersion + "/codelists/" + codelistGc + "/lang/" + urlLang;
         const afterCodelistLoad = function(data) {
           // Dynamically load the options.
           // const i18nText = that.getTranslationById(content._label);
           select.appendChild(createOption("", "")); // Empty option, has no value.
           for (const code of data.codes) {
-            select.appendChild(createOption(code.codeValue, code.en));
+            const codeLabelDesired = code[urlLang];
+            const codeLabel = codeLabelDesired ? codeLabelDesired : code.en; // TODO always load lang + en ?
+            select.appendChild(createOption(code.codeValue, codeLabel));
           }
 
           // After the select options have been set, an option can be selected.
@@ -1133,7 +1145,9 @@
       elemSdkSelector.appendChild(createOption(sdkVersion, sdkVersion));
     }
     elemSdkSelector.onchange = function() {
-      sdkVersionChanged();
+      if (confirm(getEditorLabel("editor.are.you.sure"))) {
+        sdkVersionChanged();
+      }
     }
     sdkVersionChanged(); // Initialize.
     console.log("Loaded editor init info.");
@@ -1282,14 +1296,6 @@
 
   function getElemNoticeTypeSelector() {
     return document.getElementById("notice-sub-type-selector");
-  }
-
-  function getSelectedLanguage() {
-    const lang = document.getElementById("notice-lang-selector").value;
-    if (!lang) {
-      throw new Error("No language selected!");
-    }
-    return lang;
   }
 
   // Generic reusable helper functions.
