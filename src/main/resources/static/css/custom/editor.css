@@ -15,8 +15,28 @@ body {
   min-width: 480px;
 }
 
+#toolbar {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  list-style-type: none;
+  margin: 0px;
+  padding: 8px;
+  background-color: lightgray;
+  border-bottom: 1px solid darkgray;
+}
+
+#toolbar li {
+  margin-left: 12px;
+}
+
 #main {
   background-color: #fff;
+}
+
+#main section {
+  margin: 8px;
+  padding: 8px;
 }
 
 .main-part {
@@ -203,23 +223,19 @@ textarea:read-only {
   font-size: 1.2rem;
 }
 
-#id-editor-log-json-area {
+#id-editor-log-json-area, #id-editor-log-xml-area {
   display: none;
-  width: 70em;
-}
-
-#id-editor-log-xml-area {
-  display: none;
-  width: 70em;
   height: 20em;
+  white-space: nowrap;
 }
 
 /* Override */
 .ts-wrapper {
   width: 30em;
   max-width: 30em;
+  display: inline-block;
 }
 
-.ts-control {
-  border: none;
+.models {
+  display: flex;
 }

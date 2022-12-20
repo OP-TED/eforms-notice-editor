@@ -13,69 +13,73 @@
 </head>
 <body>
   <div class="top-bar">
-  	<h1>eForms Notice Editor Demo - Version <span id="editor-version"></span></h1>
+  	<h1>eForms Notice Editor Demo - Version <span id="editor-version"/></h1>
   </div>
 	<div id="main">
-
-		<section class="main-part">
-		  <p>See index.html, editor.js for the logic and editor.css for the design.<p>
-		  <label for="notice-lang-selector">Select notice language: </label>
-			<select id="notice-lang-selector">
-			  <option value="en">English</option>
-				<option value="fr">French</option>
-		  </select>
-		</section>
-
-		<section class="main-part">
-			<label for="notice-sdk-selector">Select SDK version: </label>
-			<select id="notice-sdk-selector">
-			</select>
-		</section>
-	
-	  <section class="main-part">
-			<label for="notice-sub-type-selector">Select notice sub type: </label>
-			<select id="notice-sub-type-selector">
-			  <option value=""></option>
-			</select>
-		</section>
 		
+		<ul id="toolbar">
+			<li>
+				<label for="notice-lang-selector">Language:</label>
+				<select id="notice-lang-selector">
+					<option value="en">English</option>
+					<option value="fr">French</option>
+				</select>
+			</li>
+			<li>
+				<label for="notice-sdk-selector">SDK:</label>
+				<select id="notice-sdk-selector"></select>
+			</li>
+		</ul>
+		
+		<section>
+			<h1>Set-up</h1>
+			<ol>
+				<li>
+					<label for="notice-sub-type-selector">Select notice subtype:</label>
+					<select id="notice-sub-type-selector">
+					  <option value=""></option>
+					</select>
+				</li>
+			</ol>
+		</section>
+
 		<section id="notice-info" style="display: none;">
-	
-		  <!-- For data injection into page DOM, see associated .js files-->
-		  <div class="main-part">
-		    <p>SDK: <span id="notice-sdkVersion"></span></p>
-		    <p>Notice sub type: <span id="notice-noticeId"></span></p>
-   		  <p>* Mandatory fields</p>
-		  </div>
-		  
-		  <section>
-		    <form id="editor-id-form">
-		      <div class="main-part">
-		      	<button type="button" id="id-editor-log-json" class="notice-content-button" title="This may not work properly if required values are missing!">Serialize to JSON and XML</button>
-		        <input type="submit" id="id-editor-submit-form-1" class="notice-type-submit-button" />
-		        <textarea id="id-editor-log-json-area" title="visual model JSON"></textarea>
-		        <textarea id="id-editor-log-xml-area" title="notice XML"></textarea>
-		      </div>
-		      <div id="notice-type" class="notice-type">
-		        <!-- The form elements will be generated dynamically by javascript. -->
-	      	  <!-- For data injection into page DOM, see associated .js files-->
-		      </div>
-		      <div class="main-part">
-		        <input type="submit" id="id-editor-submit-form-2" class="notice-type-submit-button" />
-		      </div>
-		    </form>
-		  </section>
+			<h1>Edit</h1>
+			<!-- For data injection into page DOM, see associated .js files-->
+			<div class="main-part">
+				<p>* Mandatory fields</p>
+			</div>
 		
-			<section class="main-part">
-		  	<h3>Links</h3>
-		  	<footer>
-		  	  <ul>
-		  	    <li><a href="https://github.com/OP-TED/eForms-SDK" target="_blank">eForms SDK</a></li>
-		  	    <li><a href="https://docs.ted.europa.eu/eforms/latest/index.html" target="_blank">eForms SDK docs</a></li>
-		  	  </ul>
-		  	</footer>
+			<section>
+				<form id="editor-id-form">
+					<div id="notice-type" class="notice-type">
+						<!-- The form elements will be generated dynamically by javascript. -->
+						<!-- For data injection into page DOM, see associated .js files-->
+					</div>
+					<div class="main-part">
+						<input type="submit" id="id-editor-submit-form-2" class="notice-type-submit-button" />
+					</div>
+				</form>
 			</section>
+		</section>
 		
+		<section>
+			<h1>Debug</h1>
+			<div class="main-part">
+				<button type="button" id="id-editor-log-json" class="notice-content-button"
+					title="This may not work properly if required values are missing!">Serialize to JSON and XML</button>
+				<input type="submit" id="id-editor-submit-form-1" class="notice-type-submit-button" />
+			</div>
+			<div style="display: flex; flex-direction: row;">
+				<div style="display: flex; flex-direction: column; width: 50%;">
+					<label for="id-editor-log-json-area">Visual Model</label>
+					<textarea id="id-editor-log-json-area" title="Visual model JSON"></textarea>
+				</div>
+				<div style="display: flex; flex-direction: column; width: 50%;">
+					<label for="id-editor-log-xml-area">Physical Model</label>
+					<textarea id="id-editor-log-xml-area" title="Notice XML"></textarea>
+				</div>
+			</div>
 		</section>
 	</div>
 

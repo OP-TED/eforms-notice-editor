@@ -1,8 +1,8 @@
 //
-// The front-end editor script written in plain JavaScript (ecmascript) and using plain HTML for demo purposes.
+// The front-end editor script written in plain JavaScript (ECMAscript) and using plain HTML for demo purposes.
 // The script is responsible for loading SDK data from the back-end for the front-end UI and creating the dynamic form (HTML DOM manipulation).
 // index.html <- document -> editor.js <- XHR ("ajax") -> back-end REST API
-// NOTE: For bigger scripts and maintenability you could also use something like TypeScript instead.
+// NOTE: For bigger scripts and maintainability you could also use something like TypeScript instead.
 //
 (function() {
   console.log("Loading editor script.");
@@ -1236,8 +1236,6 @@
           if (!sdkVersion) {
             throw new Error("Invalid sdkVersion: " + sdkVersion);
           }
-          setText("notice-sdkVersion", sdkVersion);
-          setText("notice-noticeId", dataNoticeType.noticeId); // Notice sub-type.
           
           // Use the Editor class.
           const editor = new Editor(dataBasicJson, dataNoticeType, dataI18n, noticeFormElem);
