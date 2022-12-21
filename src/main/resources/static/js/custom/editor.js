@@ -4,8 +4,71 @@
 // index.html <- document -> editor.js <- XHR ("ajax") -> back-end REST API
 // NOTE: For bigger scripts and maintainability you could also use something like TypeScript instead.
 //
-(function() {
+(async function() {
   console.log("Loading editor script.");
+
+  /**
+   * Controls the dropdown which is used to select the version of the SDK to be loaded.
+   */
+  class SdkVersionSelector {
+
+    static getElement() {
+      return document.getElementById("notice-sdk-selector")
+    }
+    
+    static getSelectedSdkVersion() {
+      return SdkVersionSelector.getElement().value;
+    }
+
+    static async populate() {
+      const selector = SdkVersionSelector.getElement();
+      selector.length = 0;
+
+      // Dynamically load the options.   
+      for (const sdkVersion of SdkServiceClient.availableSdkVersions) {
+        selector.appendChild(createOption(sdkVersion, sdkVersion));
+      }
+
+      selector.onchange();
+    }
+  }
+
+  /**
+   * Controls the dropdown which is used to select the notice subtype to be loaded.
+   */
+  class NoticeSubtypeSelector {
+
+    /**
+     * Used instead of a static initialiser because static initialisers are not supported by Safari.
+     */
+    static setup() {
+      SdkVersionSelector.getElement().onchange = NoticeSubtypeSelector.populate;
+    }
+
+    static getElement() {
+      return document.getElementById("notice-sub-type-selector")
+    }
+    
+    static getSelectedNoticeSubtype() {
+      return NoticeSubtypeSelector.getElement().value;
+    }
+
+    static async populate() {
+  
+      await SdkServiceClient.fetchAvailableNoticeSubtypes(SdkVersionSelector.getSelectedSdkVersion());
+        
+      const selector = NoticeSubtypeSelector.getElement();
+      selector.length = 0;
+
+      // Dynamically load the options.   
+      for (const noticeSubtype of SdkServiceClient.availableNoticeSubtypes) {
+        selector.appendChild(createOption(noticeSubtype, noticeSubtype));
+      }
+
+      selector.onchange();
+    }
+  }
+
   
   const MIME_TYPE_XML = "application/xml";
   const MIME_TYPE_JSON = "application/json"; // Used in other parts of the editor for xml.
@@ -15,9 +78,8 @@
 
   const SDK_SERVICE_URL = "/sdk";
   const XML_SERVICE_URL = "/xml";
-  
-  // Init: loads initial editor home page data, see afterInitDataLoaded.
-  jsonGet(SDK_SERVICE_URL + "/info", timeOutDefaultMillis, afterInitDataLoaded, jsonGetOnError);
+ 
+  // Initiation code has been moved to the bottom of this file.
 
   // Avoids conflicts with other identifiers in the context of this browser tab.
   const EDITOR_ID_PREFIX = "editor-id-";
@@ -123,88 +185,36 @@
   }
   
   /**
-  * Gets the SDK translations for a given language code (codelists excluded).
-  */
-  function downloadSdkTranslations(languageCode, callbackFunc) {
-    const sdkVersion = getSdkVersion();
-    if (!sdkVersion) {
-      return;
-    }
-    // XHR to load translations (i18n) for fields and more.
-    const url = SDK_SERVICE_URL + "/" + sdkVersion + "/translations/" + languageCode + ".json";
-    jsonGet(url, 5000, callbackFunc, jsonGetOnError);
-  }
-  
-  /**
   * Editor class: it stores SDK data like loaded fields, nodes, translations, ...
   */
   class Editor {
-    constructor(dataBasicJson, dataNoticeType, dataI18n, noticeFormElement) {
-    
-      const dataFieldsJson = dataBasicJson.fieldsJson;
-      const dataCodelistsJson = dataBasicJson.codelistsJson;
-      
-      if (!dataFieldsJson.sdkVersion) {
-        throw new Error("No sdkVersion in fields JSON!");
-      }
-      if (!dataFieldsJson.ublVersion) {
-        throw new Error("No ublVersion in fields JSON!");
-      }
-
-      this.sdkVersion = dataFieldsJson.sdkVersion;
-      this.ublVersion = dataFieldsJson.ublVersion;
-      this.dataI18n = dataI18n;
+    constructor() {
+      this.sdkVersion = SdkServiceClient.sdkVersion;
+      this.ublVersion = SdkServiceClient.ublVersion;
+      this.dataI18n = SdkServiceClient.translations;
       
       this.isDebug = true;
       console.log("Editor, isDebug=" + this.isDebug);
       console.log("sdkVersion=" + this.sdkVersion);
 
-      //
-      // MAP SDK FIELDS BY ID.
-      //
-      const fields = dataFieldsJson.fields;
-      console.log("Loaded fields: " + fields.length);
-      const fieldMap = {};
-      for (const field of fields) {
-        fieldMap[field.id] = field;
-      }
-      this.fieldMap = fieldMap;
-      
-      //
-      // MAP SDK NODES BY ID.
-      //
-      const nodes = dataFieldsJson.xmlStructure;
-      console.log("Loaded nodes: " + nodes.length);
-      const nodeMap = {};
-      for (const node of nodes) {
-        nodeMap[node.id] = node;
-      }
-      this.nodeMap = nodeMap;
-      
-      //
-      // MAP SDK CODELISTS BY ID.
-      //
-      const codelists = dataCodelistsJson.codelists;
-      const codelistMap = {};
-      for (const codelist of codelists) {
-        codelistMap[codelist.id] = codelist;
-      }
-      this.codelistMap = codelistMap;
+      this.fieldMap = SdkServiceClient.fields;
+      this.nodeMap = SdkServiceClient.nodes;
+      this.codelistMap = SdkServiceClient.codelists;
       
       // The top section containing the metadata, most of these fields are hidden or read only.
-      this.noticeMetadata = {"id" : "THE_METADATA", "content" : dataNoticeType.metadata};
+      this.noticeMetadata = {"id" : "THE_METADATA", "content" : SdkServiceClient.noticeTypeDefinition.metadata};
       this.noticeMetadata[NTD_LABEL] = "editor.the.metadata";
 
       // The root content is an array. Build a dummy element to hold the content.
-      this.noticeRootContent = {"id" : "THE_ROOT", "content" : dataNoticeType.content};
+      this.noticeRootContent = {"id" : "THE_ROOT", "content" : SdkServiceClient.noticeTypeDefinition.content};
       this.noticeRootContent[NTD_LABEL] = "editor.the.root";
 
-      this.noticeId = dataNoticeType.noticeId;
-      this.noticeFormElement = noticeFormElement;
+      this.noticeId = SdkServiceClient.noticeTypeDefinition.noticeId;
+      this.noticeFormElement = document.getElementById("notice-type");;
       
       const serializeBtnElem = document.getElementById("id-editor-log-json");
       const that = this;
-      const serializeToJsonFunc = function(event) {
+      const serializeToJsonFunc = async function(event) {
         console.debug("Attempting to serialize form to visual model JSON.");
         event.preventDefault();
         
@@ -221,18 +231,29 @@
         textAreaJson.value = jsonText;
         textAreaJson.style.display = "block"; // Unhide.
 
-        const afterModelPost = function(data) {
-          //console.log("After model post:" + data);
-          textAreaXml.value = data;
-          textAreaXml.style.display = "block";
-        };
-        
-        const url = XML_SERVICE_URL + "/notice/save";
-        const body = jsonText;
-        jsonPostRespXml(url, timeOutLargeMillis, afterModelPost, jsonPostOnError, body);
+        const xml = await XmlServiceClient.saveXml(jsonText);
+        textAreaXml.value = xml;
+        textAreaXml.style.display = "block";
+
       };
       serializeBtnElem.addEventListener("click", serializeToJsonFunc, false);
     }
+
+    /**
+     * Used instead of a static initialiser because static initialisers are not supported by Safari.
+     */
+    static setup() {
+      NoticeSubtypeSelector.getElement().onchange = Editor.selectedNoticeSubtypeChanged; 
+    }
+
+    static async selectedNoticeSubtypeChanged() {
+      const selectedSdkVersion = SdkVersionSelector.getSelectedSdkVersion();
+      const selectedNoticeSubtype = NoticeSubtypeSelector.getSelectedNoticeSubtype();
+
+      await SdkServiceClient.fetchFieldsAndCodelists(selectedSdkVersion);
+      await SdkServiceClient.fetchNoticeSubtype(selectedSdkVersion, selectedNoticeSubtype);
+      createNoticeForm(selectedSdkVersion, selectedNoticeSubtype);
+      }
     
     getTranslationById(labelId) {
       const customLabel = getEditorLabel(labelId);
@@ -910,7 +931,7 @@
         }
         
         const select = formElem;
-        const sdkVersion = getSdkVersion();
+        const sdkVersion = SdkVersionSelector.getSelectedSdkVersion();
         const selectedLanguage = getSelectedLanguage();
 
         // TODO use getSelectedLanguage() after /lang, use "en" for now as translations are missing.
@@ -919,7 +940,11 @@
         
         const that = this;
         const urlToCodelistJson = "sdk/" + sdkVersion + "/codelists/" + codelistGc + "/lang/" + urlLang;
-        const afterCodelistLoad = function(data) {
+
+        (async () => {
+          const response = await fetch(urlToCodelistJson);
+          const data = await response.json();
+          
           // Dynamically load the options.
           // const i18nText = that.getTranslationById(content._label);
           select.appendChild(createOption("", "")); // Empty option, has no value.
@@ -932,20 +957,16 @@
           // After the select options have been set, an option can be selected.
           // Special case for some of the metadata fields.
           if (codelistId === "notice-subtype") {
-            const value = getElemNoticeTypeSelector().value;
+            const value = NoticeSubtypeSelector.getSelectedNoticeSubtype();
             select.value = value;
           } else if (codelistId === "language_eu-official-language" && "BT-702(a)-notice" === content.id) {
             const value = getSelectedLanguage();
             select.value = lang2To3Map[value];
           }
           
-          applyNiceSelector(select);
-        };
-        
-        // Give this a larger timeout as some codelists could be quite big.
-        // Ideally the JSON response should be cached for a while, you have to allow this server-side.
-        jsonGet(urlToCodelistJson, timeOutLargeMillis, afterCodelistLoad, jsonGetOnError);
-        
+          applyNiceSelector(select);        
+        })();
+
       } else if (field.type === "indicator") {
         formElem = this.buildFormElem(content);
         const input = formElem;
@@ -1131,65 +1152,8 @@
     document.getElementById("notice-info").style.display = "block";
   }
 
-  function afterInitDataLoaded(data) {
-    const sdkVersions = data.sdkVersions;
-    const appVersion = data.appVersion;
-    if (appVersion === undefined || appVersion === null) {
-      throw new Error("Invalid appVersion");
-    }
-    setText("editor-version", appVersion);
-    
-    const elemSdkSelector = getElemSdkSelector();
-    elemSdkSelector.innerHTML = "";
-    
-     // Dynamically load the options.   
-    for (const sdkVersion of sdkVersions) {
-      elemSdkSelector.appendChild(createOption(sdkVersion, sdkVersion));
-    }
-    elemSdkSelector.onchange = function() {
-      if (confirm(getEditorLabel("editor.are.you.sure"))) {
-        sdkVersionChanged();
-      }
-    }
-    sdkVersionChanged(); // Initialize.
-    console.log("Loaded editor init info.");
-  }
 
-  /**
-  * Called when the SDK version changed (it could be empty).
-  */
-  function sdkVersionChanged() {
-    const sdkVersion = getSdkVersion();
-    if (!sdkVersion) {
-      return;
-    }
-    // XHR to load existing notice types of selected SDK version. See afterSdkNoticeSubTypesLoaded.
-    const url = SDK_SERVICE_URL + "/" + sdkVersion + "/notice-types";
-    jsonGet(url, timeOutDefaultMillis, afterSdkNoticeSubTypesLoaded, jsonGetOnError);
-  }
-
-  function afterSdkNoticeSubTypesLoaded(data) {
-    console.log("Loaded available notice sub types.");
-    const noticeTypes = data.noticeTypes;
-    const elemNoticeTypeSelector = getElemNoticeTypeSelector();
-    elemNoticeTypeSelector.innerHTML = "";
-    elemNoticeTypeSelector.value = ""; // Reset the value.
-    
-    // Dynamically load the options.   
-    for (const noticeType of noticeTypes) {
-      elemNoticeTypeSelector.appendChild(createOption(noticeType, noticeType));
-    } 
-
-    getElemNoticeTypeSelector().onchange = function() {
-      const noticeId = this.value;
-      const selectedSdkVersion = getSdkVersion();
-      createNoticeForm(selectedSdkVersion, noticeId, funcCallbackWhenLoadedDefinition);
-      applyNiceSelector(elemNoticeTypeSelector);
-    };
-    getElemNoticeTypeSelector().onchange();
-  }
-
-  function createNoticeForm(sdkVersion, noticeId) {
+   async function createNoticeForm(sdkVersion, noticeId) {
     const noticeFormElem = document.getElementById("notice-type"); // Root content container element.
     noticeFormElem.innerHTML = ""; // Remove previous form.
     if (!sdkVersion || !noticeId) {
@@ -1222,40 +1186,15 @@
     // https://caniuse.com/?search=autocomplete
     //htmlFormElem.setAttribute("autocomplete", "off");
     
-    // GET the translations for the default language.
-    downloadSdkTranslations(selectedLanguage, function(dataI18n) {
-      
-      const jsonOkBasicFunc = function(dataBasicJson) {
-        if (!dataBasicJson.fieldsJson.sdkVersion) {
-          throw new Error("Invalid sdkVersion");
-        }
-        console.log("Basic JSON meta data has been loaded.");
+    await SdkServiceClient.fetchTranslations(SdkVersionSelector.getSelectedSdkVersion(), getSelectedLanguage());
+            
+      // Use the Editor class.
+      const editor = new Editor();
+      editor.buildForm(); // Build the form. Initialize.
+      funcCallbackWhenLoadedDefinition();
 
-        const jsonOkNoticeTypeFunc = function(dataNoticeType) {
-          const sdkVersion = dataNoticeType.sdkVersion;
-          if (!sdkVersion) {
-            throw new Error("Invalid sdkVersion: " + sdkVersion);
-          }
-          
-          // Use the Editor class.
-          const editor = new Editor(dataBasicJson, dataNoticeType, dataI18n, noticeFormElem);
-          editor.buildForm(); // Build the form. Initialize.
-          
-          funcCallbackWhenLoadedDefinition();
-          console.log("Loaded editor notice type: " + urlToGetNoticeTypeJsonData);
-        };
-        
-        // GET available notice types.
-        const urlToGetNoticeTypeJsonData = SDK_SERVICE_URL + "/" + sdkVersion + "/notice-types/" + noticeId;
-        jsonGet(urlToGetNoticeTypeJsonData, timeOutLargeMillis, jsonOkNoticeTypeFunc, jsonGetOnError);
-      };
-      
-      // GET SDK fields.json data (and more) for the given SDK version.
-      // You could also dynamically load data only when it is needed, but this would create many requests which may be slow.
-      // This is a URL to the editor back-end REST API.
-      const urlToGetBasicJsonData = SDK_SERVICE_URL + "/" + sdkVersion + "/basic-meta-data";
-      jsonGet(urlToGetBasicJsonData, timeOutLargeMillis, jsonOkBasicFunc, jsonGetOnError);
-    });
+     
+      console.log("Loaded editor notice type: " + NoticeSubtypeSelector.getSelectedNoticeSubtype());
   }
 
   // fields.json data related functions.
@@ -1285,19 +1224,6 @@
 
   // HELPER FUNCTIONS.
 
-  // Functions specific to the HTML, DOM.
-
-  function getElemSdkSelector() {
-    return document.getElementById("notice-sdk-selector");
-  }
-
-  function getSdkVersion() {
-    return getElemSdkSelector().value;
-  }
-
-  function getElemNoticeTypeSelector() {
-    return document.getElementById("notice-sub-type-selector");
-  }
 
   // Generic reusable helper functions.
 
@@ -1352,43 +1278,6 @@
     alert(msg); // For demo purposes alert is good enough.
   }
 
-  function jsonGet(url, timeoutMillis, fnOk, fnErr) {
-    buildXhr("GET", url, timeoutMillis, fnOk, fnErr, MIME_TYPE_JSON).send();
-  }
-
-  function jsonPost(url, timeoutMillis, fnOk, fnErr, body) {
-    buildXhr("POST", url, timeoutMillis, fnOk, fnErr, MIME_TYPE_JSON).send(body);
-  }
-
-  function jsonPostRespXml(url, timeoutMillis, fnOk, fnErr, body) {
-    buildXhr("POST", url, timeoutMillis, fnOk, fnErr, MIME_TYPE_XML).send(body);
-  }
-
-  /**
-   * Helper to perform HTTP GET XHR for JSON (XHR = Xml Http Request, for AJAX).
-   * In general the back-end REST API is called from here.
-   */
-  function buildXhr(method, url, timeoutMillis, fnOk, fnErr, responseMimeType) {
-    const xhr = new XMLHttpRequest(); // XHR.
-    xhr.open(method, url, true);  // Asnyc HTTP by default.
-    xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.timeout = timeoutMillis;
-    const params = "";
-    // For proxy settings: check your browser configuration.
-    xhr.onload = function() {
-      if (xhr.readyState == 4 && xhr.status === 200) {
-        if ("application/json" === responseMimeType) {
-          const jsonData = JSON.parse(xhr.responseText);
-          fnOk(jsonData);
-        } else {
-          fnOk(xhr.responseText);
-        }
-      } else {
-        fnErr(xhr);
-      }
-    };
-    return xhr;
-  }
 
   /**
    * Left pad text.
@@ -1412,5 +1301,29 @@
     const settings = {};
     new TomSelect(elemSelector, settings);
   }
+
+  function showAppVersion(appVersion) {
+    setText("editor-version", appVersion);
+  }
+
+  // We don't use static initializers because they are not supported yet by Safari
+  NoticeSubtypeSelector.setup();
+  Editor.setup();
   
+  // Launch
+  (async () => {
+
+    // I. Get a list of available SDK versions from the back-end.
+    await SdkServiceClient.fetchVersionInfo();
+  
+    // II. Populate the SdkVersionSelector dropdown.
+    // After the SdkVersionSelector is populated its onchange event is raised triggering a "chain reaction":
+    // 1. The NoticeSubtypeSelector picks up the event and  populates itself; then its own onchange event is raised.
+    // 2. Then the Editor picks it up and loads the selected notice subtype. 
+    SdkVersionSelector.populate();
+
+    showAppVersion(SdkServiceClient.appVersion);
+
+  })();
+
 })();
