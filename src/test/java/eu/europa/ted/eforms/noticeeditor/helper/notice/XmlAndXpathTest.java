@@ -1,6 +1,7 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.io.IOException;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
@@ -17,7 +18,9 @@ public class XmlAndXpathTest {
 
   @SuppressWarnings("static-method")
   @Test
-  public void xpathWithNamespaceTest() throws ParserConfigurationException {
+  public void xpathWithNamespaceTest() throws ParserConfigurationException, IOException {
+
+    final DocumentTypeInfo docTypeInfo = DummySdk.getDummyBrinDocTypeInfo();
 
     final DocumentBuilder docBuilder =
         SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype(true);
@@ -28,11 +31,9 @@ public class XmlAndXpathTest {
     doc.appendChild(rootElement);
 
     // Add some test data.
-    final String namespaceUriRoot = "test";
-    final XPath xPathInst = PhysicalModel.setXmlNamespaces(namespaceUriRoot, rootElement);
+    final XPath xPathInst = PhysicalModel.setXmlNamespaces(docTypeInfo, rootElement);
     rootElement.appendChild(doc.createElement("ext:UBLExtensions"));
     rootElement.appendChild(doc.createElement("cbc:CustomizationID"));
-
     logger.debug(EditorXmlUtils.asText(doc, true));
 
     // This only worked with Saxon, the "JDK only" test failed.

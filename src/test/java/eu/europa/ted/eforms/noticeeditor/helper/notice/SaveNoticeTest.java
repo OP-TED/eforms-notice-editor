@@ -151,9 +151,8 @@ public abstract class SaveNoticeTest {
   }
 
   protected PhysicalModel setupPhysicalModel(final ObjectMapper mapper, final String noticeSubType,
-      final String documentType, final VisualModel visModel, final SdkVersion sdkVersion,
-      final String rootElementName, final String namespace)
-      throws IOException, ParserConfigurationException {
+      final String documentType, final VisualModel visModel, final SdkVersion sdkVersion)
+      throws ParserConfigurationException, IOException {
 
     //
     // NODES like in fields.json
@@ -176,13 +175,16 @@ public abstract class SaveNoticeTest {
       noticeInfoBySubtype.put(noticeSubType, info);
     }
 
-    final Map<String, JsonNode> documentInfoByType = new HashMap<>();
-    {
-      final ObjectNode info = mapper.createObjectNode();
-      info.put("namespace", namespace);
-      info.put("rootElement", rootElementName);
-      documentInfoByType.put(documentType, info);
-    }
+    // final Map<String, JsonNode> documentInfoByType = new HashMap<>();
+    // {
+    // final ObjectNode info = mapper.createObjectNode();
+    // info.put("namespace", namespace);
+    // info.put("rootElement", rootElementName);
+    // info.put("schemaLocation", "xyz");
+    // documentInfoByType.put(documentType, info);
+    // }
+
+    final Map<String, JsonNode> documentInfoByType = DummySdk.buildDocInfoByType();
 
     //
     // BUILD CONCEPTUAL MODEL.
@@ -195,9 +197,8 @@ public abstract class SaveNoticeTest {
     //
     final boolean debug = true; // Adds field ids in the XML.
     final boolean buildFields = true;
-    final XmlSchemaInfo schemaInfo = SchemaToolsTest.getTestSchemaInfo();
     final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptualModel,
-        fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields, schemaInfo);
+        fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields);
 
     return physicalModel;
   }

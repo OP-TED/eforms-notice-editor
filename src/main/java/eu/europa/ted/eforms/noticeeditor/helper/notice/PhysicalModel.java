@@ -7,12 +7,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Set;
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
@@ -42,6 +40,8 @@ import net.sf.saxon.lib.NamespaceConstant;
  * build the physical model from the conceptual model and a method to serialize it to XML text.
  */
 public class PhysicalModel {
+
+  private static final String XMLNS = "xmlns";
 
   private static final Logger logger = LoggerFactory.getLogger(PhysicalModel.class);
 
@@ -131,15 +131,13 @@ public class PhysicalModel {
    *        production
    * @param buildFields Allows to disable field building, for debugging purposes. Note that if xpath
    *        relies on the presence of fields or attribute of fields this could be problematic
-   * @param schemaInfo Information about the XML schema, mostly for the field order
    *
    * @return The physical model as an object containing the XML with a few extras
    */
   public static PhysicalModel buildPhysicalModel(final ConceptualModel conceptModel,
       final FieldsAndNodes fieldsAndNodes, final Map<String, JsonNode> noticeInfoBySubtype,
       final Map<String, JsonNode> documentInfoByType, final boolean debug,
-      final boolean buildFields, final XmlSchemaInfo schemaInfo)
-      throws ParserConfigurationException {
+      final boolean buildFields) throws ParserConfigurationException {
     logger.info("Attempting to build physical model.");
 
     final DocumentBuilder safeDocBuilder =
@@ -151,8 +149,6 @@ public class PhysicalModel {
 
     final DocumentTypeInfo docTypeInfo =
         getDocumentTypeInfo(noticeInfoBySubtype, documentInfoByType, conceptModel);
-
-    final String namespaceUri = docTypeInfo.getNamespaceUri();
     final String rootElementType = docTypeInfo.getRootElementTagName();
 
     // Create the root element, top level element.
@@ -161,8 +157,7 @@ public class PhysicalModel {
 
     // TEDEFO-1426
     // For the moment do as if it was there.
-    final String xsdPath = docTypeInfo.getXsdFile();
-    final XPath xpathInst = setXmlNamespaces(namespaceUri, xmlDocRoot);
+    final XPath xpathInst = setXmlNamespaces(docTypeInfo, xmlDocRoot);
 
     // Attempt to put schemeName first.
     // buildPhysicalModelXmlRec(fieldsAndNodes, doc, concept.getRoot(), rootElem, debug,
@@ -193,7 +188,7 @@ public class PhysicalModel {
         buildFields, depth, onlyIfPriority, xpathInst);
 
     // Reorder the physical model.
-    reorderPhysicalModel(xmlDocRoot, xpathInst, schemaInfo);
+    reorderPhysicalModel(safeDocBuilder, xmlDocRoot, xpathInst, docTypeInfo);
 
     return new PhysicalModel(xmlDoc, xpathInst, fieldsAndNodes);
   }
@@ -604,7 +599,6 @@ public class PhysicalModel {
         JsonUtils.getTextStrict(noticeInfo, SdkConstants.NOTICE_TYPES_JSON_DOCUMENT_TYPE_KEY);
 
     final JsonNode documentTypeInfo = documentInfoByType.get(documentType);
-
     return new DocumentTypeInfo(documentTypeInfo);
   }
 
@@ -612,54 +606,42 @@ public class PhysicalModel {
    * Changes the order of the elements to the schema sequence order. The XML DOM model is modified
    * as a side effect.
    */
-  private static void reorderPhysicalModel(final Element rootElem, final XPath xpathInst,
-      final XmlSchemaInfo schemaInfo) {
-    final List<String> rootOrder = schemaInfo.getRootOrder();
-    for (final String tagName : rootOrder) {
-      final NodeList elementsFound = evaluateXpath(xpathInst, rootElem, tagName, tagName);
-      for (int i = 0; i < elementsFound.getLength(); i++) {
-        final Node elem = elementsFound.item(i);
-        rootElem.removeChild(elem); // Removes child from old location.
-        rootElem.appendChild(elem); // Appends child at the new location.
-      }
-    }
+  private static void reorderPhysicalModel(final DocumentBuilder safeDocBuilder,
+      final Element rootElem, final XPath xpathInst, final DocumentTypeInfo docTypeInfo) {
+    // XmlTagSorting.sortXmlTags(safeDocBuilder, rootElem, docTypeInfo, null);
   }
 
   /**
    * Set XML namespaces.
    *
-   * @param namespaceUriRoot This depends on the notice sub type
+   * @param docTypeInfo SDK document type info
    * @param rootElement The root element of the XML
    * @return XPath instance with prefix to namespace awareness
    */
-  static XPath setXmlNamespaces(final String namespaceUriRoot, final Element rootElement) {
-    Validate.notBlank(namespaceUriRoot);
+  public static XPath setXmlNamespaces(final DocumentTypeInfo docTypeInfo,
+      final Element rootElement) {
     Validate.notNull(rootElement);
 
-    final Map<String, String> map = new LinkedHashMap<>();
-
-    // HARDCODED
-    // If these namespaces evolve they could start to differ by SDK version.
-    // TODO see upcoming TEDEFO-1744 for namespaces in notice-types.json
-    map.put("xsi", "http://www.w3.org/2001/XMLSchema-instance");
-    map.put("cbc", "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2");
-    map.put("cac", "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2");
-    map.put("efext", "http://data.europa.eu/p27/eforms-ubl-extensions/1");
-    map.put("efac", "http://data.europa.eu/p27/eforms-ubl-extension-aggregate-components/1");
-    map.put("efbc", "http://data.europa.eu/p27/eforms-ubl-extension-basic-components/1");
-    map.put("ext", "urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2");
+    final String namespaceUriRoot = docTypeInfo.getNamespaceUri();
+    Validate.notBlank(namespaceUriRoot);
 
     //
     // NAMESPACES FOR THE XML DOCUMENT.
     //
-    final String xmlnsPrefix = "xmlns";
-    rootElement.setAttribute(xmlnsPrefix, namespaceUriRoot);
+    rootElement.setAttribute(XMLNS, namespaceUriRoot);
 
     final String xmlnsUri = "http://www.w3.org/2000/xmlns/";
-    final Set<Entry<String, String>> entrySet = map.entrySet();
-    for (Entry<String, String> entry : entrySet) {
-      rootElement.setAttributeNS(xmlnsUri, xmlnsPrefix + ":" + entry.getKey(), entry.getValue());
+
+    final Map<String, String> map = docTypeInfo.getAdditionalNamespaceUriByPrefix();
+    for (final Entry<String, String> entry : map.entrySet()) {
+      rootElement.setAttributeNS(xmlnsUri, XMLNS + ":" + entry.getKey(), entry.getValue());
     }
+
+    return setupXpathInst(docTypeInfo);
+  }
+
+  public static XPath setupXpathInst(final DocumentTypeInfo docTypeInfo) {
+    final Map<String, String> map = docTypeInfo.getAdditionalNamespaceUriByPrefix();
 
     //
     // NAMESPACES FOR XPATH.
@@ -709,7 +691,7 @@ public class PhysicalModel {
    * @param idForError An identifier which is shown in case of errors
    * @return The result of evaluating the XPath expression as a NodeList
    */
-  static NodeList evaluateXpath(final XPath xpathInst, final Object contextElem,
+  public static NodeList evaluateXpath(final XPath xpathInst, final Object contextElem,
       final String xpathExpr, String idForError) {
     Validate.notBlank(xpathExpr, "xpathExpr is blank for %s, %s", contextElem, idForError);
     try {

@@ -137,21 +137,18 @@ public class SaveNoticeFillingTest extends SaveNoticeTest {
   }
 
   @Test
-  public final void test() throws IOException, ParserConfigurationException {
+  public final void test() throws ParserConfigurationException, IOException {
     final ObjectMapper mapper = new ObjectMapper();
 
     // A dummy 1.3.0, not real 1.3.0
     final SdkVersion sdkVersion = new SdkVersion("1.3.0");
     final String prefixedSdkVersion = FieldsAndNodes.EFORMS_SDK_PREFIX + sdkVersion.toString();
     final String noticeSubType = "X02"; // A dummy X02, not the real X02 of 1.3.0
-    final String rootElementName = "bla";
-    final String namespace =
-        "http://data.europa.eu/p27/eforms-business-registration-information-notice/1";
 
     final VisualModel visualModel = setupVisualModel(mapper, sdkVersion, noticeSubType);
 
-    final PhysicalModel physicalModel = setupPhysicalModel(mapper, noticeSubType,
-        NOTICE_DOCUMENT_TYPE, visualModel, sdkVersion, rootElementName, namespace);
+    final PhysicalModel physicalModel =
+        setupPhysicalModel(mapper, noticeSubType, NOTICE_DOCUMENT_TYPE, visualModel, sdkVersion);
 
     final String xml = physicalModel.toXmlText(false); // Not indented to avoid line breaks.
     System.out.println(physicalModel.toXmlText(true));

@@ -1,7 +1,5 @@
 package eu.europa.ted.eforms.noticeeditor.service;
 
-import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -22,10 +20,8 @@ import eu.europa.ted.eforms.noticeeditor.helper.notice.DocumentTypeInfo;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.PhysicalModel;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.VisualModel;
-import eu.europa.ted.eforms.noticeeditor.helper.notice.XmlSchemaInfo;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.sdk.SdkConstants;
-import eu.europa.ted.eforms.sdk.SdkConstants.SdkResource;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
@@ -87,6 +83,33 @@ public class XmlWriteService {
       }
     }
 
+    final Map<String, JsonNode> documentInfoByType = parseDocumentTypes(noticeTypesJson);
+
+    // Go from visual model to conceptual model.
+    final ConceptualModel conceptModel = visualModel.toConceptualModel(fieldsAndNodes);
+    final DocumentTypeInfo docTypeInfo =
+        PhysicalModel.getDocumentTypeInfo(noticeInfoBySubtype, documentInfoByType, conceptModel);
+
+    // Get schema info.
+    // final String sdkXsdFile = docTypeInfo.getSdkXsdPath().substring("schemas/".length());
+    // final Path sdkXsdPath = sdkService.readSdkPath(sdkVersion, SdkResource.SCHEMAS, sdkXsdFile);
+    // final String rootElementTagName = docTypeInfo.getRootElementTagName();
+
+    // Build physical model.
+    final boolean debug = true;
+    final boolean buildFields = true;
+    final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptModel,
+        fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields);
+
+    // Transform physical model to XML.
+    final String xmlAsText = physicalModel.toXmlText(buildFields);
+    final String filenameForDownload = generateNoticeFilename(noticeUuid, sdkVersion);
+    if (responseOpt.isPresent()) {
+      serveSdkXmlStringAsDownload(responseOpt.get(), xmlAsText, filenameForDownload);
+    }
+  }
+
+  public static Map<String, JsonNode> parseDocumentTypes(final JsonNode noticeTypesJson) {
     final Map<String, JsonNode> documentInfoByType = new HashMap<>();
     {
       final JsonNode documentTypes =
@@ -97,32 +120,7 @@ public class XmlWriteService {
         documentInfoByType.put(id, item);
       }
     }
-
-    // Go from visual model to conceptual model.
-    final ConceptualModel conceptModel = visualModel.toConceptualModel(fieldsAndNodes);
-    final DocumentTypeInfo docTypeInfo =
-        PhysicalModel.getDocumentTypeInfo(noticeInfoBySubtype, documentInfoByType, conceptModel);
-
-    // Get schema info.
-    final String sdkXsdFile = docTypeInfo.getXsdFile();
-    final Path sdkXsdPath =
-        sdkService.readSdkPath(sdkVersion, SdkResource.SCHEMAS_MAINDOC, sdkXsdFile);
-    // final String rootElementTagName = docTypeInfo.getRootElementTagName();
-    // final SchemaInfo schemaInfo = SchemaTools.getSchemaInfo(sdkXsdPath, rootElementTagName);
-    final XmlSchemaInfo schemaInfo = new XmlSchemaInfo(new ArrayList<>());
-
-    // Build physical model.
-    final boolean debug = true;
-    final boolean buildFields = true;
-    final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptModel,
-        fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields, schemaInfo);
-
-    // Transform physical model to XML.
-    final String xmlAsText = physicalModel.toXmlText(buildFields);
-    final String filenameForDownload = generateNoticeFilename(noticeUuid, sdkVersion);
-    if (responseOpt.isPresent()) {
-      serveSdkXmlStringAsDownload(responseOpt.get(), xmlAsText, filenameForDownload);
-    }
+    return documentInfoByType;
   }
 
   /**
