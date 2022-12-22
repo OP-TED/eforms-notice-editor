@@ -4,11 +4,13 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.commons.lang3.Validate;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.sdk.SdkConstants;
+import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
  * Abstraction around the JSON data of the document type information.
@@ -17,11 +19,21 @@ public class DocumentTypeInfo {
   private final JsonNode jsonItem;
   private final String namespaceUri;
   private final String rootElementType;
-  private final String xsdPathInSdk;
+  private final Optional<String> xsdPathInSdkOpt;
   private final List<DocumentTypeNamespace> additionalNamespaces;
+  private final SdkVersion sdkVersion;
 
-  public DocumentTypeInfo(final JsonNode jsonParam) {
+  /**
+   * The schemaLocation and additionalNamespaces are available since version 1.6
+   *
+   * TEDEFO-1743 and TEDEFO-1744.
+   */
+  public static final SdkVersion TEDEFO_1743_SINCE_SDK_VERSION = new SdkVersion("1.6");
+
+  public DocumentTypeInfo(final JsonNode jsonParam, final SdkVersion sdkVersion) {
     Validate.notNull(jsonParam, "jsonParam of document type is null");
+
+    this.sdkVersion = sdkVersion;
     this.jsonItem = jsonParam;
 
     this.namespaceUri =
@@ -30,8 +42,11 @@ public class DocumentTypeInfo {
     this.rootElementType =
         JsonUtils.getTextStrict(this.jsonItem, SdkConstants.NOTICE_TYPES_JSON_ROOT_ELEMENT_KEY);
 
-    this.xsdPathInSdk = JsonUtils.getTextStrict(this.jsonItem, "schemaLocation");
-
+    if (sdkVersion.compareTo(TEDEFO_1743_SINCE_SDK_VERSION) >= 0) {
+      this.xsdPathInSdkOpt = Optional.of(JsonUtils.getTextStrict(this.jsonItem, "schemaLocation"));
+    } else {
+      this.xsdPathInSdkOpt = Optional.empty();
+    }
     this.additionalNamespaces = new ArrayList<>(parseAdditionalNamespaces(this.jsonItem));
   }
 
@@ -52,8 +67,8 @@ public class DocumentTypeInfo {
     return namespaces;
   }
 
-  public String getSdkXsdPath() {
-    return xsdPathInSdk;
+  public Optional<String> getSdkXsdPathOpt() {
+    return xsdPathInSdkOpt;
   }
 
   public String getNamespaceUri() {
@@ -66,6 +81,10 @@ public class DocumentTypeInfo {
 
   public List<DocumentTypeNamespace> getAdditionalNamespaces() {
     return additionalNamespaces;
+  }
+
+  public SdkVersion getSdkVersion() {
+    return sdkVersion;
   }
 
   /**
@@ -93,6 +112,6 @@ public class DocumentTypeInfo {
   @Override
   public String toString() {
     return "DocumentTypeInfo [namespaceUri=" + namespaceUri + ", rootElementType=" + rootElementType
-        + ", xsdPathInSdk=" + xsdPathInSdk + "]";
+        + ", xsdPathInSdk=" + xsdPathInSdkOpt + "]";
   }
 }

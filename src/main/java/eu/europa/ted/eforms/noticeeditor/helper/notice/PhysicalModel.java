@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -33,6 +34,7 @@ import eu.europa.ted.eforms.noticeeditor.util.EditorXmlUtils;
 import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.sdk.SdkConstants;
+import eu.europa.ted.eforms.sdk.SdkVersion;
 import net.sf.saxon.lib.NamespaceConstant;
 
 /**
@@ -157,7 +159,8 @@ public class PhysicalModel {
 
     // TEDEFO-1426
     // For the moment do as if it was there.
-    final XPath xpathInst = setXmlNamespaces(docTypeInfo, xmlDocRoot);
+    final XPath xpathInst =
+        setXmlNamespaces(docTypeInfo, xmlDocRoot, fieldsAndNodes.getSdkVersion());
 
     // Attempt to put schemeName first.
     // buildPhysicalModelXmlRec(fieldsAndNodes, doc, concept.getRoot(), rootElem, debug,
@@ -599,7 +602,7 @@ public class PhysicalModel {
         JsonUtils.getTextStrict(noticeInfo, SdkConstants.NOTICE_TYPES_JSON_DOCUMENT_TYPE_KEY);
 
     final JsonNode documentTypeInfo = documentInfoByType.get(documentType);
-    return new DocumentTypeInfo(documentTypeInfo);
+    return new DocumentTypeInfo(documentTypeInfo, concept.getSdkVersion());
   }
 
   /**
@@ -608,6 +611,7 @@ public class PhysicalModel {
    */
   private static void reorderPhysicalModel(final DocumentBuilder safeDocBuilder,
       final Element rootElem, final XPath xpathInst, final DocumentTypeInfo docTypeInfo) {
+    // TODO use it once it works
     // XmlTagSorting.sortXmlTags(safeDocBuilder, rootElem, docTypeInfo, null);
   }
 
@@ -619,7 +623,7 @@ public class PhysicalModel {
    * @return XPath instance with prefix to namespace awareness
    */
   public static XPath setXmlNamespaces(final DocumentTypeInfo docTypeInfo,
-      final Element rootElement) {
+      final Element rootElement, final SdkVersion sdkVersion) {
     Validate.notNull(rootElement);
 
     final String namespaceUriRoot = docTypeInfo.getNamespaceUri();
@@ -632,16 +636,33 @@ public class PhysicalModel {
 
     final String xmlnsUri = "http://www.w3.org/2000/xmlns/";
 
-    final Map<String, String> map = docTypeInfo.getAdditionalNamespaceUriByPrefix();
+    final Map<String, String> map;
+    if (sdkVersion.compareTo(new SdkVersion("1.6")) >= 0) {
+      // Since SDK 1.6.0 TEDEFO-1744.
+      map = docTypeInfo.getAdditionalNamespaceUriByPrefix();
+    } else {
+      // Pre SDK 1.6.0 logic:
+      // If these namespaces evolve they could start to differ by SDK version.
+      // TODO see upcoming TEDEFO-1744 for namespaces in notice-types.json
+      map = new LinkedHashMap<>();
+      map.put("xsi", "http://www.w3.org/2001/XMLSchema-instance");
+      map.put("cbc", "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2");
+      map.put("cac", "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2");
+      map.put("efext", "http://data.europa.eu/p27/eforms-ubl-extensions/1");
+      map.put("efac", "http://data.europa.eu/p27/eforms-ubl-extension-aggregate-components/1");
+      map.put("efbc", "http://data.europa.eu/p27/eforms-ubl-extension-basic-components/1");
+      map.put("ext", "urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2");
+    }
     for (final Entry<String, String> entry : map.entrySet()) {
       rootElement.setAttributeNS(xmlnsUri, XMLNS + ":" + entry.getKey(), entry.getValue());
     }
-
-    return setupXpathInst(docTypeInfo);
+    return setupXpathInst(docTypeInfo, Optional.of(map));
   }
 
-  public static XPath setupXpathInst(final DocumentTypeInfo docTypeInfo) {
-    final Map<String, String> map = docTypeInfo.getAdditionalNamespaceUriByPrefix();
+  public static XPath setupXpathInst(final DocumentTypeInfo docTypeInfo,
+      final Optional<Map<String, String>> mapPreSdk16Opt) {
+    final Map<String, String> map = mapPreSdk16Opt.isPresent() ? mapPreSdk16Opt.get()
+        : docTypeInfo.getAdditionalNamespaceUriByPrefix();
 
     //
     // NAMESPACES FOR XPATH.

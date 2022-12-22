@@ -12,6 +12,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
 import eu.europa.ted.eforms.noticeeditor.util.EditorXmlUtils;
+import eu.europa.ted.eforms.sdk.SdkVersion;
 
 public class XmlAndXpathTest {
   private static final Logger logger = LoggerFactory.getLogger(XmlAndXpathTest.class);
@@ -19,8 +20,13 @@ public class XmlAndXpathTest {
   @SuppressWarnings("static-method")
   @Test
   public void xpathWithNamespaceTest() throws ParserConfigurationException, IOException {
+    testXpathWithNamespaces(new SdkVersion("1.5.0"));
+    testXpathWithNamespaces(DocumentTypeInfo.TEDEFO_1743_SINCE_SDK_VERSION);
+  }
 
-    final DocumentTypeInfo docTypeInfo = DummySdk.getDummyBrinDocTypeInfo();
+  private static void testXpathWithNamespaces(final SdkVersion sdkVersion)
+      throws IOException, ParserConfigurationException {
+    final DocumentTypeInfo docTypeInfo = DummySdk.getDummyBrinDocTypeInfo(sdkVersion);
 
     final DocumentBuilder docBuilder =
         SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype(true);
@@ -31,7 +37,7 @@ public class XmlAndXpathTest {
     doc.appendChild(rootElement);
 
     // Add some test data.
-    final XPath xPathInst = PhysicalModel.setXmlNamespaces(docTypeInfo, rootElement);
+    final XPath xPathInst = PhysicalModel.setXmlNamespaces(docTypeInfo, rootElement, sdkVersion);
     rootElement.appendChild(doc.createElement("ext:UBLExtensions"));
     rootElement.appendChild(doc.createElement("cbc:CustomizationID"));
     logger.debug(EditorXmlUtils.asText(doc, true));

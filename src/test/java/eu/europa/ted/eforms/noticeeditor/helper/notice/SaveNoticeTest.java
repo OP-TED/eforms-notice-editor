@@ -184,7 +184,7 @@ public abstract class SaveNoticeTest {
     // documentInfoByType.put(documentType, info);
     // }
 
-    final Map<String, JsonNode> documentInfoByType = DummySdk.buildDocInfoByType();
+    final Map<String, JsonNode> documentInfoByType = DummySdk.buildDocInfoByType(sdkVersion);
 
     //
     // BUILD CONCEPTUAL MODEL.

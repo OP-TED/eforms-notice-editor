@@ -179,7 +179,7 @@ public class VisualModel {
 
     // TODO more work is required for the full metadata (see with realistic X02) !?
 
-    return new ConceptualModel(rootNode);
+    return new ConceptualModel(rootNode, fieldsAndNodes.getSdkVersion());
   }
 
   /**

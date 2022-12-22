@@ -3,6 +3,7 @@ package eu.europa.ted.eforms.noticeeditor.helper.notice;
 import org.apache.commons.lang3.Validate;
 import com.fasterxml.jackson.databind.JsonNode;
 import eu.europa.ted.eforms.noticeeditor.util.GraphvizDotTool;
+import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
  * The conceptual model (CM) is an intermediary model that is between the visual and the physical
@@ -37,9 +38,16 @@ public class ConceptualModel {
    */
   private final ConceptTreeNode treeRootNode;
 
-  public ConceptualModel(final ConceptTreeNode rootNode) {
+  private final SdkVersion sdkVersion;
+
+  public ConceptualModel(final ConceptTreeNode rootNode, final SdkVersion sdkVersion) {
     Validate.isTrue(ND_ROOT.equals(rootNode.getNodeId()));
     this.treeRootNode = rootNode;
+    this.sdkVersion = sdkVersion;
+  }
+
+  public SdkVersion getSdkVersion() {
+    return sdkVersion;
   }
 
   public ConceptTreeNode getTreeRootNode() {
@@ -48,7 +56,6 @@ public class ConceptualModel {
 
   public String getNoticeSubType() {
     // HARDCODED LOGIC.
-    System.out.println(treeRootNode);
     final ConceptTreeNode rootExtension = treeRootNode.getConceptNodes().stream()
         .filter(item -> item.getNodeId().equals(ND_ROOT_EXTENSION)).findFirst().get();
     return rootExtension.getConceptFields().stream()

@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.xpath.XPath;
 import org.apache.commons.lang3.Validate;
@@ -19,6 +20,7 @@ import eu.europa.ted.eforms.noticeeditor.helper.notice.DocumentTypeInfo;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.DocumentTypeNamespace;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.PhysicalModel;
 import eu.europa.ted.eforms.noticeeditor.util.XmlUtils;
+import eu.europa.ted.eforms.sdk.SdkVersion;
 
 public class XmlTagSorting {
 
@@ -29,23 +31,30 @@ public class XmlTagSorting {
   }
 
   public static void sortXmlTags(final DocumentBuilder builder, final Element noticeRoot,
-      final DocumentTypeInfo docTypeInfo, final Path sdkRootFolder) {
+      final DocumentTypeInfo docTypeInfo, final Path sdkRootFolder, final SdkVersion sdkVersion) {
     logger.info("Attempting to sort tags.");
+
+    final Optional<String> sdkXsdPathOpt = docTypeInfo.getSdkXsdPathOpt();
+    if (sdkXsdPathOpt.isEmpty()) {
+      logger.info("Sorting not supported for version {}", sdkVersion);
+      return;
+    }
+    final Path xsdPath = sdkRootFolder.resolve(sdkXsdPathOpt.get());
 
     final Map<String, DocumentTypeNamespace> infoByPrefix =
         docTypeInfo.getAdditionalNamespacesByPrefix();
 
+    System.out.println(noticeRoot.getTagName());
+    System.out.println(docTypeInfo.getSdkXsdPathOpt());
+
+    //
     // Example:
     // <ext:UBLExtensions>
     // Get the "ext" prefix.
     // final DocumentTypeNamespace documentTypeNamespace = infoByPrefix.get("ext");
     // final String xsdSchemaLocation = documentTypeNamespace.getSchemaLocation();
-
-    System.out.println(noticeRoot.getTagName());
-    System.out.println(docTypeInfo.getSdkXsdPath());
-
+    //
     try {
-      final Path xsdPath = sdkRootFolder.resolve(docTypeInfo.getSdkXsdPath());
       final Document doc = builder.parse(xsdPath.toFile());
       final Element xsdRoot = doc.getDocumentElement();
 
@@ -66,8 +75,20 @@ public class XmlTagSorting {
         sortOrder.add(XmlUtils.getAttrText(seqElem.getAttributes(), "ref"));
       }
 
-      final XPath xpathInst = PhysicalModel.setupXpathInst(docTypeInfo);
+      final XPath xpathInst = PhysicalModel.setupXpathInst(docTypeInfo, Optional.empty());
       sortChildTags(noticeRoot, sortOrder, xpathInst);
+
+      // Find prefix, get xsd, get type, ... recursive
+
+      // efac:BusinessPartyGroup -> xsd -> BusinessPartyGroupType ->
+
+      // <xsd:complexType name="BusinessPartyGroupType">
+      // <xsd:sequence>
+      // <xsd:element ref="efbc:GroupTypeCode" minOccurs="0" maxOccurs="1"/>
+      // <xsd:element ref="efbc:GroupType" minOccurs="0" maxOccurs="unbounded"/>
+      // <xsd:element ref="cac:Party" minOccurs="1" maxOccurs="unbounded"/>
+      // </xsd:sequence>
+      // </xsd:complexType>
 
     } catch (SAXException | IOException e) {
       throw new RuntimeException(e);
