@@ -17,14 +17,23 @@ public class DocumentTypeNamespace {
     this.schemaLocation = schemaLocation;
   }
 
+  /**
+   * @return The prefix of the xsd namespace
+   */
   public String getPrefix() {
     return prefix;
   }
 
+  /**
+   * @return The uri of the xsd namespace
+   */
   public String getUri() {
     return uri;
   }
 
+  /**
+   * @return The location of the schema relative to the root of the SDK
+   */
   public String getSchemaLocation() {
     return schemaLocation;
   }

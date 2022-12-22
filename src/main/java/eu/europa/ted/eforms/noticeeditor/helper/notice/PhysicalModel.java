@@ -664,6 +664,9 @@ public class PhysicalModel {
     final Map<String, String> map = mapPreSdk16Opt.isPresent() ? mapPreSdk16Opt.get()
         : docTypeInfo.getAdditionalNamespaceUriByPrefix();
 
+    // Also allow reading XSD files using the same xpath instance.
+    map.put("xsd", "http://www.w3.org/2001/XMLSchema");
+
     //
     // NAMESPACES FOR XPATH.
     //

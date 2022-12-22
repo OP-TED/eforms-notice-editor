@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.Validate;
+import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
@@ -28,6 +29,17 @@ public class XmlUtils {
    */
   public static String getAttrText(final NamedNodeMap attributes, final String attributeName) {
     final Node attr = attributes.getNamedItem(attributeName);
+    Validate.notNull(attr, "attribute is null for attributeName=%s", attributeName);
+    return attr.getTextContent();
+  }
+
+  /**
+   * @param attributeName Name of the XML element attribute
+   *
+   * @return The text value of the attribute, it fails with a special message if null
+   */
+  public static String getAttrText(final Element elem, final String attributeName) {
+    final Attr attr = elem.getAttributeNode(attributeName);
     Validate.notNull(attr, "attribute is null for attributeName=%s", attributeName);
     return attr.getTextContent();
   }

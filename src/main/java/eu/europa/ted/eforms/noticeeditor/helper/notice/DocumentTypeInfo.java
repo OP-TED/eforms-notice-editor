@@ -26,7 +26,9 @@ public class DocumentTypeInfo {
   /**
    * The schemaLocation and additionalNamespaces are available since version 1.6
    *
+   * <p>
    * TEDEFO-1743 and TEDEFO-1744.
+   * </p>
    */
   public static final SdkVersion TEDEFO_1743_SINCE_SDK_VERSION = new SdkVersion("1.6");
 
