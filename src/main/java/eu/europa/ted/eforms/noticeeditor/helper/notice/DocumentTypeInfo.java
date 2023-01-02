@@ -13,7 +13,11 @@ import eu.europa.ted.eforms.sdk.SdkConstants;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
- * Abstraction around the JSON data of the document type information.
+ * Abstraction around the JSON data of the SDK document type information.
+ *
+ * <p>
+ * This is specific to a given SDK version, which is contained.
+ * </p>
  */
 public class DocumentTypeInfo {
   private final JsonNode jsonItem;
@@ -92,7 +96,7 @@ public class DocumentTypeInfo {
   /**
    * Provided for convenience.
    */
-  public Map<String, DocumentTypeNamespace> getAdditionalNamespacesByPrefix() {
+  public Map<String, DocumentTypeNamespace> buildAdditionalNamespacesByPrefix() {
     final Map<String, DocumentTypeNamespace> dtnByPrefix = new LinkedHashMap<>();
     for (final DocumentTypeNamespace dtn : additionalNamespaces) {
       dtnByPrefix.put(dtn.getPrefix(), dtn);
@@ -103,7 +107,7 @@ public class DocumentTypeInfo {
   /**
    * Provided for convenience.
    */
-  public Map<String, String> getAdditionalNamespaceUriByPrefix() {
+  public Map<String, String> buildAdditionalNamespaceUriByPrefix() {
     final Map<String, String> dtnByPrefix = new LinkedHashMap<>();
     for (final DocumentTypeNamespace dtn : additionalNamespaces) {
       dtnByPrefix.put(dtn.getPrefix(), dtn.getUri());

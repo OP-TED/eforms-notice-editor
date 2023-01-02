@@ -39,7 +39,12 @@ import net.sf.saxon.lib.NamespaceConstant;
 
 /**
  * The physical model (PM) holds the XML representation. This class also provides static methods to
- * build the physical model from the conceptual model and a method to serialize it to XML text.
+ * build the physical model from the conceptual model and a method to serialize it to XML text. The
+ * SDK version is taken into account.
+ *
+ * <p>
+ * Note that the XML elements are sorted, reordered, according to information found in the SDK.
+ * </p>
  */
 public class PhysicalModel {
 
@@ -48,7 +53,7 @@ public class PhysicalModel {
   private static final Logger logger = LoggerFactory.getLogger(PhysicalModel.class);
 
   /**
-   * A special case that we have to solve. HARDCODED.
+   * A special case that we have to solve. HARDCODED. TODO
    */
   static final String NATIONAL = "national";
 
@@ -65,7 +70,7 @@ public class PhysicalModel {
   private static final String XML_ATTR_SCHEME_NAME = "schemeName";
   private static final String XML_ATTR_LIST_NAME = "listName";
 
-  private static final String XPATH_REPLACEMENT = "~"; // ONE CHAR ONLY!
+  private static final String XPATH_TEMP_REPLACEMENT = "~"; // ONE CHAR ONLY!
 
   /**
    * W3C Document Object Model (DOM), holds the XML representation. This can be queried using xpath
@@ -245,10 +250,11 @@ public class PhysicalModel {
   }
 
   /**
-   * Build the nodes.
+   * Build the physical nodes (and fields).
    *
    * @param doc The XML document, modified as a SIDE-EFFECT!
    * @param fieldsAndNodes Field and node meta information (no form values)
+   * @param conceptNode The current conceptual node
    * @param xpathInst Allows to evaluate xpath expressions
    * @param xmlNodeElem The current xml node element (modified as a SIDE-EFFECT!)
    * @param debug Adds extra debugging info in the XML if true, for humans or unit tests, the XML
@@ -258,7 +264,6 @@ public class PhysicalModel {
    *        later)
    * @param buildFields True if fields have to be built, false otherwise
    * @param childCounter Current position in the children
-   * @param conceptElem The current conceptual element
    */
   private static boolean buildNodesAndFields(final Document doc,
       final FieldsAndNodes fieldsAndNodes, final ConceptTreeNode conceptNode, final XPath xpathInst,
@@ -284,21 +289,22 @@ public class PhysicalModel {
     // TODO maybe use xpath to locate the tag in the doc ? What xpath finds is where to add the
     // data.
 
+    // Split the XPATH into parts.
     final String[] partsArr = getXpathPartsArr(xpathRel);
-    final List<String> parts = new ArrayList<>(Arrays.asList(partsArr));
+    final List<String> xpathParts = new ArrayList<>(Arrays.asList(partsArr));
     // parts.remove(0); // If absolute.
     // parts.remove(0); // If absolute.
     if (debug) {
       // System out is used here because it is more readable than the logger lines.
       // This is not a replacement for logger.debug(...)
-      System.out.println(depthStr + " NODE PARTS SIZE: " + parts.size());
-      System.out.println(depthStr + " NODE PARTS: " + listToString(parts));
+      System.out.println(depthStr + " NODE PARTS SIZE: " + xpathParts.size());
+      System.out.println(depthStr + " NODE PARTS: " + listToString(xpathParts));
     }
 
-    for (final String partXpath : parts) {
-      Validate.notBlank(partXpath, "partXpath is blank for nodeId=%s, xmlNodeElem=%s", nodeId,
+    for (final String xpathPart : xpathParts) {
+      Validate.notBlank(xpathPart, "partXpath is blank for nodeId=%s, xmlNodeElem=%s", nodeId,
           xmlNodeElem);
-      final PhysicalXpathPart px = handleXpathPart(partXpath);
+      final PhysicalXpathPart px = handleXpathPart(xpathPart);
       final Optional<String> schemeNameOpt = px.getSchemeNameOpt();
       String xpathExpr = px.getXpathExpr();
       final String tag = px.getTagOrAttribute();
@@ -576,15 +582,6 @@ public class PhysicalModel {
   }
 
   /**
-   * Get information about the notice sub type from the SDK.
-   */
-  public static JsonNode getNoticeSubTypeInfo(final Map<String, JsonNode> noticeInfoBySubtype,
-      final ConceptualModel concept) {
-    final String noticeSubType = concept.getNoticeSubType();
-    return noticeInfoBySubtype.get(noticeSubType);
-  }
-
-  /**
    * Get information about the document type from the SDK.
    *
    * @param noticeInfoBySubtype Map with info about notice metadata by notice sub type
@@ -594,8 +591,8 @@ public class PhysicalModel {
       final Map<String, JsonNode> noticeInfoBySubtype,
       final Map<String, JsonNode> documentInfoByType, final ConceptualModel concept) {
 
-    logger.debug("Attempting to read document type info.");
-    final JsonNode noticeInfo = getNoticeSubTypeInfo(noticeInfoBySubtype, concept);
+    logger.info("Attempting to read document type info");
+    final JsonNode noticeInfo = noticeInfoBySubtype.get(concept.getNoticeSubType());
 
     // Get the document type info from the SDK data.
     final String documentType =
@@ -638,12 +635,11 @@ public class PhysicalModel {
 
     final Map<String, String> map;
     if (sdkVersion.compareTo(new SdkVersion("1.6")) >= 0) {
-      // Since SDK 1.6.0 TEDEFO-1744.
-      map = docTypeInfo.getAdditionalNamespaceUriByPrefix();
+      // Since SDK 1.6.0 the SDK provides this information (TEDEFO-1744).
+      map = docTypeInfo.buildAdditionalNamespaceUriByPrefix();
     } else {
       // Pre SDK 1.6.0 logic:
       // If these namespaces evolve they could start to differ by SDK version.
-      // TODO see upcoming TEDEFO-1744 for namespaces in notice-types.json
       map = new LinkedHashMap<>();
       map.put("xsi", "http://www.w3.org/2001/XMLSchema-instance");
       map.put("cbc", "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2");
@@ -662,7 +658,7 @@ public class PhysicalModel {
   public static XPath setupXpathInst(final DocumentTypeInfo docTypeInfo,
       final Optional<Map<String, String>> mapPreSdk16Opt) {
     final Map<String, String> map = mapPreSdk16Opt.isPresent() ? mapPreSdk16Opt.get()
-        : docTypeInfo.getAdditionalNamespaceUriByPrefix();
+        : docTypeInfo.buildAdditionalNamespaceUriByPrefix();
 
     // Also allow reading XSD files using the same xpath instance.
     map.put("xsd", "http://www.w3.org/2001/XMLSchema");
@@ -700,7 +696,7 @@ public class PhysicalModel {
       xpathInst.setNamespaceContext(namespaceCtx);
       return xpathInst;
 
-    } catch (XPathFactoryConfigurationException ex) {
+    } catch (final XPathFactoryConfigurationException ex) {
       throw new RuntimeException(ex);
     }
   }
@@ -748,7 +744,7 @@ public class PhysicalModel {
         stacked--;
         Validate.isTrue(stacked >= 0, "stacked is < 0 for %s", xpath);
       }
-      sb.append(ch == '/' && stacked > 0 ? XPATH_REPLACEMENT : ch);
+      sb.append(ch == '/' && stacked > 0 ? XPATH_TEMP_REPLACEMENT : ch);
     }
     return sb.toString().split("/");
   }
@@ -800,12 +796,12 @@ public class PhysicalModel {
       tagOrAttr = tagOrAttr.substring(0, tagOrAttr.indexOf('['));
     }
 
-    if (tagOrAttr.contains(XPATH_REPLACEMENT)) {
-      tagOrAttr = tagOrAttr.substring(0, tagOrAttr.indexOf(XPATH_REPLACEMENT));
+    if (tagOrAttr.contains(XPATH_TEMP_REPLACEMENT)) {
+      tagOrAttr = tagOrAttr.substring(0, tagOrAttr.indexOf(XPATH_TEMP_REPLACEMENT));
     }
 
     // For the xpath expression keep the original param, only do the replacement.
-    final String xpathExpr = partParam.replaceAll(XPATH_REPLACEMENT, "/");
+    final String xpathExpr = partParam.replaceAll(XPATH_TEMP_REPLACEMENT, "/");
 
     Validate.notBlank(xpathExpr, "xpathExpr is blank for tag=%s, partParam=%s", tagOrAttr,
         partParam);
