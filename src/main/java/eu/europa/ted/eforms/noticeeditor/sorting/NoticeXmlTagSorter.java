@@ -136,7 +136,7 @@ public class NoticeXmlTagSorter {
 
       // Collect tags in order.
       final Node xsdSequence = XmlUtils.getDirectChild(xsdComplexType, XSD_SEQUENCE);
-      final List<String> rootTagOrder = extractSequenceElemOrder((Element) xsdSequence);
+      final List<String> rootTagOrder = extractSequenceElemOrder((Element) xsdSequence, xpathInst);
 
       final Map<String, List<String>> elemOrderByXsdElemType = new HashMap<>(128);
       elemOrderByXsdElemType.put(xsdElemType, rootTagOrder);
@@ -234,34 +234,13 @@ public class NoticeXmlTagSorter {
             String.format("%s[@name='%s']/%s", XSD_COMPLEX_TYPE, xsdElemType, XSD_SEQUENCE),
             xsdElemType);
 
-        // TODO tttt handle nested sequences:
-        //
-        // <xsd:complexType name="OrganizationType">
-        // <xsd:sequence>
-        // --<xsd:choice minOccurs="0" maxOccurs="1">
-        // ----<xsd:sequence>
-        // ------<xsd:element ref="efbc:GroupLeadIndicator" minOccurs="0" maxOccurs="1"/>
-        // ------<xsd:element ref="efbc:AcquiringCPBIndicator" minOccurs="0" maxOccurs="1"/>
-        // ------<xsd:element ref="efbc:AwardingCPBIndicator" minOccurs="0" maxOccurs="1"/>
-        // ----</xsd:sequence>
-        // ----<xsd:sequence>
-        // ------<xsd:element ref="efbc:ListedOnRegulatedMarketIndicator" minOccurs="0"
-        // maxOccurs="1"/>
-        // ------<xsd:element ref="efbc:NaturalPersonIndicator" minOccurs="0" maxOccurs="1"/>
-        // ------<xsd:element ref="efac:UltimateBeneficialOwner" minOccurs="0"
-        // maxOccurs="unbounded"/>
-        // ----</xsd:sequence>
-        // ...
-        // </xsd:sequence>
-        //
-
         // Populate order by type map from sequence.
         final List<String> xmlTagOrder = new ArrayList<>();
         if (xsdSequences.getLength() > 0) {
 
           for (int j = 0; j < xsdSequences.getLength(); j++) {
             final Element xsdSequence = (Element) xsdSequences.item(j);
-            xmlTagOrder.addAll(extractSequenceElemOrder(xsdSequence));
+            xmlTagOrder.addAll(extractSequenceElemOrder(xsdSequence, xpathInst));
           }
 
           if (!xmlTagOrder.isEmpty()) {
@@ -282,14 +261,54 @@ public class NoticeXmlTagSorter {
      * @param xsdSequence The XSD sequence element
      * @return The list of the XSD elements ref found in the XSD sequence
      */
-    private static List<String> extractSequenceElemOrder(final Element xsdSequence) {
-      final List<Element> seqChildElements = XmlUtils.getDirectChildren(xsdSequence, XSD_ELEMENT);
-      final List<String> xmlTagOrder = new ArrayList<>(seqChildElements.size());
-      for (final Element seqElem : seqChildElements) {
+    private static List<String> extractSequenceElemOrder(final Element xsdSequence,
+        final XPath xpathInst) {
+
+      // TODO handle nested sequences:
+      //
+      // <xsd:complexType name="OrganizationType">
+      // <xsd:sequence>
+      // --<xsd:choice minOccurs="0" maxOccurs="1">
+      // ----<xsd:sequence>
+      // ------<xsd:element ref="efbc:GroupLeadIndicator" minOccurs="0" maxOccurs="1"/>
+      // ------<xsd:element ref="efbc:AcquiringCPBIndicator" minOccurs="0" maxOccurs="1"/>
+      // ------<xsd:element ref="efbc:AwardingCPBIndicator" minOccurs="0" maxOccurs="1"/>
+      // ----</xsd:sequence>
+      // ----<xsd:sequence>
+      // ------<xsd:element ref="efbc:ListedOnRegulatedMarketIndicator" minOccurs="0"
+      // maxOccurs="1"/>
+      // ------<xsd:element ref="efbc:NaturalPersonIndicator" minOccurs="0" maxOccurs="1"/>
+      // ------<xsd:element ref="efac:UltimateBeneficialOwner" minOccurs="0"
+      // maxOccurs="unbounded"/>
+      // ----</xsd:sequence>
+      // ...
+      // </xsd:sequence>
+      //
+      // TODO For the nesting maybe use xpath instead of the direct children.
+      // final List<Element> seqChildElements = XmlUtils.getDirectChildren(xsdSequence,
+      // XSD_ELEMENT);
+
+      // The expression is good enough to work with the current state of the XSDs.
+      // If the expression should evolve we could use the SDK version the code logic.
+      final String xpathExpr = String.format(".//%s", XSD_ELEMENT);
+      final NodeList seqElements = PhysicalModel.evaluateXpath(xpathInst, xsdSequence, xpathExpr,
+          "Looking for " + XSD_ELEMENT);
+
+      final List<String> xmlTagOrder = new ArrayList<>(seqElements.getLength());
+      for (int j = 0; j < seqElements.getLength(); j++) {
+        final Element seqElem = (Element) seqElements.item(j);
         // Get the reference.
         // Example: <xsd:element ref="ext:UBLExtensions" .../>
-        xmlTagOrder.add(XmlUtils.getAttrText(seqElem, "ref"));
+        final String ref = XmlUtils.getAttrText(seqElem, "ref");
+        Validate.notBlank(ref, "ref is blank");
+        if (!xmlTagOrder.contains(ref)) {
+          xmlTagOrder.add(ref);
+        } else {
+          // There is a duplicate which in terms of order is problematic.
+          throw new RuntimeException(String.format("Already contains order ref=%s", ref));
+        }
       }
+      Validate.notEmpty(xmlTagOrder, "xmlTagOrder is empty");
       return xmlTagOrder;
     }
 
