@@ -3,7 +3,7 @@ package eu.europa.ted.eforms.noticeeditor.sorting;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -129,19 +129,26 @@ public class NoticeXmlTagSorter {
       // type="BusinessRegistrationInformationNoticeType"/>
       //
       final Element xsdElem = XmlUtils.getDirectChild(xsdRootElem, XSD_ELEMENT);
+      final String xsdElemName = XmlUtils.getAttrText(xsdElem, "name");
       final String xsdElemType = XmlUtils.getAttrText(xsdElem, "type");
       final Element xsdComplexType = XmlUtils.getDirectChild(xsdRootElem, XSD_COMPLEX_TYPE);
       final String complexType = XmlUtils.getAttrText(xsdComplexType, "name");
       Validate.isTrue(xsdElemType.equals(complexType));
 
-      // Collect tags in order.
+      // Collect root tags in order.
       final Node xsdSequence = XmlUtils.getDirectChild(xsdComplexType, XSD_SEQUENCE);
       final List<String> rootTagOrder = extractSequenceElemOrder((Element) xsdSequence, xpathInst);
 
-      final Map<String, List<String>> elemOrderByXsdElemType = new HashMap<>(128);
+      // The used map does not need to be a LinkedHashMap but it helps to see in which order the
+      // entries have been added during when debugging (root first, ...).
+      final Map<String, List<String>> elemOrderByXsdElemType = new LinkedHashMap<>(128);
+      final Map<String, String> xsdElemTypeByXsdElemName = new LinkedHashMap<>(256);
+
+      xsdElemTypeByXsdElemName.put(xsdElemName, xsdElemType);
       elemOrderByXsdElemType.put(xsdElemType, rootTagOrder);
 
-      sortChildTagsRec(elemOrderByXsdElemType, xmlRoot, rootTagOrder);
+      // Recursion on child elements.
+      sortChildTagsRec(elemOrderByXsdElemType, xsdElemTypeByXsdElemName, xmlRoot);
       logger.info("elemOrderByXsdElemType size={}", elemOrderByXsdElemType.size());
       logger.info("elemOrderByXsdElemType keys={}", elemOrderByXsdElemType.keySet());
 
@@ -153,9 +160,16 @@ public class NoticeXmlTagSorter {
     }
 
     private void sortChildTagsRec(final Map<String, List<String>> elemOrderByXsdElemType,
-        final Element noticeElem, final List<String> tagOrder) throws SAXException, IOException {
+        final Map<String, String> xsdElemTypeByXsdElemName, final Element noticeElem)
+        throws SAXException, IOException {
 
-      logger.info("sortChildTagsRec: XML tagName={}", noticeElem.getTagName());
+      final String xsdElemType = xsdElemTypeByXsdElemName.get(noticeElem.getTagName());
+      Validate.notNull(xsdElemType, "XSD element type is null for key %s", noticeElem.getTagName());
+
+      final List<String> tagOrder = elemOrderByXsdElemType.get(xsdElemType);
+      if (tagOrder == null) {
+        return; // It can be null, there is nothing to sort in that case.
+      }
 
       // Go through tags in order.
       for (final String tagName : tagOrder) {
@@ -165,6 +179,7 @@ public class NoticeXmlTagSorter {
         final String idForError = tagName;
         final NodeList elemsFoundByTag =
             PhysicalModel.evaluateXpath(xpathInst, noticeElem, xpathExpr, idForError);
+        System.out.println("  " + tagName);
 
         // Modify physical model: sort, reorder XML elements.
         for (int i = 0; i < elemsFoundByTag.getLength(); i++) {
@@ -176,14 +191,19 @@ public class NoticeXmlTagSorter {
         // Continue recursively on the child elements of the notice.
         for (int i = 0; i < elemsFoundByTag.getLength(); i++) {
           final Element childElem = (Element) elemsFoundByTag.item(i);
-          parseSequences(childElem, elemOrderByXsdElemType);
-          sortChildTagsRec(elemOrderByXsdElemType, childElem, tagOrder);
+          parseXsdSequences(elemOrderByXsdElemType, xsdElemTypeByXsdElemName, childElem);
+
+          logger.info("sortChildTagsRec: XML tagName={}", childElem.getTagName());
+          System.out.println("xsdElemToXsdElemType=" + xsdElemTypeByXsdElemName);
+
+          sortChildTagsRec(elemOrderByXsdElemType, xsdElemTypeByXsdElemName, childElem);
         }
       }
     }
 
-    private final void parseSequences(final Element noticeElem,
-        final Map<String, List<String>> elemOrderByXsdElemType) throws SAXException, IOException {
+    private final void parseXsdSequences(final Map<String, List<String>> elemOrderByXsdElemType,
+        final Map<String, String> xsdElemTypeByXsdElemName, final Element noticeElem)
+        throws SAXException, IOException {
 
       final String prefixedTagName = noticeElem.getNodeName();
       final int indexOfColon = prefixedTagName.indexOf(':');
@@ -193,7 +213,9 @@ public class NoticeXmlTagSorter {
 
       // efac:BusinessPartyGroup -> efx
       final String prefix = prefixedTagName.substring(0, indexOfColon);
-      final Element xsdRoot = getXsdRootByPrefix(prefix);
+      System.out.println("prefix=" + prefix);
+
+      final Element xsdRoot = loadXsdRootByPrefix(prefix);
 
       // efac:BusinessPartyGroup -> BusinessPartyGroup
       final String tagName = prefixedTagName.substring(indexOfColon + 1);
@@ -203,10 +225,11 @@ public class NoticeXmlTagSorter {
       // <xsd:element name="BusinessPartyGroup" type="BusinessPartyGroupType"/>
       //
       final NodeList elementsFoundByXpath = PhysicalModel.evaluateXpath(xpathInst, xsdRoot,
-          String.format("xsd:element[@name='%s']", tagName), tagName);
+          String.format("%s[@name='%s']", XSD_ELEMENT, tagName), tagName);
 
       for (int i = 0; i < elementsFoundByXpath.getLength(); i++) {
         final Element xsdElem = (Element) elementsFoundByXpath.item(i);
+
 
         //
         // NOTE: Multiple tag names can point to the same type:
@@ -215,6 +238,11 @@ public class NoticeXmlTagSorter {
         // Thus the key used for caching is the type, here the key would be "DocumentReferenceType"
         //
         final String xsdElemType = XmlUtils.getAttrText(xsdElem, "type");
+
+        // Because it can be pointed to by several names, always put the entry into the map!
+        final String xsdElemName = XmlUtils.getAttrText(xsdElem, "name");
+        xsdElemTypeByXsdElemName.put(prefix + ":" + xsdElemName, xsdElemType);
+
         if (elemOrderByXsdElemType.containsKey(xsdElemType)) {
           return; // We already have this type cached.
         }
@@ -264,29 +292,16 @@ public class NoticeXmlTagSorter {
     private static List<String> extractSequenceElemOrder(final Element xsdSequence,
         final XPath xpathInst) {
 
-      // TODO handle nested sequences:
+      //
+      // There are nested sequences:
       //
       // <xsd:complexType name="OrganizationType">
       // <xsd:sequence>
-      // --<xsd:choice minOccurs="0" maxOccurs="1">
-      // ----<xsd:sequence>
-      // ------<xsd:element ref="efbc:GroupLeadIndicator" minOccurs="0" maxOccurs="1"/>
-      // ------<xsd:element ref="efbc:AcquiringCPBIndicator" minOccurs="0" maxOccurs="1"/>
-      // ------<xsd:element ref="efbc:AwardingCPBIndicator" minOccurs="0" maxOccurs="1"/>
-      // ----</xsd:sequence>
-      // ----<xsd:sequence>
-      // ------<xsd:element ref="efbc:ListedOnRegulatedMarketIndicator" minOccurs="0"
-      // maxOccurs="1"/>
-      // ------<xsd:element ref="efbc:NaturalPersonIndicator" minOccurs="0" maxOccurs="1"/>
-      // ------<xsd:element ref="efac:UltimateBeneficialOwner" minOccurs="0"
-      // maxOccurs="unbounded"/>
-      // ----</xsd:sequence>
+      // <xsd:choice minOccurs="0" maxOccurs="1">
+      // <xsd:sequence>
       // ...
       // </xsd:sequence>
       //
-      // TODO For the nesting maybe use xpath instead of the direct children.
-      // final List<Element> seqChildElements = XmlUtils.getDirectChildren(xsdSequence,
-      // XSD_ELEMENT);
 
       // The expression is good enough to work with the current state of the XSDs.
       // If the expression should evolve we could use the SDK version the code logic.
@@ -316,7 +331,7 @@ public class NoticeXmlTagSorter {
      * @param namespacePrefix A namespace prefix like cac, cbc, ...
      * @return The XML root element of the XSD for the passed prefix
      */
-    private Element getXsdRootByPrefix(final String namespacePrefix)
+    private Element loadXsdRootByPrefix(final String namespacePrefix)
         throws SAXException, IOException {
       // Find the SDK metadata by prefix.
       final DocumentTypeNamespace dtn = xsdMetaByPrefix.get(namespacePrefix);
@@ -327,6 +342,7 @@ public class NoticeXmlTagSorter {
 
       // Parse the XSD XML and return the root element of the XML.
       final Path xsdPath = sdkRootFolder.resolve(Path.of(schemaLocation));
+      System.out.println("xsdPath=" + xsdPath);
       final Document xsdDoc = buildDoc(xsdPath);
       return xsdDoc.getDocumentElement();
     }

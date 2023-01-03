@@ -41,14 +41,17 @@ public class NoticeXmlTagSorterTest {
     //
     // cac:AdditionalDocumentReference is of type DocumentReferenceType
     // TODO there is a problem with the order inside of "cac:AdditionalDocumentReference"
+    //
     // <xsd:complexType name="DocumentReferenceType">
     // <xsd:sequence>
     // <xsd:element ref="ext:UBLExtensions" minOccurs="0" maxOccurs="1"/>
     // <xsd:element ref="cbc:ID" minOccurs="1" maxOccurs="1"/>
     // <xsd:element ref="cbc:CopyIndicator" minOccurs="0" maxOccurs="1"/>
     // <xsd:element ref="cbc:UUID" minOccurs="0" maxOccurs="1"/>
+    // ...
     //
 
+    //
     // <cac:AdditionalDocumentReference>
     // <cbc:ReferencedDocumentInternalAddress>Registration of the "ACME Solution" European
     // Company.</cbc:ReferencedDocumentInternalAddress>
@@ -61,12 +64,15 @@ public class NoticeXmlTagSorterTest {
     // <cbc:ID>DUMMY</cbc:ID>
     // <cbc:IssueDate>2020-11-16+01:00</cbc:IssueDate>
     // </cac:AdditionalDocumentReference>
+    //
 
-    // COMPARE, diff notice xmls.
-    System.out.println("");
-    // System.out.println("DIFFERENCE");
-    // System.out.println(StringUtils.difference(textUnsortedAfterSort, textPreSorted));
-    // System.out.println(StringUtils.difference(textPreSorted, textUnsortedAfterSort));
-    // assertEquals(textPreSorted, textUnsortedAfterSort);
+    if (!textPreSorted.equals(textUnsortedAfterSort)) {
+      // FOR CONVENIENCE: show diff here
+      System.out.println("");
+      System.out.println("DIFFERENCE: ");
+      System.out.println(StringUtils.difference(textUnsortedAfterSort, textPreSorted));
+      System.out.println(StringUtils.difference(textPreSorted, textUnsortedAfterSort));
+    }
+    assertEquals(textPreSorted, textUnsortedAfterSort);
   }
 }
