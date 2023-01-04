@@ -536,7 +536,8 @@ public class SdkService {
   }
 
   /**
-   * Serves basic information like fields.json and codelists.json data required to build the form.
+   * Serves basic information about the SDK like fields.json and codelists.json data required to
+   * build the form in the UI.
    *
    * @param sdkVersion The version for selecting the correct SDK.
    */
@@ -552,7 +553,11 @@ public class SdkService {
     basicInfoJson.set("fieldsJson", fieldsJson);
     basicInfoJson.set("codelistsJson", codelistsJson);
 
-    serveSdkJsonString(response, basicInfoJson.toPrettyString(), "basic.json");
+    // Serve a fictional SDK json file that contains metadata from multiple files.
+    // This avoid doing multiple calls to separate SDK files.
+    final String filenameForDownload = "basic.json";
+
+    serveSdkJsonString(response, basicInfoJson.toPrettyString(), filenameForDownload);
   }
 
   JsonNode readSdkCodelistsJson(final SdkVersion sdkVersion) {
@@ -565,5 +570,9 @@ public class SdkService {
 
   JsonNode readSdkFieldsJson(final SdkVersion sdkVersion) {
     return readSdkJsonFile(sdkVersion, SdkResource.FIELDS, SdkService.SDK_FIELDS_JSON);
+  }
+
+  public Path getSdkRootFolder() {
+    return Path.of(this.eformsSdkPath);
   }
 }

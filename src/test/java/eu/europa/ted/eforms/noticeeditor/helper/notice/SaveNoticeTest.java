@@ -3,15 +3,18 @@ package eu.europa.ted.eforms.noticeeditor.helper.notice;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.commons.lang3.StringUtils;
+import org.xml.sax.SAXException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
+import eu.europa.ted.eforms.sdk.SdkConstants;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
@@ -152,7 +155,7 @@ public abstract class SaveNoticeTest {
 
   protected PhysicalModel setupPhysicalModel(final ObjectMapper mapper, final String noticeSubType,
       final String documentType, final VisualModel visModel, final SdkVersion sdkVersion)
-      throws ParserConfigurationException, IOException {
+      throws ParserConfigurationException, IOException, SAXException {
 
     //
     // NODES like in fields.json
@@ -197,8 +200,10 @@ public abstract class SaveNoticeTest {
     //
     final boolean debug = true; // Adds field ids in the XML.
     final boolean buildFields = true;
+
+    final Path sdkRootFolder = SdkConstants.DEFAULT_SDK_ROOT;
     final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptualModel,
-        fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields);
+        fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields, sdkRootFolder);
 
     return physicalModel;
   }

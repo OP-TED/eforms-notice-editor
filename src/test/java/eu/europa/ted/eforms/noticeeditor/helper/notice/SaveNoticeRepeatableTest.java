@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.Map;
 import javax.xml.parsers.ParserConfigurationException;
 import org.junit.jupiter.api.Test;
+import org.xml.sax.SAXException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -170,7 +171,7 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
   }
 
   @Test
-  public final void test() throws ParserConfigurationException, IOException {
+  public final void test() throws ParserConfigurationException, IOException, SAXException {
     final ObjectMapper mapper = new ObjectMapper();
     // A dummy 1.5.0, not real 1.5.0
     final SdkVersion sdkVersion = new SdkVersion("1.5.0");

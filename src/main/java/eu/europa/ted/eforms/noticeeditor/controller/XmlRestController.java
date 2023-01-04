@@ -1,9 +1,7 @@
 package eu.europa.ted.eforms.noticeeditor.controller;
 
-import java.io.IOException;
 import java.util.Optional;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.parsers.ParserConfigurationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,14 +23,11 @@ public class XmlRestController implements AsyncConfigurer {
 
   /**
    * Save: Takes notice as JSON and builds notice XML. The SDK version is in the notice metadata.
-   *
-   * @throws IOException If there is a problem reading the notice JSON
    */
   @RequestMapping(value = "/notice/save", method = RequestMethod.POST,
       produces = SdkService.MIME_TYPE_XML, consumes = SdkService.MIME_TYPE_JSON)
   public void saveNotice(final HttpServletResponse response, final @RequestBody String noticeJson)
-      throws ParserConfigurationException, IOException {
+      throws Exception {
     xmlService.saveNoticeAsXml(Optional.of(response), noticeJson);
   }
-
 }

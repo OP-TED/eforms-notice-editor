@@ -3,7 +3,12 @@ package eu.europa.ted.eforms.noticeeditor.util;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -12,6 +17,12 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 public class XmlUtils {
+
+  public static final Logger logger = LoggerFactory.getLogger(XmlUtils.class);
+
+  private XmlUtils() {
+    throw new AssertionError("Utility class.");
+  }
 
   /**
    * @return A string based on the given id, that is safe to use in XML for the xsd:ID type. As this
@@ -105,6 +116,34 @@ public class XmlUtils {
       }
     }
     return elements;
+  }
+
+  /**
+   * Evaluates xpath and returns a nodelist. Note: this works when the required notice values are
+   * present as some xpath may rely on their presence (codes, indicators, ...).
+   *
+   * @param xpathInst The XPath instance (reusable)
+   * @param contextElem The XML context element in which the xpath is evaluated
+   * @param xpathExpr The XPath expression relative to the passed context
+   * @param idForError An identifier which is shown in case of errors
+   * @return The result of evaluating the XPath expression as a NodeList
+   */
+  public static NodeList evaluateXpath(final XPath xpathInst, final Object contextElem,
+      final String xpathExpr, String idForError) {
+    Validate.notBlank(xpathExpr, "xpathExpr is blank for %s, %s", contextElem, idForError);
+    try {
+      // A potential optimization would be to reuse some of the compiled xpath for some expressions.
+      // final NodeList nodeList =
+      // (NodeList) xPathInst.compile(xpathExpr).evaluate(contextElem, XPathConstants.NODESET);
+
+      final NodeList nodeList =
+          (NodeList) xpathInst.evaluate(xpathExpr, contextElem, XPathConstants.NODESET);
+
+      return nodeList;
+    } catch (XPathExpressionException e) {
+      logger.error("Problem with xpathExpr={}, %s", xpathExpr, idForError);
+      throw new RuntimeException(e);
+    }
   }
 
 }

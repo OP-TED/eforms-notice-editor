@@ -34,6 +34,11 @@ public class ConceptualModel {
   public static final String FIELD_ID_NOTICE_SUB_TYPE = "OPP-070-notice";
 
   /**
+   * Sector of activity.
+   */
+  public static final String OPP_105_BUSINESS = "OPP-105-Business";
+
+  /**
    * The root node of the conceptual model.
    */
   private final ConceptTreeNode treeRootNode;

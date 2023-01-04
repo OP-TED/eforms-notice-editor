@@ -12,6 +12,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
 import eu.europa.ted.eforms.noticeeditor.util.EditorXmlUtils;
+import eu.europa.ted.eforms.noticeeditor.util.XmlUtils;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 public class XmlAndXpathTest {
@@ -50,6 +51,6 @@ public class XmlAndXpathTest {
   }
 
   private static int evalLength(final XPath xPathInst, final Element elem, final String xpathExpr) {
-    return PhysicalModel.evaluateXpath(xPathInst, elem, xpathExpr, elem.getTagName()).getLength();
+    return XmlUtils.evaluateXpath(xPathInst, elem, xpathExpr, elem.getTagName()).getLength();
   }
 }

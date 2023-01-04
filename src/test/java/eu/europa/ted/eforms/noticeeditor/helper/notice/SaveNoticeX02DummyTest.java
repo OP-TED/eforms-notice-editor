@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.Map;
 import javax.xml.parsers.ParserConfigurationException;
 import org.junit.jupiter.api.Test;
+import org.xml.sax.SAXException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -26,7 +27,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
   private static final String ND_BUSINESS_PARTY = "ND-BusinessParty";
 
   private static final String OPP_100_BUSINESS = "OPP-100-Business";
-  private static final String OPP_105_BUSINESS = "OPP-105-Business";
+  private static final String OPP_105_BUSINESS = ConceptualModel.OPP_105_BUSINESS;
   private static final String OPP_113_BUSINESS_EUROPEAN = "OPP-113-Business-European";
 
   private static final String BT_500_BUSINESS = "BT-500-Business";
@@ -273,7 +274,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
    * be used to quickly debug a problem by modification of the dummy data or metadata.
    */
   @Test
-  public void testDummy() throws ParserConfigurationException, IOException {
+  public void testDummy() throws ParserConfigurationException, IOException, SAXException {
     final ObjectMapper mapper = new ObjectMapper();
 
     // A dummy 1.5.0, not real 1.5.0

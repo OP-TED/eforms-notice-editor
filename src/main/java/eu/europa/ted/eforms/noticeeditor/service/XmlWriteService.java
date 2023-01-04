@@ -1,5 +1,7 @@
 package eu.europa.ted.eforms.noticeeditor.service;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -11,12 +13,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
+import org.xml.sax.SAXException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.ConceptualModel;
-import eu.europa.ted.eforms.noticeeditor.helper.notice.DocumentTypeInfo;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.PhysicalModel;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.VisualModel;
@@ -41,8 +41,7 @@ public class XmlWriteService {
    * @param noticeJson The notice as JSON as built by the front-end form.
    */
   public void saveNoticeAsXml(final Optional<HttpServletResponse> responseOpt,
-      final String noticeJson)
-      throws ParserConfigurationException, JsonProcessingException, JsonMappingException {
+      final String noticeJson) throws Exception {
     Validate.notBlank(noticeJson, "noticeJson is blank");
 
     logger.info("Attempting to save notice as XML.");
@@ -62,7 +61,7 @@ public class XmlWriteService {
 
   private void saveXmlSubMethod(final Optional<HttpServletResponse> responseOpt,
       final JsonNode visualRoot, final SdkVersion sdkVersion, final UUID noticeUuid)
-      throws ParserConfigurationException {
+      throws ParserConfigurationException, SAXException, IOException {
     Validate.notNull(visualRoot);
     Validate.notNull(noticeUuid);
 
@@ -87,19 +86,13 @@ public class XmlWriteService {
 
     // Go from visual model to conceptual model.
     final ConceptualModel conceptModel = visualModel.toConceptualModel(fieldsAndNodes);
-    final DocumentTypeInfo docTypeInfo =
-        PhysicalModel.getDocumentTypeInfo(noticeInfoBySubtype, documentInfoByType, conceptModel);
-
-    // Get schema info.
-    // final String sdkXsdFile = docTypeInfo.getSdkXsdPath().substring("schemas/".length());
-    // final Path sdkXsdPath = sdkService.readSdkPath(sdkVersion, SdkResource.SCHEMAS, sdkXsdFile);
-    // final String rootElementTagName = docTypeInfo.getRootElementTagName();
 
     // Build physical model.
     final boolean debug = true;
     final boolean buildFields = true;
+    final Path sdkRootFolder = sdkService.getSdkRootFolder();
     final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptModel,
-        fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields);
+        fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields, sdkRootFolder);
 
     // Transform physical model to XML.
     final String xmlAsText = physicalModel.toXmlText(buildFields);
@@ -111,14 +104,12 @@ public class XmlWriteService {
 
   public static Map<String, JsonNode> parseDocumentTypes(final JsonNode noticeTypesJson) {
     final Map<String, JsonNode> documentInfoByType = new HashMap<>();
-    {
-      final JsonNode documentTypes =
-          noticeTypesJson.get(SdkConstants.NOTICE_TYPES_JSON_DOCUMENT_TYPES_KEY);
-      for (final JsonNode item : documentTypes) {
-        // TODO add document type id to the SDK constants.
-        final String id = JsonUtils.getTextStrict(item, "id");
-        documentInfoByType.put(id, item);
-      }
+    final JsonNode documentTypes =
+        noticeTypesJson.get(SdkConstants.NOTICE_TYPES_JSON_DOCUMENT_TYPES_KEY);
+    for (final JsonNode item : documentTypes) {
+      // TODO add document type id to the SDK constants.
+      final String id = JsonUtils.getTextStrict(item, "id");
+      documentInfoByType.put(id, item);
     }
     return documentInfoByType;
   }
@@ -172,16 +163,21 @@ public class XmlWriteService {
         JsonUtils.getTextStrict(visualRoot, VisualModel.VIS_SDK_VERSION);
     Validate.notBlank(eFormsSdkVersion, "virtual root eFormsSdkVersion is blank");
 
-    final String prefix = SdkConstants.NOTICE_CUSTOMIZATION_ID_VERSION_PREFIX;
-    Validate.isTrue(eFormsSdkVersion.startsWith(prefix),
-        "Expecting sdk version to start with prefix=%s", prefix);
-    final String sdkVersionStr = eFormsSdkVersion.substring(prefix.length());
+    final String sdkVersionStr = parseEformsSdkVersionText(eFormsSdkVersion);
 
-    // If we have "eforms-sdk-1.1.0" we want "1.1.0".
     logger.info("Found SDK version: {}, using {}", eFormsSdkVersion, sdkVersionStr);
 
     // Load fields json depending of the correct SDK version.
     return new SdkVersion(sdkVersionStr);
+  }
+
+  public static String parseEformsSdkVersionText(final String eFormsSdkVersion) {
+    // If we have "eforms-sdk-1.1.0" we want "1.1.0".
+    final String prefix = SdkConstants.NOTICE_CUSTOMIZATION_ID_VERSION_PREFIX;
+    Validate.isTrue(eFormsSdkVersion.startsWith(prefix),
+        "Expecting sdk version to start with prefix=%s", prefix);
+    final String sdkVersionStr = eFormsSdkVersion.substring(prefix.length());
+    return sdkVersionStr;
   }
 
   /**

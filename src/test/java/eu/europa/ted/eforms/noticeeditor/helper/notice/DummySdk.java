@@ -37,16 +37,22 @@ public class DummySdk {
 
   public static Document getDummyX02NoticeNoComments(final DocumentBuilder builder,
       final SdkVersion sdkVersion) throws SAXException, IOException {
-    final Document doc = builder
-        .parse(resolveToFile(sdkVersion, "examples/notices/X02_registration-NO-COMMENTS.xml"));
-    return doc;
+    final File file = resolveToFileX02Reference(sdkVersion);
+    return builder.parse(file);
+  }
+
+  private static File resolveToFileX02Reference(final SdkVersion sdkVersion) {
+    return resolveToFile(sdkVersion, "examples/notices/X02_registration-NO-COMMENTS.xml");
   }
 
   public static Document getDummyX02NoticeUnsorted(final DocumentBuilder builder,
       final SdkVersion sdkVersion) throws SAXException, IOException {
-    final Document doc =
-        builder.parse(resolveToFile(sdkVersion, "examples/notices/X02_registration-UNSORTED.xml"));
-    return doc;
+    final File file = getDummyX02Unsorted(sdkVersion);
+    return builder.parse(file);
+  }
+
+  private static File getDummyX02Unsorted(final SdkVersion sdkVersion) {
+    return resolveToFile(sdkVersion, "examples/notices/X02_registration-UNSORTED.xml");
   }
 
   public static Path buildDummySdkPath(final SdkVersion sdkVersion) {

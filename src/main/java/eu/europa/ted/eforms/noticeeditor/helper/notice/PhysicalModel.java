@@ -6,20 +6,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import javax.xml.namespace.NamespaceContext;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
-import javax.xml.xpath.XPathFactoryConfigurationException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
@@ -28,14 +23,17 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 import com.fasterxml.jackson.databind.JsonNode;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
+import eu.europa.ted.eforms.noticeeditor.sorting.NoticeXmlTagSorter;
 import eu.europa.ted.eforms.noticeeditor.util.EditorXmlUtils;
 import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
+import eu.europa.ted.eforms.noticeeditor.util.XmlUtils;
+import eu.europa.ted.eforms.noticeeditor.util.XpathUtils;
 import eu.europa.ted.eforms.sdk.SdkConstants;
 import eu.europa.ted.eforms.sdk.SdkVersion;
-import net.sf.saxon.lib.NamespaceConstant;
 
 /**
  * The physical model (PM) holds the XML representation. This class also provides static methods to
@@ -48,9 +46,9 @@ import net.sf.saxon.lib.NamespaceConstant;
  */
 public class PhysicalModel {
 
-  private static final String XMLNS = "xmlns";
+  public static final Logger logger = LoggerFactory.getLogger(PhysicalModel.class);
 
-  private static final Logger logger = LoggerFactory.getLogger(PhysicalModel.class);
+  private static final String XMLNS = "xmlns";
 
   /**
    * A special case that we have to solve. HARDCODED. TODO
@@ -93,6 +91,14 @@ public class PhysicalModel {
     this.xpathInst = xpathInst;
   }
 
+  public Document getDomDocument() {
+    return domDocument;
+  }
+
+  public FieldsAndNodes getFieldsAndNodes() {
+    return fieldsAndNodes;
+  }
+
   /**
    * This is provided for convenience for the unit tests.
    *
@@ -107,15 +113,7 @@ public class PhysicalModel {
    * @return The result of evaluating the XPath expression as a NodeList
    */
   NodeList evaluateXpathForTests(final String xpathExpr, String idForError) {
-    return evaluateXpath(this.xpathInst, this.getDomDocument(), xpathExpr, idForError);
-  }
-
-  public Document getDomDocument() {
-    return domDocument;
-  }
-
-  public FieldsAndNodes getFieldsAndNodes() {
-    return fieldsAndNodes;
+    return XmlUtils.evaluateXpath(this.xpathInst, this.getDomDocument(), xpathExpr, idForError);
   }
 
   /**
@@ -144,7 +142,8 @@ public class PhysicalModel {
   public static PhysicalModel buildPhysicalModel(final ConceptualModel conceptModel,
       final FieldsAndNodes fieldsAndNodes, final Map<String, JsonNode> noticeInfoBySubtype,
       final Map<String, JsonNode> documentInfoByType, final boolean debug,
-      final boolean buildFields) throws ParserConfigurationException {
+      final boolean buildFields, final Path sdkRootFolder)
+      throws ParserConfigurationException, SAXException, IOException {
     logger.info("Attempting to build physical model.");
 
     final DocumentBuilder safeDocBuilder =
@@ -196,7 +195,7 @@ public class PhysicalModel {
         buildFields, depth, onlyIfPriority, xpathInst);
 
     // Reorder the physical model.
-    reorderPhysicalModel(safeDocBuilder, xmlDocRoot, xpathInst, docTypeInfo);
+    reorderPhysicalModel(safeDocBuilder, xmlDocRoot, xpathInst, docTypeInfo, sdkRootFolder);
 
     return new PhysicalModel(xmlDoc, xpathInst, fieldsAndNodes);
   }
@@ -326,11 +325,10 @@ public class PhysicalModel {
         // TODO this may be fixed by TEDEFO-1466
         continue; // Skip this tag.
       }
-      foundElements = evaluateXpath(xpathInst, previousElem, xpathExpr, nodeId);
+      foundElements = XmlUtils.evaluateXpath(xpathInst, previousElem, xpathExpr, nodeId);
 
       if (foundElements.getLength() > 0) {
         assert foundElements.getLength() == 1;
-
         // TODO investigate what should be done if more than one is present!?
 
         // Node is a w3c dom node, nothing to do with the SDK node.
@@ -457,7 +455,8 @@ public class PhysicalModel {
       final boolean isAttribute = tagOrAttr.startsWith("@") && tagOrAttr.length() > 1;
 
       final Optional<NodeList> foundElementsOpt = !isAttribute && xpathExprOpt.isPresent()
-          ? Optional.of(evaluateXpath(xpathInst, previousElem, xpathExprOpt.get(), fieldId))
+          ? Optional
+              .of(XmlUtils.evaluateXpath(xpathInst, previousElem, xpathExprOpt.get(), fieldId))
           : Optional.empty();
 
       if (foundElementsOpt.isPresent() && foundElementsOpt.get().getLength() > 0) {
@@ -572,9 +571,9 @@ public class PhysicalModel {
     if (fieldType == FIELD_TYPE_CODE) {
       // Convention: in the XML the codelist is set in the listName attribute.
       String listName = JsonUtils.getTextStrict(fieldMeta, FIELD_CODE_LIST_ID);
-      if ("OPP-105-Business".equals(fieldId)) {
-        // TODO sector, temporary fix here, this information should be provided in the SDK.
-        // Maybe via a special key/value.
+      if (ConceptualModel.OPP_105_BUSINESS.equals(fieldId)) {
+        // TODO sector, temporary hardcoded fix here, this information should be provided in the
+        // SDK. Maybe via a special key/value.
         listName = "sector";
       }
       fieldElem.setAttribute(XML_ATTR_LIST_NAME, listName);
@@ -607,9 +606,11 @@ public class PhysicalModel {
    * as a side effect.
    */
   private static void reorderPhysicalModel(final DocumentBuilder safeDocBuilder,
-      final Element rootElem, final XPath xpathInst, final DocumentTypeInfo docTypeInfo) {
-    // TODO use it once it works
-    // XmlTagSorting.sortXmlTags(safeDocBuilder, rootElem, docTypeInfo, null);
+      final Element noticeRootElem, final XPath xpathInst, final DocumentTypeInfo docTypeInfo,
+      final Path sdkRootFolder) throws SAXException, IOException {
+    final NoticeXmlTagSorter sorter =
+        new NoticeXmlTagSorter(safeDocBuilder, xpathInst, docTypeInfo, sdkRootFolder);
+    sorter.sortXml(noticeRootElem);
   }
 
   /**
@@ -631,17 +632,16 @@ public class PhysicalModel {
     //
     rootElement.setAttribute(XMLNS, namespaceUriRoot);
 
-    final String xmlnsUri = "http://www.w3.org/2000/xmlns/";
-
     final Map<String, String> map;
     if (sdkVersion.compareTo(new SdkVersion("1.6")) >= 0) {
       // Since SDK 1.6.0 the SDK provides this information (TEDEFO-1744).
+      // If these namespaces evolve they could start to differ by SDK version.
+      // This is why they have been moved to the SDK metadata.
       map = docTypeInfo.buildAdditionalNamespaceUriByPrefix();
     } else {
       // Pre SDK 1.6.0 logic:
-      // If these namespaces evolve they could start to differ by SDK version.
       map = new LinkedHashMap<>();
-      map.put("xsi", "http://www.w3.org/2001/XMLSchema-instance");
+      map.put("xsi", XMLConstants.W3C_XML_SCHEMA_NS_URI);
       map.put("cbc", "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2");
       map.put("cac", "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2");
       map.put("efext", "http://data.europa.eu/p27/eforms-ubl-extensions/1");
@@ -649,84 +649,12 @@ public class PhysicalModel {
       map.put("efbc", "http://data.europa.eu/p27/eforms-ubl-extension-basic-components/1");
       map.put("ext", "urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2");
     }
+
+    final String xmlnsUri = XMLConstants.XMLNS_ATTRIBUTE_NS_URI;
     for (final Entry<String, String> entry : map.entrySet()) {
       rootElement.setAttributeNS(xmlnsUri, XMLNS + ":" + entry.getKey(), entry.getValue());
     }
-    return setupXpathInst(docTypeInfo, Optional.of(map));
-  }
-
-  public static XPath setupXpathInst(final DocumentTypeInfo docTypeInfo,
-      final Optional<Map<String, String>> mapPreSdk16Opt) {
-    final Map<String, String> map = mapPreSdk16Opt.isPresent() ? mapPreSdk16Opt.get()
-        : docTypeInfo.buildAdditionalNamespaceUriByPrefix();
-
-    // Also allow reading XSD files using the same xpath instance.
-    map.put("xsd", "http://www.w3.org/2001/XMLSchema");
-
-    //
-    // NAMESPACES FOR XPATH.
-    //
-    try {
-      // Why Saxon HE lib: namespaces were not working with the JDK (Java 15).
-      final String objectModelSaxon = NamespaceConstant.OBJECT_MODEL_SAXON;
-      System.setProperty("javax.xml.xpath.XPathFactory:" + objectModelSaxon,
-          "net.sf.saxon.xpath.XPathFactoryImpl");
-      final XPath xpathInst = XPathFactory.newInstance(objectModelSaxon).newXPath();
-
-      // Custom namespace context.
-      // https://stackoverflow.com/questions/13702637/xpath-with-namespace-in-java
-      final NamespaceContext namespaceCtx = new NamespaceContext() {
-        @Override
-        public String getNamespaceURI(final String prefix) {
-          final String namespaceUri = map.get(prefix);
-          Validate.notBlank(namespaceUri, "Namespace is blank for prefix=%s", prefix);
-          return namespaceUri;
-        }
-
-        @Override
-        public String getPrefix(final String uri) {
-          return null;
-        }
-
-        @Override
-        public Iterator<String> getPrefixes(final String namespaceURI) {
-          return null;
-        }
-      };
-      xpathInst.setNamespaceContext(namespaceCtx);
-      return xpathInst;
-
-    } catch (final XPathFactoryConfigurationException ex) {
-      throw new RuntimeException(ex);
-    }
-  }
-
-  /**
-   * Evaluates xpath and returns a nodelist. Note: this works when the required notice values are
-   * present as some xpath may rely on their presence (codes, indicators, ...).
-   *
-   * @param xpathInst The XPath instance (reusable)
-   * @param contextElem The XML context element in which the xpath is evaluated
-   * @param xpathExpr The XPath expression relative to the passed context
-   * @param idForError An identifier which is shown in case of errors
-   * @return The result of evaluating the XPath expression as a NodeList
-   */
-  public static NodeList evaluateXpath(final XPath xpathInst, final Object contextElem,
-      final String xpathExpr, String idForError) {
-    Validate.notBlank(xpathExpr, "xpathExpr is blank for %s, %s", contextElem, idForError);
-    try {
-      // A potential optimization would be to reuse some of the compiled xpath.
-      // final NodeList nodeList =
-      // (NodeList) xPathInst.compile(xpathExpr).evaluate(contextElem, XPathConstants.NODESET);
-
-      final NodeList nodeList =
-          (NodeList) xpathInst.evaluate(xpathExpr, contextElem, XPathConstants.NODESET);
-
-      return nodeList;
-    } catch (XPathExpressionException e) {
-      logger.error("Problem with xpathExpr={}, %s", xpathExpr, idForError);
-      throw new RuntimeException(e);
-    }
+    return XpathUtils.setupXpathInst(docTypeInfo, Optional.of(map));
   }
 
   /**
@@ -819,7 +747,8 @@ public class PhysicalModel {
     // This removes the xmlns="" that Saxon adds.
     try {
       if (tagName.startsWith("@")) {
-        throw new RuntimeException(String.format("This is an attribute", tagName));
+        throw new RuntimeException(
+            String.format("Expecting a tag but this is an attribute: %s", tagName));
       }
       return doc.createElementNS("", tagName);
     } catch (org.w3c.dom.DOMException ex) {

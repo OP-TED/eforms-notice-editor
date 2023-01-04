@@ -94,7 +94,7 @@ public class DocumentTypeInfo {
   }
 
   /**
-   * Provided for convenience.
+   * Provided for convenience. Relies on the additional namespaces.
    */
   public Map<String, DocumentTypeNamespace> buildAdditionalNamespacesByPrefix() {
     final Map<String, DocumentTypeNamespace> dtnByPrefix = new LinkedHashMap<>();
@@ -105,7 +105,7 @@ public class DocumentTypeInfo {
   }
 
   /**
-   * Provided for convenience.
+   * Provided for convenience. Relies on the additional namespaces.
    */
   public Map<String, String> buildAdditionalNamespaceUriByPrefix() {
     final Map<String, String> dtnByPrefix = new LinkedHashMap<>();
