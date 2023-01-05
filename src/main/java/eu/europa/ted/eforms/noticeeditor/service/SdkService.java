@@ -31,7 +31,6 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -50,6 +49,7 @@ import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.sdk.SdkConstants.SdkResource;
 import eu.europa.ted.eforms.sdk.SdkVersion;
+import eu.europa.ted.eforms.sdk.resource.PathResource;
 import eu.europa.ted.eforms.sdk.resource.SdkResourceLoader;
 
 /**
@@ -365,7 +365,7 @@ public class SdkService {
    * Common SDK folder logic for reading JSON files.
    */
   public void serveSdkJsonFile(final HttpServletResponse response, final SdkVersion sdkVersion,
-      final SdkResource resourceType, final String filenameForDownload) {
+      final PathResource resourceType, final String filenameForDownload) {
     Validate.notNull(sdkVersion, "Undefined SDK version");
     try {
       final Path path = SdkResourceLoader.getResourceAsPath(sdkVersion, resourceType,
@@ -385,7 +385,7 @@ public class SdkService {
   /**
    * Reads SDK JSON file into a JsonNode to be used in the Java code on the server-side.
    */
-  public JsonNode readSdkJsonFile(final SdkVersion sdkVersion, final SdkResource resourceType,
+  public JsonNode readSdkJsonFile(final SdkVersion sdkVersion, final PathResource resourceType,
       final String filenameForDownload) {
     Validate.notNull(sdkVersion, "Undefined SDK version");
     try {
@@ -403,7 +403,7 @@ public class SdkService {
   /**
    * Sdk resouce as a Path.
    */
-  public Path readSdkPath(final SdkVersion sdkVersion, final SdkResource resourceType,
+  public Path readSdkPath(final SdkVersion sdkVersion, final PathResource resourceType,
       final String filenameForDownload) {
     Validate.notNull(sdkVersion, "SDK version is null");
     // For the moment the way the folders work is that the folder "1.1.2" would be in folder "1.1",
@@ -495,7 +495,7 @@ public class SdkService {
   public static void serveTranslations(final HttpServletResponse response,
       final SdkVersion sdkVersion, final Path eformsSdkDir, final String langCode,
       final String filenameForDownload)
-      throws ParserConfigurationException, SAXException, IOException, JsonProcessingException {
+      throws ParserConfigurationException, SAXException, IOException {
 
     final Map<String, String> labelById = new LinkedHashMap<>(1024);
 

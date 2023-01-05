@@ -156,28 +156,27 @@ public class XmlWriteService {
     // Example: the SDK value looks like "eforms-sdk-1.1.0".
     // final String sdkVersionFieldId = ConceptualModel.FIELD_ID_SDK_VERSION;
     // final JsonNode visualField = visualRoot.get(sdkVersionFieldId);
-    // final String eFormsSdkVersion = getTextStrict(visualField, "value");
+    // final String eformsSdkVersion = getTextStrict(visualField, "value");
 
     // Use the shortcut we put at the virtual root top level:
-    final String eFormsSdkVersion =
+    final String eformsSdkVersion =
         JsonUtils.getTextStrict(visualRoot, VisualModel.VIS_SDK_VERSION);
-    Validate.notBlank(eFormsSdkVersion, "virtual root eFormsSdkVersion is blank");
+    Validate.notBlank(eformsSdkVersion, "virtual root eFormsSdkVersion is blank");
 
-    final String sdkVersionStr = parseEformsSdkVersionText(eFormsSdkVersion);
+    final String sdkVersionStr = parseEformsSdkVersionText(eformsSdkVersion);
 
-    logger.info("Found SDK version: {}, using {}", eFormsSdkVersion, sdkVersionStr);
+    logger.info("Found SDK version: {}, using {}", eformsSdkVersion, sdkVersionStr);
 
     // Load fields json depending of the correct SDK version.
     return new SdkVersion(sdkVersionStr);
   }
 
-  public static String parseEformsSdkVersionText(final String eFormsSdkVersion) {
+  public static String parseEformsSdkVersionText(final String eformsSdkVersion) {
     // If we have "eforms-sdk-1.1.0" we want "1.1.0".
-    final String prefix = SdkConstants.NOTICE_CUSTOMIZATION_ID_VERSION_PREFIX;
-    Validate.isTrue(eFormsSdkVersion.startsWith(prefix),
-        "Expecting sdk version to start with prefix=%s", prefix);
-    final String sdkVersionStr = eFormsSdkVersion.substring(prefix.length());
-    return sdkVersionStr;
+    final String eformsSdkPrefix = SdkConstants.NOTICE_CUSTOMIZATION_ID_VERSION_PREFIX;
+    Validate.isTrue(eformsSdkVersion.startsWith(eformsSdkPrefix),
+        "Expecting sdk version to start with prefix=%s", eformsSdkPrefix);
+    return eformsSdkVersion.substring(eformsSdkPrefix.length());
   }
 
   /**

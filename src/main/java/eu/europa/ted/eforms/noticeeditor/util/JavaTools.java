@@ -1,6 +1,5 @@
 package eu.europa.ted.eforms.noticeeditor.util;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -41,8 +40,7 @@ public class JavaTools {
    * @param pathToFile the path to the file, note that this does not create the folders, use Files
    *        createDirectories for that.
    */
-  public static Path writeTextFile(final Path pathToFile, final String text)
-      throws IOException, FileNotFoundException {
+  public static Path writeTextFile(final Path pathToFile, final String text) throws IOException {
     // There are so many ways do to this in Java, this probably the best.
     return Files.write(pathToFile, text.getBytes(StandardCharsets.UTF_8));
   }

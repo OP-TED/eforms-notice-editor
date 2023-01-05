@@ -15,6 +15,9 @@ import eu.europa.ted.eforms.noticeeditor.util.EditorXmlUtils;
 import eu.europa.ted.eforms.noticeeditor.util.XmlUtils;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
+/**
+ * Testing the evaluation of XPATH in combination with namespaces.
+ */
 public class XmlAndXpathTest {
   private static final Logger logger = LoggerFactory.getLogger(XmlAndXpathTest.class);
 
@@ -51,6 +54,7 @@ public class XmlAndXpathTest {
   }
 
   private static int evalLength(final XPath xPathInst, final Element elem, final String xpathExpr) {
-    return XmlUtils.evaluateXpath(xPathInst, elem, xpathExpr, elem.getTagName()).getLength();
+    return XmlUtils.evaluateXpathAsNodeList(xPathInst, elem, xpathExpr, elem.getTagName())
+        .getLength();
   }
 }

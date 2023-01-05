@@ -42,11 +42,14 @@ public class EformsNoticeEditorApp implements CommandLineRunner {
   }
 
   @Override
+  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+      value = "EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS",
+      justification = "Checked to Runtime OK here")
   public void run(String... args) throws Exception {
     Validate.notEmpty(eformsSdkDir, "Undefined eForms SDK path");
     Validate.notNull(supportedSdks, "Undefined supported SDK versions");
 
-    for (String sdkVersion : supportedSdks) {
+    for (final String sdkVersion : supportedSdks) {
       try {
         SdkDownloader.downloadSdk(new SdkVersion(sdkVersion), Path.of(eformsSdkDir));
       } catch (IOException e) {

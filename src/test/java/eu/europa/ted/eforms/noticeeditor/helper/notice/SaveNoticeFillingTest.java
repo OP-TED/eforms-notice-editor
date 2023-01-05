@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.Map;
 import javax.xml.parsers.ParserConfigurationException;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,9 +16,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
- * A test with focus on the filling in of non-repeating intermediary conceptual nodes.
+ * A test with focus on the save notice "filling in" of missing non-repeating intermediary
+ * conceptual nodes.
  */
 public class SaveNoticeFillingTest extends SaveNoticeTest {
+
+  private static final Logger logger = LoggerFactory.getLogger(SaveNoticeFillingTest.class);
 
   /**
    * It could be anything for this test dummy, but we will use BRIN.
@@ -152,7 +157,7 @@ public class SaveNoticeFillingTest extends SaveNoticeTest {
         setupPhysicalModel(mapper, noticeSubType, NOTICE_DOCUMENT_TYPE, visualModel, sdkVersion);
 
     final String xml = physicalModel.toXmlText(false); // Not indented to avoid line breaks.
-    System.out.println(physicalModel.toXmlText(true));
+    logger.info(physicalModel.toXmlText(true));
 
     // IDEA it would be more maintainable to use xpath to check the XML instead of pure text.
     // physicalModel.evaluateXpathForTests("/", "test2");

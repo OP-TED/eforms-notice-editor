@@ -35,6 +35,9 @@ public class XpathUtils {
     return setupXpathInst(namespaceUriByPrefix);
   }
 
+  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+      value = "EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS",
+      justification = "Checked to Runtime OK here")
   private static XPath setupXpathInst(final Map<String, String> namespaceUriByPrefix) {
     // Also allow reading XSD files using the same xpath instance.
     namespaceUriByPrefix.put("xsd", XMLConstants.W3C_XML_SCHEMA_NS_URI);

@@ -153,6 +153,14 @@
         <version>${version.ph-commons}</version>
       </dependency>
 
+      <!-- https://phax.github.io/ph-schematron/ -->
+      <!-- It transitively contains ph-commons, SLF4J and Saxon HE. -->
+      <dependency>
+        <groupId>com.helger</groupId>
+        <artifactId>ph-schematron</artifactId>
+        <version>5.0.8</version>
+      </dependency>
+
       <!-- SLF4J -->
       <dependency>
         <groupId>org.slf4j</groupId>

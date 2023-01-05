@@ -18,7 +18,7 @@ import org.w3c.dom.NodeList;
 
 public class XmlUtils {
 
-  public static final Logger logger = LoggerFactory.getLogger(XmlUtils.class);
+  private static final Logger logger = LoggerFactory.getLogger(XmlUtils.class);
 
   private XmlUtils() {
     throw new AssertionError("Utility class.");
@@ -28,9 +28,8 @@ public class XmlUtils {
    * @return A string based on the given id, that is safe to use in XML for the xsd:ID type. As this
    *         type does not allow parentheses or '|', they are replaced by '_'
    */
-  public static String makeIdSafe(String id) {
-    final String safeId = id.replace('(', '_').replace(')', '_').replace('|', '_');
-    return safeId;
+  public static String makeIdSafe(final String id) {
+    return id.replace('(', '_').replace(')', '_').replace('|', '_');
   }
 
   /**
@@ -119,8 +118,7 @@ public class XmlUtils {
   }
 
   /**
-   * Evaluates xpath and returns a nodelist. Note: this works when the required notice values are
-   * present as some xpath may rely on their presence (codes, indicators, ...).
+   * Evaluates xpath and returns a nodelist.
    *
    * @param xpathInst The XPath instance (reusable)
    * @param contextElem The XML context element in which the xpath is evaluated
@@ -128,22 +126,44 @@ public class XmlUtils {
    * @param idForError An identifier which is shown in case of errors
    * @return The result of evaluating the XPath expression as a NodeList
    */
-  public static NodeList evaluateXpath(final XPath xpathInst, final Object contextElem,
-      final String xpathExpr, String idForError) {
+  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+      value = "EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS",
+      justification = "Checked to Runtime OK here")
+  public static NodeList evaluateXpathAsNodeList(final XPath xpathInst, final Object contextElem,
+      final String xpathExpr, final String idForError) {
     Validate.notBlank(xpathExpr, "xpathExpr is blank for %s, %s", contextElem, idForError);
     try {
       // A potential optimization would be to reuse some of the compiled xpath for some expressions.
       // final NodeList nodeList =
       // (NodeList) xPathInst.compile(xpathExpr).evaluate(contextElem, XPathConstants.NODESET);
 
-      final NodeList nodeList =
-          (NodeList) xpathInst.evaluate(xpathExpr, contextElem, XPathConstants.NODESET);
-
-      return nodeList;
+      return (NodeList) xpathInst.evaluate(xpathExpr, contextElem, XPathConstants.NODESET);
     } catch (XPathExpressionException e) {
       logger.error("Problem with xpathExpr={}, %s", xpathExpr, idForError);
       throw new RuntimeException(e);
     }
+  }
+
+  /**
+   * Evaluates xpath and returns a list of elements. Assumes the xpath expression is about finding
+   * elements.
+   *
+   * @param xpathInst The XPath instance (reusable)
+   * @param contextElem The XML context element in which the xpath is evaluated
+   * @param xpathExpr The XPath expression relative to the passed context
+   * @param idForError An identifier which is shown in case of errors
+   * @return The result of evaluating the XPath expression as a list of elements
+   */
+  public static List<Element> evaluateXpathAsElemList(final XPath xpathInst,
+      final Object contextElem, final String xpathExpr, String idForError) {
+    final NodeList elemsFound =
+        evaluateXpathAsNodeList(xpathInst, contextElem, xpathExpr, idForError);
+    final List<Element> elemList = new ArrayList<>(elemsFound.getLength());
+    for (int i = 0; i < elemsFound.getLength(); i++) {
+      final Element childElem = (Element) elemsFound.item(i);
+      elemList.add(childElem);
+    }
+    return elemList;
   }
 
 }

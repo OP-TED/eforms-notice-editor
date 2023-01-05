@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.xpath.XPath;
@@ -16,8 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.DocumentTypeInfo;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.DocumentTypeNamespace;
@@ -63,7 +60,6 @@ public class NoticeXmlTagSorter {
    * @param xpathInst Reusable xpath preconfigured instance
    * @param docTypeInfo SDK document type info
    * @param sdkRootFolder The root folder of the downloaded SDK(s)
-   * @param noticeXmlRoot The notice XML root element
    */
   public NoticeXmlTagSorter(final DocumentBuilder docBuilder, final XPath xpathInst,
       final DocumentTypeInfo docTypeInfo, final Path sdkRootFolder) {
@@ -132,6 +128,7 @@ public class NoticeXmlTagSorter {
 
     logger.info("Attempting to sort tags in the XML, starting from root element={}",
         xmlRoot.getTagName());
+    logger.info("XML uri={}", xmlRoot.getOwnerDocument().getBaseURI());
 
     final Document xsdRootDoc = buildDoc(mainXsdPath);
     final Element xsdRootElem = xsdRootDoc.getDocumentElement();
@@ -147,18 +144,17 @@ public class NoticeXmlTagSorter {
     // type="BusinessRegistrationInformationNoticeType"/>
     //
     final Element xsdElem = XmlUtils.getDirectChild(xsdRootElem, XSD_ELEMENT);
-    this.extractSequence(elemOrderByXsdElemType, xsdElemTypeByXsdElemName, xsdElem,
-        Optional.empty(), xsdRootElem.getNodeName(), xsdRootElem);
+    this.parseSequence(elemOrderByXsdElemType, xsdElemTypeByXsdElemName, xsdElem, Optional.empty(),
+        xsdRootElem.getNodeName(), xsdRootElem);
 
     // Recursion on child elements.
     sortChildTagsRec(elemOrderByXsdElemType, xsdElemTypeByXsdElemName, xmlRoot);
-    logger.info("elemOrderByXsdElemType size={}", elemOrderByXsdElemType.size());
-    logger.info("elemOrderByXsdElemType keys={}", elemOrderByXsdElemType.keySet());
+    logger.trace("elemOrderByXsdElemType size={}", elemOrderByXsdElemType.size());
+    logger.trace("elemOrderByXsdElemType keys={}", elemOrderByXsdElemType.keySet());
 
-    if (logger.isDebugEnabled()) {
-      for (final Entry<String, List<String>> entry : elemOrderByXsdElemType.entrySet()) {
-        logger.debug(entry.getKey() + " = " + entry.getValue());
-      }
+    if (logger.isTraceEnabled()) {
+      elemOrderByXsdElemType.entrySet()
+          .forEach(entry -> logger.trace("{} = {}", entry.getKey(), entry.getValue()));
     }
   }
 
@@ -168,8 +164,7 @@ public class NoticeXmlTagSorter {
       logger.info("Sorting not supported for version={}", getSorterSdkVersion());
       return null;
     }
-    final Path mainXsdPath = sdkRootFolder.resolve(sdkXsdPathOpt.get());
-    return mainXsdPath;
+    return sdkRootFolder.resolve(sdkXsdPathOpt.get());
   }
 
   private SdkVersion getSorterSdkVersion() {
@@ -194,24 +189,22 @@ public class NoticeXmlTagSorter {
       // Find elements by tag name in the notice.
       final String xpathExpr = tagName; // Search for the tags.
       final String idForError = tagName;
-      final NodeList elemsFoundByTag =
-          XmlUtils.evaluateXpath(xpathInst, noticeElem, xpathExpr, idForError);
+      final List<Element> elemsFoundByTag =
+          XmlUtils.evaluateXpathAsElemList(xpathInst, noticeElem, xpathExpr, idForError);
 
       // Modify physical model: sort, reorder XML elements.
-      for (int i = 0; i < elemsFoundByTag.getLength(); i++) {
-        final Node childElem = elemsFoundByTag.item(i);
+      for (final Element elemFound : elemsFoundByTag) {
         // THIS SORTS THE TAGS:
-        noticeElem.removeChild(childElem); // Removes child from old location.
-        noticeElem.appendChild(childElem); // Appends child at the new location.
+        noticeElem.removeChild(elemFound); // Removes child from old location.
+        noticeElem.appendChild(elemFound); // Appends child at the new location.
       }
 
       // Continue recursively on the child elements of the notice.
-      for (int i = 0; i < elemsFoundByTag.getLength(); i++) {
-        final Element childElem = (Element) elemsFoundByTag.item(i);
-        parseXsdSequencesByPrefix(elemOrderByXsdElemType, xsdElemTypeByXsdElemName, childElem);
+      for (final Element elemFound : elemsFoundByTag) {
+        parseXsdSequencesByPrefix(elemOrderByXsdElemType, xsdElemTypeByXsdElemName, elemFound);
 
-        logger.debug("sortChildTagsRec: XML tagName={}", childElem.getTagName());
-        sortChildTagsRec(elemOrderByXsdElemType, xsdElemTypeByXsdElemName, childElem);
+        logger.trace("sortChildTagsRec: XML tagName={}", elemFound.getTagName());
+        sortChildTagsRec(elemOrderByXsdElemType, xsdElemTypeByXsdElemName, elemFound);
       }
     }
   }
@@ -236,7 +229,7 @@ public class NoticeXmlTagSorter {
 
     // efac:BusinessPartyGroup -> efx
     final String prefix = prefixedTagName.substring(0, indexOfColon);
-    logger.debug("Namespace prefix={}", prefix);
+    logger.trace("Namespace prefix={}", prefix);
 
     final Element xsdRootElem = loadXsdRootByPrefix(prefix);
 
@@ -247,13 +240,12 @@ public class NoticeXmlTagSorter {
     // Find prefix, get xsd, get type, ... recursively
     // <xsd:element name="BusinessPartyGroup" type="BusinessPartyGroupType"/>
     //
-    final NodeList elementsFoundByXpath = XmlUtils.evaluateXpath(xpathInst, xsdRootElem,
+    final List<Element> elemsFound = XmlUtils.evaluateXpathAsElemList(xpathInst, xsdRootElem,
         String.format("%s[@name='%s']", XSD_ELEMENT, tagName), tagName);
 
-    for (int i = 0; i < elementsFoundByXpath.getLength(); i++) {
-      final Element xsdElem = (Element) elementsFoundByXpath.item(i);
-      extractSequence(elemOrderByXsdElemType, xsdElemTypeByXsdElemName, xsdElem,
-          Optional.of(prefix), prefixedTagName, xsdRootElem);
+    for (final Element xsdElem : elemsFound) {
+      parseSequence(elemOrderByXsdElemType, xsdElemTypeByXsdElemName, xsdElem, Optional.of(prefix),
+          prefixedTagName, xsdRootElem);
     }
   }
 
@@ -261,7 +253,7 @@ public class NoticeXmlTagSorter {
    * @param elemOrderByXsdElemType Is modified as a SIDE-EFFECT
    * @param xsdElemTypeByXsdElemName Is modified as a SIDE-EFFECT
    */
-  private void extractSequence(final Map<String, List<String>> elemOrderByXsdElemType,
+  private void parseSequence(final Map<String, List<String>> elemOrderByXsdElemType,
       final Map<String, String> xsdElemTypeByXsdElemName, final Element xsdElem,
       final Optional<String> prefixOpt, final String prefixedTagName, final Element xsdRootElem) {
     //
@@ -293,18 +285,17 @@ public class NoticeXmlTagSorter {
     // </xsd:sequence>
     // </xsd:complexType>
     //
-    final NodeList xsdSequences = XmlUtils.evaluateXpath(xpathInst, xsdRootElem,
+    final List<Element> xsdSequences = XmlUtils.evaluateXpathAsElemList(xpathInst, xsdRootElem,
         String.format("%s[@name='%s']/%s", XSD_COMPLEX_TYPE, xsdElemType, XSD_SEQUENCE),
         xsdElemType);
-    if (xsdSequences.getLength() == 0) {
+    if (xsdSequences.isEmpty()) {
       return;
     }
 
     // Populate order list from sequence.
     final List<String> xmlTagOrder = new ArrayList<>();
-    for (int j = 0; j < xsdSequences.getLength(); j++) {
-      final Element xsdSequence = (Element) xsdSequences.item(j);
-      xmlTagOrder.addAll(extractSequenceElemOrder(xsdSequence, xpathInst));
+    for (Element xsdSequence : xsdSequences) {
+      xmlTagOrder.addAll(parseSequenceElementOrder(xsdSequence, xpathInst));
     }
 
     // Populate order by type map from sequence.
@@ -322,7 +313,7 @@ public class NoticeXmlTagSorter {
    * @param xsdSequence The XSD sequence element
    * @return The list of the XSD elements ref found in the XSD sequence
    */
-  private static List<String> extractSequenceElemOrder(final Element xsdSequence,
+  private static List<String> parseSequenceElementOrder(final Element xsdSequence,
       final XPath xpathInst) {
 
     //
@@ -339,12 +330,11 @@ public class NoticeXmlTagSorter {
     // The expression is good enough to work with the current state of the XSDs.
     // If the expression should evolve we could use the SDK version the code logic.
     final String xpathExpr = String.format(".//%s", XSD_ELEMENT);
-    final NodeList seqElements =
-        XmlUtils.evaluateXpath(xpathInst, xsdSequence, xpathExpr, "Looking for " + XSD_ELEMENT);
+    final List<Element> seqElements = XmlUtils.evaluateXpathAsElemList(xpathInst, xsdSequence,
+        xpathExpr, "Looking for " + XSD_ELEMENT);
 
-    final List<String> xmlTagOrder = new ArrayList<>(seqElements.getLength());
-    for (int j = 0; j < seqElements.getLength(); j++) {
-      final Element seqElem = (Element) seqElements.item(j);
+    final List<String> xmlTagOrder = new ArrayList<>(seqElements.size());
+    for (final Element seqElem : seqElements) {
       // Get the reference.
       // Example: <xsd:element ref="ext:UBLExtensions" .../>
       final String ref = XmlUtils.getAttrText(seqElem, "ref");
@@ -356,6 +346,7 @@ public class NoticeXmlTagSorter {
         throw new RuntimeException(String.format("Already contains order ref=%s", ref));
       }
     }
+
     Validate.notEmpty(xmlTagOrder, "xmlTagOrder is empty");
     return xmlTagOrder;
   }

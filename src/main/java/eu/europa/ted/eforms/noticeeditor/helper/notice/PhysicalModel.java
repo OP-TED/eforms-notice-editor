@@ -46,7 +46,7 @@ import eu.europa.ted.eforms.sdk.SdkVersion;
  */
 public class PhysicalModel {
 
-  public static final Logger logger = LoggerFactory.getLogger(PhysicalModel.class);
+  private static final Logger logger = LoggerFactory.getLogger(PhysicalModel.class);
 
   private static final String XMLNS = "xmlns";
 
@@ -110,10 +110,11 @@ public class PhysicalModel {
    * @param contextElem The XML context element in which the xpath is evaluated
    * @param xpathExpr The XPath expression relative to the passed context
    * @param idForError An identifier which is shown in case of errors
-   * @return The result of evaluating the XPath expression as a NodeList
+   * @return The result of evaluating the XPath expression as a list of elements
    */
-  NodeList evaluateXpathForTests(final String xpathExpr, String idForError) {
-    return XmlUtils.evaluateXpath(this.xpathInst, this.getDomDocument(), xpathExpr, idForError);
+  List<Element> evaluateXpathForTests(final String xpathExpr, String idForError) {
+    return XmlUtils.evaluateXpathAsElemList(this.xpathInst, this.getDomDocument(), xpathExpr,
+        idForError);
   }
 
   /**
@@ -139,6 +140,9 @@ public class PhysicalModel {
    *
    * @return The physical model as an object containing the XML with a few extras
    */
+  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+      value = "EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS",
+      justification = "Checked to Runtime OK here")
   public static PhysicalModel buildPhysicalModel(final ConceptualModel conceptModel,
       final FieldsAndNodes fieldsAndNodes, final Map<String, JsonNode> noticeInfoBySubtype,
       final Map<String, JsonNode> documentInfoByType, final boolean debug,
@@ -325,7 +329,7 @@ public class PhysicalModel {
         // TODO this may be fixed by TEDEFO-1466
         continue; // Skip this tag.
       }
-      foundElements = XmlUtils.evaluateXpath(xpathInst, previousElem, xpathExpr, nodeId);
+      foundElements = XmlUtils.evaluateXpathAsNodeList(xpathInst, previousElem, xpathExpr, nodeId);
 
       if (foundElements.getLength() > 0) {
         assert foundElements.getLength() == 1;
@@ -447,7 +451,7 @@ public class PhysicalModel {
           fieldMetaRepeatable ? Optional.empty() : Optional.of(px.getXpathExpr());
       final String tagOrAttr = px.getTagOrAttribute();
 
-      // In this case the field is an attribute of a field in the XML, technicall this makes a
+      // In this case the field is an attribute of a field in the XML, technically this makes a
       // difference and we have to handle this with specific code.
       // Example: "@listName"
       // IDEA: "attribute" : "listName" in the fields.json for fields at are attributes in the
@@ -455,8 +459,8 @@ public class PhysicalModel {
       final boolean isAttribute = tagOrAttr.startsWith("@") && tagOrAttr.length() > 1;
 
       final Optional<NodeList> foundElementsOpt = !isAttribute && xpathExprOpt.isPresent()
-          ? Optional
-              .of(XmlUtils.evaluateXpath(xpathInst, previousElem, xpathExprOpt.get(), fieldId))
+          ? Optional.of(XmlUtils.evaluateXpathAsNodeList(xpathInst, previousElem,
+              xpathExprOpt.get(), fieldId))
           : Optional.empty();
 
       if (foundElementsOpt.isPresent() && foundElementsOpt.get().getLength() > 0) {

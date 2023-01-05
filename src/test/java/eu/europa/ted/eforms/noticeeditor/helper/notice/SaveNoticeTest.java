@@ -18,7 +18,7 @@ import eu.europa.ted.eforms.sdk.SdkConstants;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
- * Abstract, common code for testing the save notice to XML.
+ * Abstract, common code for testing the save notice to XML feature.
  */
 public abstract class SaveNoticeTest {
   // IDEA: reuse some common constants even with notice saver.
