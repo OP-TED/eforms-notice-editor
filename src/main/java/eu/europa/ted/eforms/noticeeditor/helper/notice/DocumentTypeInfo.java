@@ -1,6 +1,7 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +21,6 @@ import eu.europa.ted.eforms.sdk.SdkVersion;
  * </p>
  */
 public class DocumentTypeInfo {
-  private final JsonNode jsonItem;
   private final String namespaceUri;
   private final String rootElementType;
   private final Optional<String> xsdPathInSdkOpt;
@@ -40,35 +40,38 @@ public class DocumentTypeInfo {
     Validate.notNull(jsonParam, "jsonParam of document type is null");
 
     this.sdkVersion = sdkVersion;
-    this.jsonItem = jsonParam;
+    final JsonNode jsonItem = jsonParam;
 
     this.namespaceUri =
-        JsonUtils.getTextStrict(this.jsonItem, SdkConstants.NOTICE_TYPES_JSON_NAMESPACE_KEY);
+        JsonUtils.getTextStrict(jsonItem, SdkConstants.NOTICE_TYPES_JSON_NAMESPACE_KEY);
 
     this.rootElementType =
-        JsonUtils.getTextStrict(this.jsonItem, SdkConstants.NOTICE_TYPES_JSON_ROOT_ELEMENT_KEY);
+        JsonUtils.getTextStrict(jsonItem, SdkConstants.NOTICE_TYPES_JSON_ROOT_ELEMENT_KEY);
 
     if (sdkVersion.compareTo(TEDEFO_1743_SINCE_SDK_VERSION) >= 0) {
-      this.xsdPathInSdkOpt = Optional.of(JsonUtils.getTextStrict(this.jsonItem, "schemaLocation"));
+      this.xsdPathInSdkOpt = Optional.of(JsonUtils.getTextStrict(jsonItem, "schemaLocation"));
     } else {
       this.xsdPathInSdkOpt = Optional.empty();
     }
-    this.additionalNamespaces = new ArrayList<>(parseAdditionalNamespaces(this.jsonItem));
+    this.additionalNamespaces = new ArrayList<>(parseAdditionalNamespaces(jsonItem));
   }
 
   static List<DocumentTypeNamespace> parseAdditionalNamespaces(final JsonNode json) {
-    final List<DocumentTypeNamespace> namespaces = new ArrayList<>();
+    final List<DocumentTypeNamespace> namespaces;
     final JsonNode temp = json.get("additionalNamespaces");
     // It should not be null but tolerate it for now, null could mean the array is empty.
     // This would allow it to be null in the future without breaking this application.
     if (temp != null) {
       final ArrayNode additNamespaces = (ArrayNode) temp;
+      namespaces = new ArrayList<>(additNamespaces.size());
       for (final JsonNode namespace : additNamespaces) {
         final String prefix = JsonUtils.getTextStrict(namespace, "prefix");
         final String uri = JsonUtils.getTextStrict(namespace, "uri");
         final String schemaLocation = JsonUtils.getTextStrict(namespace, "schemaLocation");
         namespaces.add(new DocumentTypeNamespace(prefix, uri, schemaLocation));
       }
+    } else {
+      namespaces = Collections.emptyList();
     }
     return namespaces;
   }
@@ -97,7 +100,8 @@ public class DocumentTypeInfo {
    * Provided for convenience. Relies on the additional namespaces.
    */
   public Map<String, DocumentTypeNamespace> buildAdditionalNamespacesByPrefix() {
-    final Map<String, DocumentTypeNamespace> dtnByPrefix = new LinkedHashMap<>();
+    final Map<String, DocumentTypeNamespace> dtnByPrefix =
+        new LinkedHashMap<>(additionalNamespaces.size());
     for (final DocumentTypeNamespace dtn : additionalNamespaces) {
       dtnByPrefix.put(dtn.getPrefix(), dtn);
     }
@@ -108,7 +112,7 @@ public class DocumentTypeInfo {
    * Provided for convenience. Relies on the additional namespaces.
    */
   public Map<String, String> buildAdditionalNamespaceUriByPrefix() {
-    final Map<String, String> dtnByPrefix = new LinkedHashMap<>();
+    final Map<String, String> dtnByPrefix = new LinkedHashMap<>(additionalNamespaces.size());
     for (final DocumentTypeNamespace dtn : additionalNamespaces) {
       dtnByPrefix.put(dtn.getPrefix(), dtn.getUri());
     }

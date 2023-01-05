@@ -77,7 +77,7 @@ public class PhysicalModel {
   private final Document domDocument;
 
   private final FieldsAndNodes fieldsAndNodes;
-  private XPath xpathInst;
+  private final XPath xpathInst;
 
   /**
    * @param document W3C DOM document
@@ -230,17 +230,15 @@ public class PhysicalModel {
         .println(depthStr + " " + xmlNodeElem.getTagName() + ", id=" + conceptElem.getIdUnique());
 
     // NODES.
-    int childCounter = 0;
     for (final ConceptTreeNode conceptNode : conceptElem.getConceptNodes()) {
       buildNodesAndFields(doc, fieldsAndNodes, conceptNode, xpathInst, xmlNodeElem, debug, depth,
-          onlyIfPriority, buildFields, childCounter++);
+          onlyIfPriority, buildFields);
     }
 
     // FIELDS.
-    childCounter = 0;
     for (final ConceptTreeField conceptField : conceptElem.getConceptFields()) {
       buildFields(doc, fieldsAndNodes, conceptField, xpathInst, xmlNodeElem, debug, depth,
-          onlyIfPriority, buildFields, childCounter++);
+          onlyIfPriority, buildFields);
     }
 
     // if (debug) {
@@ -266,12 +264,11 @@ public class PhysicalModel {
    * @param onlyIfPriority Only build priority items (for xpath of other items which refer to them
    *        later)
    * @param buildFields True if fields have to be built, false otherwise
-   * @param childCounter Current position in the children
    */
   private static boolean buildNodesAndFields(final Document doc,
       final FieldsAndNodes fieldsAndNodes, final ConceptTreeNode conceptNode, final XPath xpathInst,
       final Element xmlNodeElem, final boolean debug, final int depth, boolean onlyIfPriority,
-      final boolean buildFields, final int childCounter) {
+      final boolean buildFields) {
 
     final String depthStr = StringUtils.leftPad(" ", depth * 4);
 
@@ -281,7 +278,7 @@ public class PhysicalModel {
 
     // If a field or node is repeatable, the the XML element to repeat is the first XML
     // element in the xpathRelative.
-    final boolean nodeMetaRepeatable = FieldsAndNodes.isNodeRepeatable(nodeMeta);
+    final boolean nodeMetaRepeatable = FieldsAndNodes.isNodeRepeatableStatic(nodeMeta);
 
     final String xpathRel = getTextStrict(nodeMeta, NODE_XPATH_RELATIVE);
     Element previousElem = xmlNodeElem;
@@ -396,12 +393,11 @@ public class PhysicalModel {
    * @param depth The current depth level passed for debugging and logging purposes
    * @param onlyIfPriority add only elements that have priority
    * @param buildFields If false it will abort (only exists to simplify the code elsewhere)
-   * @param childCounter The current position in the children.
    */
   private static void buildFields(final Document doc, final FieldsAndNodes fieldsAndNodes,
       final ConceptTreeField conceptField, final XPath xpathInst, final Element xmlNodeElem,
-      final boolean debug, final int depth, final boolean onlyIfPriority, final boolean buildFields,
-      final int childCounter) {
+      final boolean debug, final int depth, final boolean onlyIfPriority,
+      final boolean buildFields) {
 
     if (!buildFields) {
       return;
@@ -415,7 +411,7 @@ public class PhysicalModel {
 
     if (debug) {
       System.out.println("");
-      System.out.println(depthStr + " fieldId=" + fieldId + ", childCounter=" + childCounter);
+      System.out.println(depthStr + " fieldId=" + fieldId);
     }
 
     // Get the field meta-data from the SDK.
@@ -429,7 +425,7 @@ public class PhysicalModel {
 
     // If a field or node is repeatable, the the XML element to repeat is the first XML
     // element in the xpathRelative.
-    final boolean fieldMetaRepeatable = FieldsAndNodes.isFieldRepeatable(fieldMeta);
+    final boolean fieldMetaRepeatable = FieldsAndNodes.isFieldRepeatableStatic(fieldMeta);
 
     Element previousElem = xmlNodeElem;
     Element partElem = null;
@@ -681,6 +677,9 @@ public class PhysicalModel {
     return sb.toString().split("/");
   }
 
+  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+      value = "UCPM_USE_CHARACTER_PARAMETERIZED_METHOD",
+      justification = "OK here, used in other places a string")
   private static PhysicalXpathPart handleXpathPart(final String partParam) {
     Validate.notBlank(partParam, "partParam is blank");
 

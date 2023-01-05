@@ -117,6 +117,9 @@ public class XmlWriteService {
   /**
    * Common SDK XML string logic.
    */
+  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+      value = "EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS",
+      justification = "Checked to Runtime OK here")
   public static void serveSdkXmlStringAsDownload(final HttpServletResponse response,
       final String jsonStr, final String filenameForDownload) {
     Validate.notBlank(jsonStr, "JSON string is blank");

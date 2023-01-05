@@ -62,10 +62,9 @@ public class ConceptualModel {
   public String getNoticeSubType() {
     // HARDCODED LOGIC.
     final ConceptTreeNode rootExtension = treeRootNode.getConceptNodes().stream()
-        .filter(item -> item.getNodeId().equals(ND_ROOT_EXTENSION)).findFirst().get();
+        .filter(item -> item.getNodeId() == ND_ROOT_EXTENSION).findFirst().get();
     return rootExtension.getConceptFields().stream()
-        .filter(item -> item.getFieldId().equals(FIELD_ID_NOTICE_SUB_TYPE)).findFirst().get()
-        .getValue();
+        .filter(item -> item.getFieldId() == FIELD_ID_NOTICE_SUB_TYPE).findFirst().get().getValue();
   }
 
   @Override
@@ -108,7 +107,7 @@ public class ConceptualModel {
       final JsonNode nodeMeta = fieldsAndNodes.getNodeById(childNode.getNodeId());
       Validate.notNull(nodeMeta, "null for nodeId=%s", childNode.getNodeId());
 
-      final boolean nodeIsRepeatable = FieldsAndNodes.isNodeRepeatable(nodeMeta);
+      final boolean nodeIsRepeatable = FieldsAndNodes.isNodeRepeatableStatic(nodeMeta);
       final String color =
           nodeIsRepeatable ? GraphvizDotTool.COLOR_GREEN : GraphvizDotTool.COLOR_BLACK;
 

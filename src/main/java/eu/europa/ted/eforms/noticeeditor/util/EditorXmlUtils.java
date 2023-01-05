@@ -22,6 +22,9 @@ public class EditorXmlUtils {
    *
    * @return The XML as text
    */
+  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+      value = "EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS",
+      justification = "Checked to Runtime OK here")
   public static String asText(final Document doc, final boolean indented) {
     try {
       final StringWriter stringWriter = new StringWriter();

@@ -139,7 +139,7 @@ public class XmlUtils {
 
       return (NodeList) xpathInst.evaluate(xpathExpr, contextElem, XPathConstants.NODESET);
     } catch (XPathExpressionException e) {
-      logger.error("Problem with xpathExpr={}, %s", xpathExpr, idForError);
+      logger.error("Problem with xpathExpr={}, {}", xpathExpr, idForError);
       throw new RuntimeException(e);
     }
   }

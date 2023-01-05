@@ -24,6 +24,8 @@ public class ConceptTreeNode extends ConceptTreeItem {
   /**
    * @param item The item to add.
    */
+  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = "ITC_INHERITANCE_TYPE_CHECKING",
+      justification = "Spotbugs is confused, the check is done on the passed item, not the class.")
   public final void addConceptItem(final ConceptTreeItem item) {
     if (item instanceof ConceptTreeNode) {
       addConceptNode((ConceptTreeNode) item);

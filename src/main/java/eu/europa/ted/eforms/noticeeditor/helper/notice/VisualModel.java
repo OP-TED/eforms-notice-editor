@@ -47,7 +47,6 @@ public class VisualModel {
 
   static final String NODE_PARENT_ID = "parentId";
 
-
   /**
    * As we use a web UI the data is received as JSON. We work directly on this JSON tree model.
    */
@@ -60,8 +59,8 @@ public class VisualModel {
     final String rootNodeId = JsonUtils.getTextStrict(visRoot, VIS_NODE_ID);
     final String expected = ConceptualModel.ND_ROOT;
     Validate.isTrue(expected.equals(rootNodeId), "Visual model root must be %s", expected);
+    JsonUtils.getTextStrict(visRoot, VIS_NOTICE_SUB_TYPE); // This must not crash.
     this.visRoot = visRoot;
-    this.getNoticeSubTypeStrict(); // This must not crash.
   }
 
   public JsonNode getVisRoot() {
@@ -147,17 +146,6 @@ public class VisualModel {
   }
 
   /**
-   * @return The notice sub type, otherwise an exception is thrown
-   */
-  public String getNoticeSubTypeStrict() {
-    // final JsonNode rootExt = findByNodeIdStrict(visRoot, ConceptualModel.ND_ROOT_EXTENSION);
-    // final JsonNode noticeSubJson =
-    // findByFieldIdStrict(rootExt, ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE);
-    // return JsonUtils.getTextStrict(noticeSubJson, VIS_VALUE);
-    return JsonUtils.getTextStrict(visRoot, VIS_NOTICE_SUB_TYPE);
-  }
-
-  /**
    * Build the conceptual model from the visual model.
    *
    * @param fieldsAndNodes Field and node metadata
@@ -166,11 +154,9 @@ public class VisualModel {
   public ConceptualModel toConceptualModel(final FieldsAndNodes fieldsAndNodes) {
     logger.info("Attempting to build conceptual model from visual model.");
 
-    final int childCounter = 1;
-
     // This is located in this class as most of the code is about reading the visual model.
     final Optional<ConceptTreeItem> conceptItemOpt =
-        parseVisualModelRec(fieldsAndNodes, visRoot, null, childCounter);
+        parseVisualModelRec(fieldsAndNodes, visRoot, null);
 
     if (!conceptItemOpt.isPresent()) {
       throw new RuntimeException("Expecting concept item at root level.");
@@ -209,7 +195,7 @@ public class VisualModel {
     }
 
     final JsonNode nodeParentMeta = fieldsAndNodes.getNodeById(nodeParentId);
-    if (FieldsAndNodes.isNodeRepeatable(nodeParentMeta)) {
+    if (FieldsAndNodes.isNodeRepeatableStatic(nodeParentMeta)) {
       // The SDK says the desired parentNodeId is repeatable and is missing in the
       // visual model, thus we have a serious problem!
       final String msg =
@@ -232,12 +218,11 @@ public class VisualModel {
    * Visit the tree of the visual model and build the visual model. Depth-first order, recursive.
    *
    * @param jsonItem The current visual json item
-   * @param childCounter The position of the current item
    * @return An optional concept item, if present it is to be appended outside of the call,
    *         otherwise no action should be taken in the caller
    */
   private static Optional<ConceptTreeItem> parseVisualModelRec(final FieldsAndNodes fieldsAndNodes,
-      final JsonNode jsonItem, final ConceptTreeNode closestParentNode, final int childCounter) {
+      final JsonNode jsonItem, final ConceptTreeNode closestParentNode) {
     Validate.notNull(jsonItem, "jsonNode is null, jsonNode=%s", jsonItem);
 
     final String contentId = JsonUtils.getTextStrict(jsonItem, VIS_CONTENT_ID);
@@ -268,7 +253,7 @@ public class VisualModel {
         // The parents do not match.
 
         final JsonNode sdkParentNode = fieldsAndNodes.getNodeById(sdkParentNodeId);
-        if (FieldsAndNodes.isNodeRepeatable(sdkParentNode)) {
+        if (FieldsAndNodes.isNodeRepeatableStatic(sdkParentNode)) {
           // The SDK says the desired parentNodeId is repeatable and is missing in the visual model,
           // thus we have a serious problem!
           final String msg = String.format(
@@ -331,10 +316,9 @@ public class VisualModel {
         // Both are tolerated.
         if (maybeNull != null) {
           final ArrayNode visChildren = (ArrayNode) maybeNull;
-          int childCounterB = 1;
           for (final JsonNode visChild : visChildren) {
             final Optional<ConceptTreeItem> itemToAppendOpt =
-                parseVisualModelRec(fieldsAndNodes, visChild, closestParentNode, childCounterB++);
+                parseVisualModelRec(fieldsAndNodes, visChild, closestParentNode);
             if (itemToAppendOpt.isPresent()) {
               Validate.notNull(closestParentNode, "closestParentNode is null");
               closestParentNode.addConceptItem(itemToAppendOpt.get());
@@ -362,9 +346,8 @@ public class VisualModel {
       if (maybeNull != null) {
         final ArrayNode visChildren = (ArrayNode) maybeNull;
         for (final JsonNode visChild : visChildren) {
-          int childCounterC = 1;
           final Optional<ConceptTreeItem> itemToAppendOpt =
-              parseVisualModelRec(fieldsAndNodes, visChild, conceptNode, childCounterC++);
+              parseVisualModelRec(fieldsAndNodes, visChild, conceptNode);
           if (itemToAppendOpt.isPresent()) {
             // Append field or node.
             conceptNode.addConceptItem(itemToAppendOpt.get());

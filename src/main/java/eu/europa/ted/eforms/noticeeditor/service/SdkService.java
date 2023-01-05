@@ -391,8 +391,7 @@ public class SdkService {
     try {
       final Path path = readSdkPath(sdkVersion, resourceType, filenameForDownload);
       final ObjectMapper mapper = new ObjectMapper();
-      final JsonNode jsonRootNode = mapper.readTree(path.toFile());
-      return jsonRootNode;
+      return mapper.readTree(path.toFile());
     } catch (IOException ex) {
       logger.error(ex.toString(), ex);
       throw new RuntimeException(
