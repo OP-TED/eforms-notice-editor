@@ -28,6 +28,7 @@ import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
  * </p>
  */
 public class VisualModel {
+
   private static final Logger logger = LoggerFactory.getLogger(VisualModel.class);
 
   public static final String VIS_SDK_VERSION = "sdkVersion";
@@ -46,6 +47,8 @@ public class VisualModel {
   private static final String VIS_TYPE_NON_FIELD = "non-field";
 
   static final String NODE_PARENT_ID = "parentId";
+
+  private static final String SUFFIX_GENERATED = "-generated";
 
   /**
    * As we use a web UI the data is received as JSON. We work directly on this JSON tree model.
@@ -142,6 +145,7 @@ public class VisualModel {
       putFieldDef(visNoticeSubType, ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE);
       visNoticeSubType.put(VIS_VALUE, noticeSubTypeForTest);
     }
+
     return visRootChildren;
   }
 
@@ -152,19 +156,16 @@ public class VisualModel {
    * @return The conceptual model for this visual model
    */
   public ConceptualModel toConceptualModel(final FieldsAndNodes fieldsAndNodes) {
-    logger.info("Attempting to build conceptual model from visual model.");
+    logger.info("Attempting to build the conceptual model from the visual model.");
 
     // This is located in this class as most of the code is about reading the visual model.
     final Optional<ConceptTreeItem> conceptItemOpt =
         parseVisualModelRec(fieldsAndNodes, visRoot, null);
-
     if (!conceptItemOpt.isPresent()) {
       throw new RuntimeException("Expecting concept item at root level.");
     }
+
     final ConceptTreeNode rootNode = (ConceptTreeNode) conceptItemOpt.get();
-
-    // TODO more work is required for the full metadata (see with realistic X02) !?
-
     return new ConceptualModel(rootNode, fieldsAndNodes.getSdkVersion());
   }
 
@@ -178,13 +179,16 @@ public class VisualModel {
    */
   private static void addIntermediaryNonRepeatingNodesRec(final FieldsAndNodes fieldsAndNodes,
       final ConceptTreeNode closestParentNode, final ConceptTreeNode cn) {
+
     if (closestParentNode.getNodeId().equals(cn.getNodeId())) {
       // cn is the closest parent, stop.
       return;
     }
+
     if (ConceptualModel.ND_ROOT.equals(cn.getNodeId())) {
       return;
     }
+
     final JsonNode nodeMeta = fieldsAndNodes.getNodeById(cn.getNodeId());
     final String nodeParentId = JsonUtils.getTextStrict(nodeMeta, NODE_PARENT_ID);
     if (nodeParentId.equals(closestParentNode.getNodeId())) {
@@ -204,10 +208,12 @@ public class VisualModel {
       System.err.println(msg);
       // throw new RuntimeException(msg);
     }
+
     // The parent is not the closest parent we know about and it is not repeatable.
     // Try to create an intermediary node in the conceptual model.
     // -> closestParent -> cnNew -> cn
-    final ConceptTreeNode cnNew = new ConceptTreeNode(nodeParentId + "-generated", nodeParentId, 1);
+    final ConceptTreeNode cnNew =
+        new ConceptTreeNode(nodeParentId + SUFFIX_GENERATED, nodeParentId, 1);
     cnNew.addConceptNode(cn);
 
     // There may be more to add, recursion:
@@ -225,173 +231,177 @@ public class VisualModel {
       final JsonNode jsonItem, final ConceptTreeNode closestParentNode) {
     Validate.notNull(jsonItem, "jsonNode is null, jsonNode=%s", jsonItem);
 
-    final String contentId = JsonUtils.getTextStrict(jsonItem, VIS_CONTENT_ID);
-
-    final JsonNode counterJson = jsonItem.get(VIS_CONTENT_COUNT);
-    Validate.notNull(counterJson, "visual count is null for %s", contentId);
-    final int counter = jsonItem.get(VIS_CONTENT_COUNT).asInt(-1);
-
+    final String visContentId = JsonUtils.getTextStrict(jsonItem, VIS_CONTENT_ID);
     final String visualType = JsonUtils.getTextStrict(jsonItem, VIS_TYPE);
+
+    //
+    // VISUAL FIELD.
+    //
     if (VIS_TYPE_FIELD.equals(visualType)) {
-      //
-      // FIELD.
-      //
-      // This is a field (leaf of the tree).
-      // Every field points to an SDK field for the SDK metadata.
-      final String sdkFieldId = contentId;
-      final ConceptTreeField conceptField = new ConceptTreeField(contentId, sdkFieldId,
-          jsonItem.get(VIS_VALUE).asText(null), counter);
-
-      final JsonNode sdkFieldMeta = fieldsAndNodes.getFieldById(sdkFieldId);
-
-      // We found a field.
-      // But is the current concept hierarchy matching the hierarchy found in the SDK fields.json?
-      final String sdkParentNodeId =
-          JsonUtils.getTextStrict(sdkFieldMeta, FieldsAndNodes.FIELD_PARENT_NODE_ID);
-
-      if (!closestParentNode.getNodeId().equals(sdkParentNodeId)) {
-        // The parents do not match.
-
-        final JsonNode sdkParentNode = fieldsAndNodes.getNodeById(sdkParentNodeId);
-        if (FieldsAndNodes.isNodeRepeatableStatic(sdkParentNode)) {
-          // The SDK says the desired parentNodeId is repeatable and is missing in the visual model,
-          // thus we have a serious problem!
-          final String msg = String.format(
-              "Problem in visual node hierarchy, fieldId=%s is not included"
-                  + " in the correct parent. Expecting %s but found %s",
-              sdkFieldId, sdkParentNodeId, closestParentNode.getNodeId());
-          System.err.println(msg);
-          // throw new RuntimeException(msg);
-        }
-
-        // The SDK says the desired parent node is not repeatable or "non-repeatable". We can
-        // tolerate that the visual model does not point to it (or not yet) and generate it as this
-        // is not problematic in the visual model in this case. Ideally we want the full SDK node
-        // chain to be present in the correct order in the conceptual model.
-        // ND-Root -> ... -> ... -> otherConceptualNode -> The field (leaf)
-        final Optional<ConceptTreeNode> cnOpt =
-            closestParentNode.findFirstByConceptNodeId(sdkParentNodeId);
-        final ConceptTreeNode cn;
-        if (cnOpt.isPresent()) {
-          // Reuse existing conceptual node.
-          cn = cnOpt.get();
-        } else {
-          // Create and add the missing conceptual node.
-          // Generate missing conceptual node.
-          // IDEA what if more than one intermediary nodes are missing? For now we will assume that
-          // this is not the case.
-          // ND-Root -> ... -> closestParentNode -> newConceptNode -> ... -> field
-          // By convention we will add "-generated" to these generated concept nodes.
-          cn = new ConceptTreeNode(sdkParentNodeId + "-generated", sdkParentNodeId, 1);
-
-          // See unit test about filling to fully understand this.
-          // closestParentNode.addConceptNode(cn); // NO: there may be more items to fill in.
-          addIntermediaryNonRepeatingNodesRec(fieldsAndNodes, closestParentNode, cn);
-        }
-
-        // Always add the current field.
-        cn.addConceptField(conceptField);
-
-        return Optional.empty();
-      }
-      return Optional.of(conceptField); // Leaf of tree: just return.
+      // What we call a field is some kind of form field which has a value.
+      final JsonNode counterJson = jsonItem.get(VIS_CONTENT_COUNT);
+      Validate.notNull(counterJson, "visual count is null for %s", visContentId);
+      final int counter = jsonItem.get(VIS_CONTENT_COUNT).asInt(-1);
+      return handleVisualField(fieldsAndNodes, jsonItem, closestParentNode, visContentId, counter);
     }
 
+    //
+    // VISUAL NON-FIELD (group, ...)
+    //
     if (VIS_TYPE_NON_FIELD.equals(visualType)) {
-      // This is a group (with or without nodeId).
-
-      final Optional<String> nodeIdOpt = JsonUtils.getTextOpt(jsonItem, VIS_NODE_ID);
-      if (nodeIdOpt.isEmpty()) {
-        //
-        // GROUP WITHOUT nodeId.
-        //
-        // This group is used purely to group fields visually in the UI (visual model).
-        // We could call this a purely visual group.
-        // The conceptual model must ignore this group but keep the content.
-        // In that case we want the children to be moved up to the nearest parent node, flattening
-        // the tree.
-        final JsonNode maybeNull = jsonItem.get(VIS_CHILDREN);
-        // Could be "null if empty" depending on how the JSON is constructed.
-        // No children in JSON could be a value like [] or just no key value pair.
-        // Both are tolerated.
-        if (maybeNull != null) {
-          final ArrayNode visChildren = (ArrayNode) maybeNull;
-          for (final JsonNode visChild : visChildren) {
-            final Optional<ConceptTreeItem> itemToAppendOpt =
-                parseVisualModelRec(fieldsAndNodes, visChild, closestParentNode);
-            if (itemToAppendOpt.isPresent()) {
-              Validate.notNull(closestParentNode, "closestParentNode is null");
-              closestParentNode.addConceptItem(itemToAppendOpt.get());
-            }
-          }
-        }
-        // Cannot return anything to append.
-        return Optional.empty();
-      }
-
-      //
-      // GROUP WITH nodeId.
-      //
-      // This is a group which references a node.
-      final String sdkNodeId = nodeIdOpt.get();
-      fieldsAndNodes.getNodeById(sdkNodeId); // Just for the checks.
-
-      final ConceptTreeNode conceptNode =
-          new ConceptTreeNode(contentId, sdkNodeId, jsonItem.get(VIS_CONTENT_COUNT).asInt(-1));
-
-      // Not a leaf of the tree: recursion on children:
-      final JsonNode maybeNull = jsonItem.get(VIS_CHILDREN);
-      // Could be null depending on how the JSON is serialized (not present, thus null if the array
-      // is empty).
-      if (maybeNull != null) {
-        final ArrayNode visChildren = (ArrayNode) maybeNull;
-        for (final JsonNode visChild : visChildren) {
-          final Optional<ConceptTreeItem> itemToAppendOpt =
-              parseVisualModelRec(fieldsAndNodes, visChild, conceptNode);
-          if (itemToAppendOpt.isPresent()) {
-            // Append field or node.
-            conceptNode.addConceptItem(itemToAppendOpt.get());
-          }
-        }
-      }
-      return Optional.of(conceptNode);
+      return handleVisualGroup(fieldsAndNodes, jsonItem, closestParentNode, visContentId);
     }
 
     throw new RuntimeException(String.format("Unsupported visual type '%s'", visualType));
   }
 
-  // /**
-  // * @param toSearch The json item to be searched into
-  // * @param nodeId The node id to find
-  // *
-  // * @return the json of the node, an exception is thrown if not found
-  // */
-  // private static JsonNode findByNodeIdStrict(final JsonNode toSearch, final String nodeId) {
-  // final ArrayNode visChildren = (ArrayNode) toSearch.get(VIS_CHILDREN);
-  // for (final JsonNode item : visChildren) {
-  // final Optional<String> nodeIdOpt = JsonUtils.getTextOpt(item, VIS_NODE_ID);
-  // if (nodeIdOpt.isPresent() && nodeIdOpt.get().equals(nodeId)) {
-  // return item; // Found the item.
-  // }
-  // }
-  // throw new RuntimeException(String.format("Node %s not found in visual model!", nodeId));
-  // }
-  //
-  // /**
-  // * @param toSearch The json item to be searched into
-  // * @param fieldId The field id to find
-  // *
-  // * @return the json of the field, an exception is thrown if not found
-  // */
-  // private static JsonNode findByFieldIdStrict(final JsonNode toSearch, final String fieldId) {
-  // final ArrayNode visChildren = (ArrayNode) toSearch.get(VIS_CHILDREN);
-  // for (final JsonNode item : visChildren) {
-  // final String type = JsonUtils.getTextStrict(item, VIS_TYPE);
-  // if (VIS_TYPE_FIELD.equals(type)) {
-  // return item; // Found the item.
-  // }
-  // }
-  // throw new RuntimeException(String.format("Field %s not found in visual model!", fieldId));
-  // }
+  private static Optional<ConceptTreeItem> handleVisualGroup(final FieldsAndNodes fieldsAndNodes,
+      final JsonNode jsonItem, final ConceptTreeNode closestParentNode, final String contentId) {
+
+    // This is a group (with or without nodeId).
+    final Optional<String> nodeIdOpt = JsonUtils.getTextOpt(jsonItem, VIS_NODE_ID);
+
+    //
+    // GROUP WITH NO nodeId.
+    //
+    // This group is used purely to group fields visually in the UI (visual model).
+    // We could call this a purely visual group.
+    //
+    if (nodeIdOpt.isEmpty()) {
+      handleGroupWithNodeId(fieldsAndNodes, jsonItem, closestParentNode);
+      return Optional.empty(); // Cannot return anything to append to as it was removed.
+    }
+
+    //
+    // GROUP WITH nodeId.
+    //
+    // This is a group which references a node.
+    // This group must be kept in the conceptual model.
+    //
+    final ConceptTreeNode conceptNode =
+        handleGroupWithoutNodeId(fieldsAndNodes, jsonItem, contentId, nodeIdOpt);
+    return Optional.of(conceptNode);
+  }
+
+  private static ConceptTreeNode handleGroupWithoutNodeId(final FieldsAndNodes fieldsAndNodes,
+      final JsonNode jsonItem, final String contentId, final Optional<String> nodeIdOpt) {
+    final String sdkNodeId = nodeIdOpt.get();
+    fieldsAndNodes.getNodeById(sdkNodeId); // Just for the checks.
+
+    final ConceptTreeNode conceptNode =
+        new ConceptTreeNode(contentId, sdkNodeId, jsonItem.get(VIS_CONTENT_COUNT).asInt(-1));
+
+    // Not a leaf of the tree: recursion on children:
+    final JsonNode maybeNull = jsonItem.get(VIS_CHILDREN);
+
+    // The children array could be null depending on how the JSON is serialized (not present in the
+    // JSON at all means null, or empty []).
+    if (maybeNull != null) {
+      final ArrayNode visChildren = (ArrayNode) maybeNull;
+      for (final JsonNode visChild : visChildren) {
+        final Optional<ConceptTreeItem> itemToAppendOpt =
+            parseVisualModelRec(fieldsAndNodes, visChild, conceptNode);
+        if (itemToAppendOpt.isPresent()) {
+          // Append field or node.
+          conceptNode.addConceptItem(itemToAppendOpt.get());
+        }
+      }
+    }
+    return conceptNode;
+  }
+
+  private static void handleGroupWithNodeId(final FieldsAndNodes fieldsAndNodes,
+      final JsonNode jsonItem, final ConceptTreeNode closestParentNode) {
+
+    // The conceptual model must ignore this group but keep the contained content.
+    // In that case we want the children to be moved up to the nearest conceptual parent node.
+    // This is flattening/simplifying the tree.
+    // In other words the visual tree has extra items that the conceptual model does not need.
+
+    final JsonNode maybeNull = jsonItem.get(VIS_CHILDREN);
+
+    // Could be "null if empty" depending on how the JSON is constructed.
+    // No children in JSON could be a value like [] or just no key value pair.
+    // Both possibilities are tolerated.
+    if (maybeNull == null) {
+      return; // Cannot return anything to append to.
+    }
+
+    final ArrayNode visChildren = (ArrayNode) maybeNull;
+    for (final JsonNode visChild : visChildren) {
+      final Optional<ConceptTreeItem> itemToAppendOpt =
+          parseVisualModelRec(fieldsAndNodes, visChild, closestParentNode);
+      if (itemToAppendOpt.isPresent()) {
+        final ConceptTreeItem item = itemToAppendOpt.get();
+        Validate.notNull(closestParentNode, "closestParentNode is null for %s", item.getIdUnique());
+        closestParentNode.addConceptItem(item);
+      }
+    }
+  }
+
+  private static Optional<ConceptTreeItem> handleVisualField(final FieldsAndNodes fieldsAndNodes,
+      final JsonNode jsonItem, final ConceptTreeNode closestParentNode, final String contentId,
+      final int counter) {
+
+    // This is a visual field (leaf of the tree).
+    // Every field points to an SDK field for the SDK metadata.
+    final String sdkFieldId = contentId;
+    final ConceptTreeField conceptField =
+        new ConceptTreeField(contentId, sdkFieldId, jsonItem.get(VIS_VALUE).asText(null), counter);
+
+    final JsonNode sdkFieldMeta = fieldsAndNodes.getFieldById(sdkFieldId);
+
+    // We found a field.
+    // But is the current concept hierarchy matching the hierarchy found in the SDK fields.json?
+    final String sdkParentNodeId =
+        JsonUtils.getTextStrict(sdkFieldMeta, FieldsAndNodes.FIELD_PARENT_NODE_ID);
+
+    if (!closestParentNode.getNodeId().equals(sdkParentNodeId)) {
+      // The parents do not match.
+
+      final JsonNode sdkParentNode = fieldsAndNodes.getNodeById(sdkParentNodeId);
+      if (FieldsAndNodes.isNodeRepeatableStatic(sdkParentNode)) {
+        // The SDK says the desired parentNodeId is repeatable and is missing in the visual model,
+        // thus we have a serious problem!
+        final String msg = String.format(
+            "Problem in visual node hierarchy, fieldId=%s is not included"
+                + " in the correct parent. Expecting %s but found %s",
+            sdkFieldId, sdkParentNodeId, closestParentNode.getNodeId());
+        System.err.println(msg);
+        // throw new RuntimeException(msg);
+      }
+
+      // The SDK says the desired parent node is not repeatable or "non-repeatable". We can
+      // tolerate that the visual model does not point to it (or not yet) and generate it as this
+      // is not problematic in the visual model in this case. Ideally we want the full SDK node
+      // chain to be present in the correct order in the conceptual model.
+      // ND-Root -> ... -> ... -> otherConceptualNode -> The field (leaf)
+      final Optional<ConceptTreeNode> cnOpt =
+          closestParentNode.findFirstByConceptNodeId(sdkParentNodeId);
+      final ConceptTreeNode cn;
+      if (cnOpt.isPresent()) {
+        // Reuse existing conceptual node.
+        cn = cnOpt.get();
+      } else {
+        // Create and add the missing conceptual node.
+        // Generate missing conceptual node.
+        // IDEA what if more than one intermediary nodes are missing? For now we will assume that
+        // this is not the case.
+        // ND-Root -> ... -> closestParentNode -> newConceptNode -> ... -> field
+        // By convention we will add a suffix to these generated concept nodes.
+        cn = new ConceptTreeNode(sdkParentNodeId + SUFFIX_GENERATED, sdkParentNodeId, 1);
+
+        // See unit test about filling to fully understand this.
+        // closestParentNode.addConceptNode(cn); // NO: there may be more items to fill in.
+        addIntermediaryNonRepeatingNodesRec(fieldsAndNodes, closestParentNode, cn);
+      }
+
+      // Always add the current field.
+      cn.addConceptField(conceptField);
+
+      return Optional.empty();
+    }
+    return Optional.of(conceptField); // Leaf of tree: just return.
+  }
 
 }

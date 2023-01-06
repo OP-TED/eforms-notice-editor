@@ -30,7 +30,7 @@ public abstract class SaveNoticeTest {
   static final String VIS_CONTENT_COUNT = VisualModel.VIS_CONTENT_COUNT;
   static final String VIS_CONTENT_ID = VisualModel.VIS_CONTENT_ID;
   static final String VIS_VALUE = VisualModel.VIS_VALUE;
-  static final String VIS_NODE_ID = "visNodeId";
+  static final String VIS_NODE_ID = VisualModel.VIS_NODE_ID;
 
   //
   // FIELDS JSON RELATED.
@@ -43,7 +43,7 @@ public abstract class SaveNoticeTest {
   static final String ND_ROOT = ConceptualModel.ND_ROOT;
 
   /**
-   * Root extension node, holds some important metadata.
+   * Root extension node, holds some important metadata and more.
    */
   static final String ND_ROOT_EXTENSION = ConceptualModel.ND_ROOT_EXTENSION;
 

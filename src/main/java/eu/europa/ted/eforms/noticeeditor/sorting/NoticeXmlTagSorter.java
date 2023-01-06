@@ -3,6 +3,7 @@ package eu.europa.ted.eforms.noticeeditor.sorting;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -15,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.DocumentTypeInfo;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.DocumentTypeNamespace;
@@ -33,6 +35,7 @@ public class NoticeXmlTagSorter {
 
   private static final Logger logger = LoggerFactory.getLogger(NoticeXmlTagSorter.class);
 
+  private static final String CBC_CUSTOMIZATION_ID = "cbc:CustomizationID";
   private static final String XSD_COMPLEX_TYPE = "xsd:complexType";
 
   /**
@@ -63,6 +66,11 @@ public class NoticeXmlTagSorter {
    */
   public NoticeXmlTagSorter(final DocumentBuilder docBuilder, final XPath xpathInst,
       final DocumentTypeInfo docTypeInfo, final Path sdkRootFolder) {
+
+    Validate.notNull(docBuilder);
+    Validate.notNull(xpathInst);
+    Validate.notNull(sdkRootFolder);
+    Validate.notNull(docTypeInfo);
 
     this.docBuilder = docBuilder;
 
@@ -99,7 +107,7 @@ public class NoticeXmlTagSorter {
 
     // Compare sdkVersion of the element to the SDK version of this instance.
     final String sdkVersionOfNoticeStr =
-        XmlUtils.getDirectChild(xmlRoot, "cbc:CustomizationID").getTextContent();
+        XmlUtils.getDirectChild(xmlRoot, CBC_CUSTOMIZATION_ID).getTextContent();
 
     final SdkVersion sdkVersionOfNotice =
         new SdkVersion(XmlWriteService.parseEformsSdkVersionText(sdkVersionOfNoticeStr));
@@ -194,9 +202,27 @@ public class NoticeXmlTagSorter {
 
       // Modify physical model: sort, reorder XML elements.
       for (final Element elemFound : elemsFoundByTag) {
+
+        // Find comments above the element.
+        final List<Node> commentsAbove = new ArrayList<>();
+        Node previousSibling = elemFound.getPreviousSibling();
+        while (previousSibling != null) {
+          if (previousSibling.getNodeType() == Node.TEXT_NODE) {
+            commentsAbove.add(previousSibling);
+          } else if (previousSibling.getNodeType() == Node.COMMENT_NODE) {
+            commentsAbove.add(previousSibling);
+          } else {
+            break;
+          }
+          previousSibling = previousSibling.getPreviousSibling();
+        }
+        Collections.reverse(commentsAbove); // To keep the order.
+
         // THIS SORTS THE TAGS:
-        noticeElem.removeChild(elemFound); // Removes child from old location.
-        noticeElem.appendChild(elemFound); // Appends child at the new location.
+        for (final Node commentAbove : commentsAbove) {
+          removeAndAppend(noticeElem, commentAbove);
+        }
+        removeAndAppend(noticeElem, elemFound);
       }
 
       // Continue recursively on the child elements of the notice.
@@ -207,6 +233,15 @@ public class NoticeXmlTagSorter {
         sortChildTagsRec(elemOrderByXsdElemType, xsdElemTypeByXsdElemName, elemFound);
       }
     }
+  }
+
+  /**
+   * @param elemParent The element in which to append
+   * @param elemToSort The element to remove and append
+   */
+  private static void removeAndAppend(final Element elemParent, final Node elemToSort) {
+    elemParent.removeChild(elemToSort); // Removes child from old location.
+    elemParent.appendChild(elemToSort); // Appends child at the new location.
   }
 
   /**
@@ -333,22 +368,22 @@ public class NoticeXmlTagSorter {
     final List<Element> seqElements = XmlUtils.evaluateXpathAsElemList(xpathInst, xsdSequence,
         xpathExpr, "Looking for " + XSD_ELEMENT);
 
-    final List<String> xmlTagOrder = new ArrayList<>(seqElements.size());
+    final List<String> xmlTagsInOrder = new ArrayList<>(seqElements.size());
     for (final Element seqElem : seqElements) {
       // Get the reference.
       // Example: <xsd:element ref="ext:UBLExtensions" .../>
       final String ref = XmlUtils.getAttrText(seqElem, "ref");
       Validate.notBlank(ref, "ref is blank");
-      if (!xmlTagOrder.contains(ref)) {
-        xmlTagOrder.add(ref);
+      if (!xmlTagsInOrder.contains(ref)) {
+        xmlTagsInOrder.add(ref);
       } else {
         // There is a duplicate which in terms of order is problematic.
         throw new RuntimeException(String.format("Already contains order ref=%s", ref));
       }
     }
 
-    Validate.notEmpty(xmlTagOrder, "xmlTagOrder is empty");
-    return xmlTagOrder;
+    Validate.notEmpty(xmlTagsInOrder, "xmlTagOrder is empty");
+    return xmlTagsInOrder;
   }
 
   /**

@@ -148,12 +148,15 @@ public class PhysicalModel {
       final Map<String, JsonNode> documentInfoByType, final boolean debug,
       final boolean buildFields, final Path sdkRootFolder)
       throws ParserConfigurationException, SAXException, IOException {
+
     logger.info("Attempting to build physical model.");
 
     final DocumentBuilder safeDocBuilder =
         SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype(true);
+
     logger.info("XML DOM namespaceAware={}", safeDocBuilder.isNamespaceAware());
     logger.info("XML DOM validating={}", safeDocBuilder.isValidating());
+
     final Document xmlDoc = safeDocBuilder.newDocument();
     xmlDoc.setXmlStandalone(true);
 
@@ -176,19 +179,7 @@ public class PhysicalModel {
     // 0, true, xPathInst);
 
     if (debug) {
-      try {
-        // Generate dot file for the conceptual model.
-        // Visualizing it can help understand how it works or find problems.
-        final boolean includeFields = true;
-        final String dotText = conceptModel.toDot(fieldsAndNodes, includeFields);
-        final Path pathToFolder = Path.of("target/dot/");
-        Files.createDirectories(pathToFolder);
-        final Path pathToFile =
-            pathToFolder.resolve(conceptModel.getNoticeSubType() + "-concept.dot");
-        JavaTools.writeTextFile(pathToFile, dotText);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
+      writeDotFile(conceptModel, fieldsAndNodes);
     }
 
     // Recursion: start with the concept root.
@@ -202,6 +193,23 @@ public class PhysicalModel {
     reorderPhysicalModel(safeDocBuilder, xmlDocRoot, xpathInst, docTypeInfo, sdkRootFolder);
 
     return new PhysicalModel(xmlDoc, xpathInst, fieldsAndNodes);
+  }
+
+  private static void writeDotFile(final ConceptualModel conceptModel,
+      final FieldsAndNodes fieldsAndNodes) {
+    try {
+      // Generate dot file for the conceptual model.
+      // Visualizing it can help understand how it works or find problems.
+      final boolean includeFields = true;
+      final String dotText = conceptModel.toDot(fieldsAndNodes, includeFields);
+      final Path pathToFolder = Path.of("target/dot/");
+      Files.createDirectories(pathToFolder);
+      final Path pathToFile =
+          pathToFolder.resolve(conceptModel.getNoticeSubType() + "-concept.dot");
+      JavaTools.writeTextFile(pathToFile, dotText);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**

@@ -39,7 +39,19 @@ public class NoticeXmlTagSorterTest {
 
   @SuppressWarnings("static-method")
   @Test
-  public void test() throws IOException, ParserConfigurationException, SAXException {
+  public void testXmlSortingAndValidate()
+      throws IOException, ParserConfigurationException, SAXException {
+
+    // How the test works:
+
+    // 1. There is a reference notice XML document.
+    // 2. A copy of this reference was created and tag order was purposefully modified.
+    // 3. The test sorts the purposefully modified version and outputs it as indented xml text.
+    // 4. The reference is parsed and rewritten as indented xml (same indentation as other xml
+    // text).
+    // 5. The sorted text is compared to the reference text.
+    // 6. The test ensures the unsorted XML is invalid for coherence of the test.
+    // 7. Then it validates the sorted XML.
 
     // The configured document builder is reusable.
     final DocumentBuilder builder = SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype(true);
@@ -51,27 +63,27 @@ public class NoticeXmlTagSorterTest {
     // The xpath instance namespace aware and reusable.
     final XPath xpathInst = XpathUtils.setupXpathInst(docTypeInfo, Optional.empty());
 
-    final Document docPreSorted = DummySdk.getDummyX02NoticeNoComments(builder, sdkVersion);
+    final Document docReference = DummySdk.getDummyX02NoticeReference(builder, sdkVersion);
     final Document docUnsorted1 = DummySdk.getDummyX02NoticeUnsorted(builder, sdkVersion);
 
     // SORT.
     final NoticeXmlTagSorter sorter = new NoticeXmlTagSorter(builder, xpathInst, docTypeInfo,
         DummySdk.buildDummySdkPath(sdkVersion));
 
-    sortAndCompare(docUnsorted1, docPreSorted, sorter);
+    sortAndCompare(docUnsorted1, docReference, sorter);
   }
 
-  private static void sortAndCompare(final Document docUnsorted, final Document docPreSorted,
+  private static void sortAndCompare(final Document docUnsorted, final Document docReference,
       final NoticeXmlTagSorter sorter) throws SAXException, IOException {
 
     // Indentation is not required technically speaking but it is much nicer in case of problems.
     final boolean indentXml = true;
 
-    final String textPreSorted = EditorXmlUtils.asText(docPreSorted, indentXml);
+    final String textReference = EditorXmlUtils.asText(docReference, indentXml);
 
     // VALIDATE THE REFERENCE.
     final Path mainXsdPath = sorter.getMainXsdPath();
-    validateXml(textPreSorted, mainXsdPath);
+    validateXml(textReference, mainXsdPath);
 
     final String textBeforeSorting = EditorXmlUtils.asText(docUnsorted, indentXml);
     try {
@@ -85,22 +97,21 @@ public class NoticeXmlTagSorterTest {
     // Sort it.
     sorter.sortXml(docUnsorted);
 
-    // Sort it twice to ensure it is stable.
+    // Sort it again to ensure it is stable.
     sorter.sortXml(docUnsorted);
 
     final String textUnsortedAfterSort = EditorXmlUtils.asText(docUnsorted, indentXml);
 
-
     // Ensure it is sorted by comparing to the reference example.
-    if (!textPreSorted.equals(textUnsortedAfterSort)) {
+    if (!textReference.equals(textUnsortedAfterSort)) {
       // Show diff for debugging convenience.
-      // logger.info(textUnsortedAfterSort);
+      logger.info(textUnsortedAfterSort);
       logger.info("");
       logger.info("DIFFERENCE: ");
       // logger.info(StringUtils.difference(textUnsortedAfterSort, textPreSorted));
-      logger.info(StringUtils.difference(textPreSorted, textUnsortedAfterSort));
+      logger.info(StringUtils.difference(textReference, textUnsortedAfterSort));
     }
-    assertEquals(textPreSorted, textUnsortedAfterSort);
+    assertEquals(textReference, textUnsortedAfterSort);
 
     // VALIDATE after sorting.
     validateXml(textUnsortedAfterSort, mainXsdPath);

@@ -34,6 +34,7 @@
       </cac:Contact>
    </cac:SenderParty>
    <cac:BusinessParty>
+    <!-- Main Internet Address -->
       <cbc:WebsiteURI>http://www.acme-solution.co.uk</cbc:WebsiteURI>
       <cac:PostalAddress>
          <cbc:StreetName>Mainstreet 3B</cbc:StreetName>
@@ -84,6 +85,11 @@
          </cac:ExternalReference>
       </cac:Attachment>
    </cac:AdditionalDocumentReference>
+   <!-- 
+    Sector of activity
+    ==================
+    Codelst to be established, see for Main Activity if extended
+   -->
    <cac:BusinessCapability>
       <cbc:CapabilityTypeCode listName="sector">education</cbc:CapabilityTypeCode>
    </cac:BusinessCapability>

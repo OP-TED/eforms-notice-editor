@@ -1,5 +1,6 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
+import java.util.Optional;
 import org.apache.commons.lang3.Validate;
 import com.fasterxml.jackson.databind.JsonNode;
 import eu.europa.ted.eforms.noticeeditor.util.GraphvizDotTool;
@@ -49,6 +50,9 @@ public class ConceptualModel {
     Validate.isTrue(ND_ROOT.equals(rootNode.getNodeId()));
     this.treeRootNode = rootNode;
     this.sdkVersion = sdkVersion;
+
+    // This must not crash.
+    getNoticeSubType();
   }
 
   public SdkVersion getSdkVersion() {
@@ -61,8 +65,14 @@ public class ConceptualModel {
 
   public String getNoticeSubType() {
     // HARDCODED LOGIC.
-    final ConceptTreeNode rootExtension = treeRootNode.getConceptNodes().stream()
-        .filter(item -> item.getNodeId() == ND_ROOT_EXTENSION).findFirst().get();
+    final Optional<ConceptTreeNode> firstRootExtension = treeRootNode.getConceptNodes().stream()
+        .filter(item -> item.getNodeId() == ND_ROOT_EXTENSION).findFirst();
+    if (firstRootExtension.isEmpty()) {
+      throw new RuntimeException(String.format(
+          "Expecting to find root extension in conceptual model! Missing important nodeId=%s",
+          ND_ROOT_EXTENSION));
+    }
+    final ConceptTreeNode rootExtension = firstRootExtension.get();
     return rootExtension.getConceptFields().stream()
         .filter(item -> item.getFieldId() == FIELD_ID_NOTICE_SUB_TYPE).findFirst().get().getValue();
   }

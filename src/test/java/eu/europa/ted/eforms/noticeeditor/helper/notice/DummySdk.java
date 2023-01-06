@@ -39,7 +39,7 @@ public class DummySdk {
   }
 
 
-  public static Document getDummyX02NoticeNoComments(final DocumentBuilder builder,
+  public static Document getDummyX02NoticeReference(final DocumentBuilder builder,
       final SdkVersion sdkVersion) throws SAXException, IOException {
     final File file = resolveToFileX02Reference(sdkVersion);
     return builder.parse(file);
@@ -63,6 +63,6 @@ public class DummySdk {
   }
 
   private static File resolveToFileX02Reference(final SdkVersion sdkVersion) {
-    return resolveToFile(sdkVersion, "examples/notices/X02_registration-NO-COMMENTS.xml");
+    return resolveToFile(sdkVersion, "examples/notices/X02_registration-reference.xml");
   }
 }
