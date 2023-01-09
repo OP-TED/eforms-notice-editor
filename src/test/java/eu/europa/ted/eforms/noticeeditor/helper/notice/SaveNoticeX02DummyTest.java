@@ -246,7 +246,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
       field.put(KEY_XPATH_REL, "cac:BusinessCapability/cbc:CapabilityTypeCode");
       field.put(KEY_TYPE, TYPE_CODE);
       SaveNoticeTest.fieldPutRepeatable(field, true);
-      field.put(KEY_CODE_LIST_ID, "main-activity");
+      FieldsAndNodes.setFieldFlatCodeList(mapper, field, "main-activity");
     }
     {
       final ObjectNode field = mapper.createObjectNode();
@@ -256,7 +256,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
       field.put(KEY_XPATH_REL, "cbc:PurposeCode");
       field.put(KEY_TYPE, TYPE_CODE);
       SaveNoticeTest.fieldPutRepeatable(field, false);
-      field.put(KEY_CODE_LIST_ID, "notice-purpose");
+      FieldsAndNodes.setFieldFlatCodeList(mapper, field, "notice-purpose");
     }
     {
       final ObjectNode field = mapper.createObjectNode();

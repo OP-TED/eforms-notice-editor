@@ -68,6 +68,8 @@ public class XmlWriteService {
     final JsonNode fieldsJson = sdkService.readSdkFieldsJson(sdkVersion);
     final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldsJson, sdkVersion);
     final VisualModel visualModel = new VisualModel(visualRoot);
+    visualModel.writeDotFile(fieldsAndNodes);
+
     final JsonNode noticeTypesJson = sdkService.readNoticeTypesJson(sdkVersion);
 
     final Map<String, JsonNode> noticeInfoBySubtype = new HashMap<>(512);

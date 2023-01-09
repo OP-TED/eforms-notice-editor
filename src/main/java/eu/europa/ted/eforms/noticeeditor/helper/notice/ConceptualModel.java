@@ -1,9 +1,14 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.Validate;
 import com.fasterxml.jackson.databind.JsonNode;
 import eu.europa.ted.eforms.noticeeditor.util.GraphvizDotTool;
+import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
@@ -50,9 +55,7 @@ public class ConceptualModel {
     Validate.isTrue(ND_ROOT.equals(rootNode.getNodeId()));
     this.treeRootNode = rootNode;
     this.sdkVersion = sdkVersion;
-
-    // This must not crash.
-    getNoticeSubType();
+    getNoticeSubType(); // This must not crash.
   }
 
   public SdkVersion getSdkVersion() {
@@ -65,16 +68,24 @@ public class ConceptualModel {
 
   public String getNoticeSubType() {
     // HARDCODED LOGIC.
-    final Optional<ConceptTreeNode> firstRootExtension = treeRootNode.getConceptNodes().stream()
-        .filter(item -> item.getNodeId() == ND_ROOT_EXTENSION).findFirst();
-    if (firstRootExtension.isEmpty()) {
+    final List<ConceptTreeNode> conceptNodes = treeRootNode.getConceptNodes();
+    final Optional<ConceptTreeNode> rootExtOpt = conceptNodes.stream()
+        .filter(item -> item.getNodeId().equals(ND_ROOT_EXTENSION)).findFirst();
+    if (rootExtOpt.isEmpty()) {
       throw new RuntimeException(String.format(
-          "Expecting to find root extension in conceptual model! Missing important nodeId=%s",
+          "Conceptual model: Expecting to find root extension in conceptual model! Missing important nodeId=%s",
           ND_ROOT_EXTENSION));
     }
-    final ConceptTreeNode rootExtension = firstRootExtension.get();
-    return rootExtension.getConceptFields().stream()
-        .filter(item -> item.getFieldId() == FIELD_ID_NOTICE_SUB_TYPE).findFirst().get().getValue();
+
+    final ConceptTreeNode rootExtension = rootExtOpt.get();
+    final Optional<ConceptTreeField> noticeSubTypeOpt = rootExtension.getConceptFields().stream()
+        .filter(item -> item.getFieldId().equals(FIELD_ID_NOTICE_SUB_TYPE)).findFirst();
+    if (noticeSubTypeOpt.isEmpty()) {
+      throw new RuntimeException(String.format(
+          "Concept model: Expecting to find notice sub type field! Missing important fieldId=%s",
+          FIELD_ID_NOTICE_SUB_TYPE));
+    }
+    return noticeSubTypeOpt.get().getValue();
   }
 
   @Override
@@ -86,7 +97,7 @@ public class ConceptualModel {
    * This can be used for visualization of the conceptual model tree (as a graph). The graphviz dot
    * text itself is interesting but it makes even more sense when seen inside a tool.
    */
-  public String toDot(final FieldsAndNodes fieldsAndNodes, final boolean includeFields) {
+  private String toDot(final FieldsAndNodes fieldsAndNodes, final boolean includeFields) {
 
     final StringBuilder sb = new StringBuilder();
     final ConceptTreeNode root = this.treeRootNode;
@@ -94,11 +105,26 @@ public class ConceptualModel {
 
     final StringBuilder sbDot = new StringBuilder();
     final String noticeSubType = this.getNoticeSubType();
-    final String title = noticeSubType;
+    final String title = "conceptual-" + noticeSubType;
     GraphvizDotTool.appendDiGraph(sb.toString(), sbDot, title,
         "Conceptual model of " + noticeSubType, false, true);
 
     return sbDot.toString();
+  }
+
+  public void writeDotFile(final FieldsAndNodes fieldsAndNodes) {
+    try {
+      // Generate dot file for the conceptual model.
+      // Visualizing it can help understand how it works or find problems.
+      final boolean includeFields = true;
+      final String dotText = this.toDot(fieldsAndNodes, includeFields);
+      final Path pathToFolder = Path.of("target/dot/");
+      Files.createDirectories(pathToFolder);
+      final Path pathToFile = pathToFolder.resolve(this.getNoticeSubType() + "-concept.dot");
+      JavaTools.writeTextFile(pathToFile, dotText);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
@@ -109,8 +135,8 @@ public class ConceptualModel {
    */
   private static void toDotRec(final FieldsAndNodes fieldsAndNodes, final StringBuilder sb,
       final ConceptTreeNode cn, final boolean includeFields) {
-    final String cnIdUnique = cn.getIdUnique();
-    final String edgeLabel = cn.getNodeId();
+    final String cnIdUnique = cn.getIdUnique() + "_" + cn.getNodeId();
+    final String edgeLabel = "";
 
     // Include nodes in dot file.
     for (final ConceptTreeNode childNode : cn.getConceptNodes()) {
@@ -121,7 +147,7 @@ public class ConceptualModel {
       final String color =
           nodeIsRepeatable ? GraphvizDotTool.COLOR_GREEN : GraphvizDotTool.COLOR_BLACK;
 
-      GraphvizDotTool.appendEdge(edgeLabel, color,
+      GraphvizDotTool.appendEdge("", color,
 
           cnIdUnique, childNode.getIdUnique(), // concept node -> concept node
 

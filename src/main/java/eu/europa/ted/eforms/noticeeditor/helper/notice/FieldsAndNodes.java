@@ -3,8 +3,11 @@ package eu.europa.ted.eforms.noticeeditor.helper.notice;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.commons.lang3.Validate;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.sdk.SdkConstants;
 import eu.europa.ted.eforms.sdk.SdkVersion;
@@ -17,6 +20,10 @@ public class FieldsAndNodes {
 
   private static final String FIELD_ID_KEY = "id";
   private static final String NODE_ID_KEY = "id";
+  static final String VALUE = "value";
+
+  static final String CODELIST_ID = "id";
+  static final String CODELIST_TYPE = "type";
 
   static final String FIELD_PARENT_NODE_ID = "parentNodeId";
 
@@ -116,13 +123,19 @@ public class FieldsAndNodes {
     // "severity" : "ERROR"
     // },
     final JsonNode prop = getFieldProperty(json, propKey);
-    return JsonUtils.getBoolStrict(prop, "value");
+    return JsonUtils.getBoolStrict(prop, VALUE);
   }
 
   public static JsonNode getFieldProperty(final JsonNode json, final String propKey) {
     final JsonNode prop = json.get(propKey);
     Validate.notNull(prop, "Property is null for propKey=%s", propKey);
     return prop;
+  }
+
+  public static JsonNode getFieldPropertyValue(final JsonNode json, final String propKey) {
+    final JsonNode prop = json.get(propKey);
+    Validate.notNull(prop, "Property is null for propKey=%s", propKey);
+    return prop.get(VALUE);
   }
 
   public boolean isFieldRepeatable(final String fieldId) {
@@ -133,11 +146,26 @@ public class FieldsAndNodes {
     return isNodeRepeatableStatic(this.getNodeById(nodeId));
   }
 
+  public boolean isNodeRepeatable(final Optional<String> nodeIdOpt) {
+    // If there is no node id we say it is non-repeatable (false).
+    return nodeIdOpt.isPresent() ? isNodeRepeatable(nodeIdOpt.get()) : false;
+  }
+
   public static boolean isFieldRepeatableStatic(final JsonNode fieldMeta) {
     return getFieldPropertyValueBoolStrict(fieldMeta, FIELD_REPEATABLE);
   }
 
   public static boolean isNodeRepeatableStatic(final JsonNode nodeMeta) {
     return JsonUtils.getBoolStrict(nodeMeta, NODE_REPEATABLE);
+  }
+
+  public static void setFieldFlatCodeList(final ObjectMapper mapper, final ObjectNode field,
+      final String codelistId) {
+    final ObjectNode codeList = mapper.createObjectNode();
+    final ObjectNode codelistValue = mapper.createObjectNode();
+    codelistValue.put(FieldsAndNodes.CODELIST_ID, codelistId);
+    codelistValue.put(FieldsAndNodes.CODELIST_TYPE, "flat");
+    codeList.set(FieldsAndNodes.VALUE, codelistValue);
+    field.set(PhysicalModel.FIELD_CODE_LIST, codeList);
   }
 }

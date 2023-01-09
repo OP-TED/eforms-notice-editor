@@ -47,15 +47,17 @@ public abstract class SaveNoticeTest {
    */
   static final String ND_ROOT_EXTENSION = ConceptualModel.ND_ROOT_EXTENSION;
 
-  static final String KEY_CODE_LIST_ID = "codeListId";
   static final String KEY_TYPE = "type";
+
   static final String KEY_PARENT_NODE_ID = "parentNodeId";
   static final String KEY_NODE_PARENT_ID = "parentId";
+
   static final String KEY_XPATH_REL = "xpathRelative";
   static final String KEY_XPATH_ABS = "xpathAbsolute";
+
   static final String KEY_FIELD_REPEATABLE = "repeatable";
   static final String KEY_NODE_REPEATABLE = "repeatable";
-  static final String KEY_VALUE = "value";
+  static final String KEY_VALUE = FieldsAndNodes.VALUE;
 
   static final String TYPE_DATE = "date";
   static final String TYPE_TEXT = "text";
@@ -137,7 +139,7 @@ public abstract class SaveNoticeTest {
       field.put(KEY_XPATH_REL, "efac:NoticeSubType/cbc:SubTypeCode");
       field.put(KEY_TYPE, TYPE_CODE);
       SaveNoticeTest.fieldPutRepeatable(field, false);
-      field.put(KEY_CODE_LIST_ID, CODELIST_NOTICE_SUBTYPE);
+      FieldsAndNodes.setFieldFlatCodeList(mapper, field, CODELIST_NOTICE_SUBTYPE);
     }
     return fieldById;
   }
@@ -225,4 +227,5 @@ public abstract class SaveNoticeTest {
         + prefixedSdkVersion + "<");
 
   }
+
 }

@@ -63,11 +63,36 @@ public class JsonUtils {
     return jsonElem.asText("");
   }
 
+  /**
+   * @return The expected text, otherwise it fails with the key as only information
+   */
   public static String getTextStrict(final JsonNode json, final String key) {
     final JsonNode jsonElem = checkKeyAndElemNotNull(json, key);
     final String text = jsonElem.asText(null);
     Validate.notBlank(text, "Text is blank for key=%s", key);
     return text;
+  }
+
+  /**
+   * @param errorText This text will be shown in case of an error, this can be used to provide
+   *        additional context
+   * @return The expected text, otherwise it fails with the key text and error text
+   */
+  public static String getTextStrict(final JsonNode json, final String key,
+      final String errorText) {
+    final JsonNode jsonElem = checkKeyAndElemNotNull(json, key, errorText);
+    final String text = jsonElem.asText(null);
+    Validate.notBlank(text, "Text is blank for key=%s, msg=%s", key, errorText);
+    return text;
+  }
+
+  private static JsonNode checkKeyAndElemNotNull(final JsonNode json, final String key,
+      final String errorText) {
+    Validate.notNull(json, "Elem is null for key=%s, msg=%s", key, errorText);
+
+    final JsonNode jsonElem = json.get(key);
+    Validate.notNull(jsonElem, "Not found for key=%s, msg=%s", key, errorText);
+    return jsonElem;
   }
 
   private static JsonNode checkKeyAndElemNotNull(final JsonNode json, final String key) {

@@ -1,5 +1,8 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Optional;
 import java.util.UUID;
 import org.apache.commons.lang3.Validate;
@@ -9,6 +12,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import eu.europa.ted.eforms.noticeeditor.util.GraphvizDotTool;
+import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 
 /**
@@ -62,8 +67,12 @@ public class VisualModel {
     final String rootNodeId = JsonUtils.getTextStrict(visRoot, VIS_NODE_ID);
     final String expected = ConceptualModel.ND_ROOT;
     Validate.isTrue(expected.equals(rootNodeId), "Visual model root must be %s", expected);
-    JsonUtils.getTextStrict(visRoot, VIS_NOTICE_SUB_TYPE); // This must not crash.
     this.visRoot = visRoot;
+    getNoticeSubType(); // This must not crash.
+  }
+
+  private String getNoticeSubType() {
+    return JsonUtils.getTextStrict(visRoot, VIS_NOTICE_SUB_TYPE);
   }
 
   public JsonNode getVisRoot() {
@@ -71,7 +80,7 @@ public class VisualModel {
   }
 
   public ArrayNode getVisRootChildren() {
-    return (ArrayNode) this.visRoot.get(VIS_CHILDREN);
+    return getChildren(this.visRoot);
   }
 
   /**
@@ -164,7 +173,6 @@ public class VisualModel {
     if (!conceptItemOpt.isPresent()) {
       throw new RuntimeException("Expecting concept item at root level.");
     }
-
     final ConceptTreeNode rootNode = (ConceptTreeNode) conceptItemOpt.get();
     return new ConceptualModel(rootNode, fieldsAndNodes.getSdkVersion());
   }
@@ -194,12 +202,12 @@ public class VisualModel {
     if (nodeParentId.equals(closestParentNode.getNodeId())) {
       // The closestParent is the parent, just attach it and stop.
       // -> closestParent -> cn
-      closestParentNode.addConceptNode(cn);
+      closestParentNode.addConceptNode(cn, false);
       return;
     }
 
-    final JsonNode nodeParentMeta = fieldsAndNodes.getNodeById(nodeParentId);
-    if (FieldsAndNodes.isNodeRepeatableStatic(nodeParentMeta)) {
+    final boolean isRepeatable = fieldsAndNodes.isNodeRepeatable(nodeParentId);
+    if (isRepeatable) {
       // The SDK says the desired parentNodeId is repeatable and is missing in the
       // visual model, thus we have a serious problem!
       final String msg =
@@ -213,8 +221,8 @@ public class VisualModel {
     // Try to create an intermediary node in the conceptual model.
     // -> closestParent -> cnNew -> cn
     final ConceptTreeNode cnNew =
-        new ConceptTreeNode(nodeParentId + SUFFIX_GENERATED, nodeParentId, 1);
-    cnNew.addConceptNode(cn);
+        new ConceptTreeNode(nodeParentId + SUFFIX_GENERATED, nodeParentId, 1, isRepeatable);
+    cnNew.addConceptNode(cn, false);
 
     // There may be more to add, recursion:
     addIntermediaryNonRepeatingNodesRec(fieldsAndNodes, closestParentNode, cnNew);
@@ -231,13 +239,13 @@ public class VisualModel {
       final JsonNode jsonItem, final ConceptTreeNode closestParentNode) {
     Validate.notNull(jsonItem, "jsonNode is null, jsonNode=%s", jsonItem);
 
-    final String visContentId = JsonUtils.getTextStrict(jsonItem, VIS_CONTENT_ID);
-    final String visualType = JsonUtils.getTextStrict(jsonItem, VIS_TYPE);
+    final String visContentId = getContentId(jsonItem);
+    final String visualType = getContentType(jsonItem);
 
     //
     // VISUAL FIELD.
     //
-    if (VIS_TYPE_FIELD.equals(visualType)) {
+    if (isField(visualType)) {
       // What we call a field is some kind of form field which has a value.
       final JsonNode counterJson = jsonItem.get(VIS_CONTENT_COUNT);
       Validate.notNull(counterJson, "visual count is null for %s", visContentId);
@@ -248,18 +256,38 @@ public class VisualModel {
     //
     // VISUAL NON-FIELD (group, ...)
     //
-    if (VIS_TYPE_NON_FIELD.equals(visualType)) {
+    if (isNonField(visualType)) {
       return handleVisualGroup(fieldsAndNodes, jsonItem, closestParentNode, visContentId);
     }
 
     throw new RuntimeException(String.format("Unsupported visual type '%s'", visualType));
   }
 
+  private static boolean isNonField(final String visualType) {
+    return VIS_TYPE_NON_FIELD.equals(visualType);
+  }
+
+  private static boolean isField(final String visualType) {
+    return VIS_TYPE_FIELD.equals(visualType);
+  }
+
+  private static String getContentType(final JsonNode jsonItem) {
+    return JsonUtils.getTextStrict(jsonItem, VIS_TYPE);
+  }
+
+  private static String getContentId(final JsonNode jsonItem) {
+    return JsonUtils.getTextStrict(jsonItem, VIS_CONTENT_ID);
+  }
+
+  private static ArrayNode getChildren(final JsonNode item) {
+    return (ArrayNode) item.get(VIS_CHILDREN);
+  }
+
   private static Optional<ConceptTreeItem> handleVisualGroup(final FieldsAndNodes fieldsAndNodes,
       final JsonNode jsonItem, final ConceptTreeNode closestParentNode, final String contentId) {
 
     // This is a group (with or without nodeId).
-    final Optional<String> nodeIdOpt = JsonUtils.getTextOpt(jsonItem, VIS_NODE_ID);
+    final Optional<String> nodeIdOpt = getNodeIdOpt(jsonItem);
 
     //
     // GROUP WITH NO nodeId.
@@ -283,16 +311,22 @@ public class VisualModel {
     return Optional.of(conceptNode);
   }
 
+  private static Optional<String> getNodeIdOpt(final JsonNode jsonItem) {
+    return JsonUtils.getTextOpt(jsonItem, VIS_NODE_ID);
+  }
+
   private static ConceptTreeNode handleGroupWithoutNodeId(final FieldsAndNodes fieldsAndNodes,
       final JsonNode jsonItem, final String contentId, final Optional<String> nodeIdOpt) {
+
     final String sdkNodeId = nodeIdOpt.get();
     fieldsAndNodes.getNodeById(sdkNodeId); // Just for the checks.
 
-    final ConceptTreeNode conceptNode =
-        new ConceptTreeNode(contentId, sdkNodeId, jsonItem.get(VIS_CONTENT_COUNT).asInt(-1));
+    final boolean isRepeatable = fieldsAndNodes.isNodeRepeatable(nodeIdOpt.get());
+    final ConceptTreeNode conceptNode = new ConceptTreeNode(contentId, sdkNodeId,
+        jsonItem.get(VIS_CONTENT_COUNT).asInt(-1), isRepeatable);
 
     // Not a leaf of the tree: recursion on children:
-    final JsonNode maybeNull = jsonItem.get(VIS_CHILDREN);
+    final JsonNode maybeNull = VisualModel.getChildren(jsonItem);
 
     // The children array could be null depending on how the JSON is serialized (not present in the
     // JSON at all means null, or empty []).
@@ -359,8 +393,8 @@ public class VisualModel {
     if (!closestParentNode.getNodeId().equals(sdkParentNodeId)) {
       // The parents do not match.
 
-      final JsonNode sdkParentNode = fieldsAndNodes.getNodeById(sdkParentNodeId);
-      if (FieldsAndNodes.isNodeRepeatableStatic(sdkParentNode)) {
+      final boolean isRepeatable = fieldsAndNodes.isNodeRepeatable(sdkParentNodeId);
+      if (isRepeatable) {
         // The SDK says the desired parentNodeId is repeatable and is missing in the visual model,
         // thus we have a serious problem!
         final String msg = String.format(
@@ -389,7 +423,8 @@ public class VisualModel {
         // this is not the case.
         // ND-Root -> ... -> closestParentNode -> newConceptNode -> ... -> field
         // By convention we will add a suffix to these generated concept nodes.
-        cn = new ConceptTreeNode(sdkParentNodeId + SUFFIX_GENERATED, sdkParentNodeId, 1);
+        cn = new ConceptTreeNode(sdkParentNodeId + SUFFIX_GENERATED, sdkParentNodeId, 1,
+            isRepeatable);
 
         // See unit test about filling to fully understand this.
         // closestParentNode.addConceptNode(cn); // NO: there may be more items to fill in.
@@ -403,5 +438,78 @@ public class VisualModel {
     }
     return Optional.of(conceptField); // Leaf of tree: just return.
   }
+
+
+  /**
+   * This can be used for visualization of the visual model tree (as a graph). The graphviz dot text
+   * itself is interesting but it makes even more sense when seen inside a tool.
+   */
+  private String toDot(final FieldsAndNodes fieldsAndNodes, final boolean includeFields) {
+
+    final StringBuilder sb = new StringBuilder();
+    final JsonNode root = this.visRoot;
+    toDotRec(fieldsAndNodes, sb, root, includeFields);
+
+    final StringBuilder sbDot = new StringBuilder();
+    final String noticeSubType = this.getNoticeSubType();
+    final String title = noticeSubType;
+    GraphvizDotTool.appendDiGraph(sb.toString(), sbDot, title, "Visual model of " + noticeSubType,
+        false, true);
+
+    return sbDot.toString();
+  }
+
+
+  /**
+   * Recursively create DOT format text and append it to the string builder (sb).
+   *
+   * @param fieldsAndNodes SDK field and node metadata
+   * @param includeFields If true include fields in the graph, otherwise do not
+   */
+  private static void toDotRec(final FieldsAndNodes fieldsAndNodes, final StringBuilder sb,
+      final JsonNode item, final boolean includeFields) {
+    final Optional<String> nodeIdOpt = getNodeIdOpt(item);
+    final String idUnique =
+        getContentId(item) + (nodeIdOpt.isPresent() ? "_" + nodeIdOpt.get() : "");
+
+    final String edgeLabel = "";
+    // final String edgeLabel = nodeIdOpt.isPresent() ? nodeIdOpt.get() : idUnique;
+
+    // Include children in dot file.
+    final String visualType = VisualModel.getContentType(item);
+    if (VisualModel.isNonField(visualType)) {
+      for (final JsonNode child : VisualModel.getChildren(item)) {
+
+        final Optional<String> childNodeIdOpt = getNodeIdOpt(child);
+        final boolean nodeIsRepeatable = fieldsAndNodes.isNodeRepeatable(childNodeIdOpt);
+        final String color =
+            nodeIsRepeatable ? GraphvizDotTool.COLOR_GREEN : GraphvizDotTool.COLOR_BLACK;
+
+        GraphvizDotTool.appendEdge(edgeLabel, color,
+
+            idUnique, VisualModel.getContentId(child), // concept node -> concept node
+
+            sb);
+
+        toDotRec(fieldsAndNodes, sb, child, includeFields);
+      }
+    }
+  }
+
+  public void writeDotFile(final FieldsAndNodes fieldsAndNodes) {
+    try {
+      // Generate dot file for the conceptual model.
+      // Visualizing it can help understand how it works or find problems.
+      final boolean includeFields = true;
+      final String dotText = this.toDot(fieldsAndNodes, includeFields);
+      final Path pathToFolder = Path.of("target/dot/");
+      Files.createDirectories(pathToFolder);
+      final Path pathToFile = pathToFolder.resolve(this.getNoticeSubType() + "-visual.dot");
+      JavaTools.writeTextFile(pathToFile, dotText);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
 
 }

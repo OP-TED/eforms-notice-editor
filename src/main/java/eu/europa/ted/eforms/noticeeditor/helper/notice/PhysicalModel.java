@@ -2,7 +2,6 @@ package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 import static eu.europa.ted.eforms.noticeeditor.util.JsonUtils.getTextStrict;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,7 +27,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
 import eu.europa.ted.eforms.noticeeditor.sorting.NoticeXmlTagSorter;
 import eu.europa.ted.eforms.noticeeditor.util.EditorXmlUtils;
-import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.noticeeditor.util.XmlUtils;
 import eu.europa.ted.eforms.noticeeditor.util.XpathUtils;
@@ -57,7 +55,7 @@ public class PhysicalModel {
 
   private static final String NODE_XPATH_RELATIVE = "xpathRelative";
 
-  private static final String FIELD_CODE_LIST_ID = "codeListId";
+  public static final String FIELD_CODE_LIST = "codeList";
   private static final String FIELD_TYPE_CODE = "code";
   private static final String FIELD_XPATH_RELATIVE = "xpathRelative";
   private static final String FIELD_TYPE = "type";
@@ -179,7 +177,7 @@ public class PhysicalModel {
     // 0, true, xPathInst);
 
     if (debug) {
-      writeDotFile(conceptModel, fieldsAndNodes);
+      conceptModel.writeDotFile(fieldsAndNodes);
     }
 
     // Recursion: start with the concept root.
@@ -193,23 +191,6 @@ public class PhysicalModel {
     reorderPhysicalModel(safeDocBuilder, xmlDocRoot, xpathInst, docTypeInfo, sdkRootFolder);
 
     return new PhysicalModel(xmlDoc, xpathInst, fieldsAndNodes);
-  }
-
-  private static void writeDotFile(final ConceptualModel conceptModel,
-      final FieldsAndNodes fieldsAndNodes) {
-    try {
-      // Generate dot file for the conceptual model.
-      // Visualizing it can help understand how it works or find problems.
-      final boolean includeFields = true;
-      final String dotText = conceptModel.toDot(fieldsAndNodes, includeFields);
-      final Path pathToFolder = Path.of("target/dot/");
-      Files.createDirectories(pathToFolder);
-      final Path pathToFile =
-          pathToFolder.resolve(conceptModel.getNoticeSubType() + "-concept.dot");
-      JavaTools.writeTextFile(pathToFile, dotText);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
   }
 
   /**
@@ -495,14 +476,14 @@ public class PhysicalModel {
           // @listName or @currencyID
           // In the case we cannot create a new XML element.
           // We have to add this attribute to the previous element.
-          System.out.println(depthStr + " Creating attribute=" + tagOrAttr);
+          logger.debug(depthStr + " Creating attribute=" + tagOrAttr);
           previousElem.setAttribute(tagOrAttr.substring(1), value); // SIDE-EFFECT!
           // partElem = ... NO we do not want to reassign the partElem. This ensures that after we
           // exit the loop the partElem still points to the last XML element.
           // We also cannot set an attribute on an attribute!
         } else {
           // Create an XML element.
-          System.out.println(depthStr + " Creating tag=" + tagOrAttr);
+          logger.debug(depthStr + " Creating tag=" + tagOrAttr);
           partElem = createElemXml(doc, tagOrAttr);
           partElem.setAttribute(attrTemp, attrTemp);
         }
@@ -572,19 +553,24 @@ public class PhysicalModel {
     }
 
     // Set value of the field.
-    Validate.notNull(value, "value is null for fieldId=%s", fieldId);
+    Validate.notNull(value, "value is null for fieldId=%s", fieldId, "fieldId=" + fieldId);
     fieldElem.setTextContent(value);
 
     final String fieldType = JsonUtils.getTextStrict(fieldMeta, FIELD_TYPE);
-    if (fieldType == FIELD_TYPE_CODE) {
-      // Convention: in the XML the codelist is set in the listName attribute.
-      String listName = JsonUtils.getTextStrict(fieldMeta, FIELD_CODE_LIST_ID);
+    if (FIELD_TYPE_CODE.equals(fieldType)) {
+
+      // Find the SDK codelist identifier.
+      final JsonNode codelistValue =
+          FieldsAndNodes.getFieldPropertyValue(fieldMeta, FIELD_CODE_LIST);
+      String codelistName = JsonUtils.getTextStrict(codelistValue, "id", "fieldId=" + fieldId);
       if (ConceptualModel.OPP_105_BUSINESS.equals(fieldId)) {
         // TODO sector, temporary hardcoded fix here, this information should be provided in the
         // SDK. Maybe via a special key/value.
-        listName = "sector";
+        codelistName = "sector";
       }
-      fieldElem.setAttribute(XML_ATTR_LIST_NAME, listName);
+
+      // Convention: in the XML the codelist is set in the listName attribute.
+      fieldElem.setAttribute(XML_ATTR_LIST_NAME, codelistName);
     }
   }
 
