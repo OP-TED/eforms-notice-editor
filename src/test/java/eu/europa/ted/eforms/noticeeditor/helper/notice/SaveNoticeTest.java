@@ -200,7 +200,7 @@ public abstract class SaveNoticeTest {
     //
     // BUILD PHYSICAL MODEL.
     //
-    final boolean debug = true; // Adds field ids in the XML.
+    final boolean debug = true; // Adds field ids in the XML, making it easier to test the output.
     final boolean buildFields = true;
 
     final Path sdkRootFolder = SdkConstants.DEFAULT_SDK_ROOT;

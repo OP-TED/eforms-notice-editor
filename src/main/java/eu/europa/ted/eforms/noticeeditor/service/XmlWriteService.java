@@ -39,9 +39,11 @@ public class XmlWriteService {
 
   /**
    * @param noticeJson The notice as JSON as built by the front-end form.
+   * @param debug Adds special debug info to the XML, useful for humans and unit tests. Not for
+   *        production
    */
   public void saveNoticeAsXml(final Optional<HttpServletResponse> responseOpt,
-      final String noticeJson) throws Exception {
+      final String noticeJson, final boolean debug) throws Exception {
     Validate.notBlank(noticeJson, "noticeJson is blank");
 
     logger.info("Attempting to save notice as XML.");
@@ -50,7 +52,7 @@ public class XmlWriteService {
     final SdkVersion sdkVersion = parseSdkVersion(visualRoot);
     final UUID noticeUuid = parseNoticeUuid(visualRoot);
     try {
-      saveXmlSubMethod(responseOpt, visualRoot, sdkVersion, noticeUuid);
+      saveXmlSubMethod(responseOpt, visualRoot, sdkVersion, noticeUuid, debug);
     } catch (final Exception e) {
       // Catch any error, log some useful context and rethrow.
       logger.error("Error for notice uuid={}, sdkVersion={}", noticeUuid,
@@ -59,16 +61,23 @@ public class XmlWriteService {
     }
   }
 
+  /**
+   * @param debug Adds special debug info to the XML, useful for humans and unit tests. Not for
+   *        production
+   */
   private void saveXmlSubMethod(final Optional<HttpServletResponse> responseOpt,
-      final JsonNode visualRoot, final SdkVersion sdkVersion, final UUID noticeUuid)
-      throws ParserConfigurationException, SAXException, IOException {
+      final JsonNode visualRoot, final SdkVersion sdkVersion, final UUID noticeUuid,
+      final boolean debug) throws ParserConfigurationException, SAXException, IOException {
     Validate.notNull(visualRoot);
     Validate.notNull(noticeUuid);
 
     final JsonNode fieldsJson = sdkService.readSdkFieldsJson(sdkVersion);
     final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldsJson, sdkVersion);
     final VisualModel visualModel = new VisualModel(visualRoot);
-    visualModel.writeDotFile(fieldsAndNodes);
+
+    if (debug) {
+      visualModel.writeDotFile(fieldsAndNodes);
+    }
 
     final JsonNode noticeTypesJson = sdkService.readNoticeTypesJson(sdkVersion);
 
@@ -90,7 +99,6 @@ public class XmlWriteService {
     final ConceptualModel conceptModel = visualModel.toConceptualModel(fieldsAndNodes);
 
     // Build physical model.
-    final boolean debug = true;
     final boolean buildFields = true;
     final Path sdkRootFolder = sdkService.getSdkRootFolder();
     final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptModel,

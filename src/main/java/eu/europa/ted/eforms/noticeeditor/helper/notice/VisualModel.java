@@ -494,6 +494,9 @@ public class VisualModel {
     }
   }
 
+  /**
+   * Write dot graph file for debugging purposes.
+   */
   public void writeDotFile(final FieldsAndNodes fieldsAndNodes) {
     try {
       // Generate dot file for the conceptual model.

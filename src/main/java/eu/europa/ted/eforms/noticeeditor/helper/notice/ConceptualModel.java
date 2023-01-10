@@ -112,6 +112,9 @@ public class ConceptualModel {
     return sbDot.toString();
   }
 
+  /**
+   * Write dot graph file for debugging purposes.
+   */
   public void writeDotFile(final FieldsAndNodes fieldsAndNodes) {
     try {
       // Generate dot file for the conceptual model.
