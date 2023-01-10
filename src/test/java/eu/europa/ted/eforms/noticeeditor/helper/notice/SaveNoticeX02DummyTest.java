@@ -310,9 +310,6 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     count(xml, 1, String.format("<cac:BusinessParty editorCounterSelf=\"1\" editorNodeId=\"%s\"",
         ND_BUSINESS_PARTY));
 
-    // OPP-100-Business
-    // TODO in the NTD this is not under a group having ND-OperationType. Which is probably OK as
-    // this node is not repeatable.
     count(xml, 1, String.format("<efac:NoticePurpose editorCounterSelf=\"1\"", ND_OPERATION_TYPE));
 
     // count(xml, 1, String.format(

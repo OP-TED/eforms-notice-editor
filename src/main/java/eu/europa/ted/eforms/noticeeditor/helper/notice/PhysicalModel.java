@@ -275,8 +275,6 @@ public class PhysicalModel {
 
     // xpathRelative can contain many xml elements. We must build the hierarchy.
     // TODO Use ANTLR xpath grammar later? Avoid parsing the xpath altogether?
-    // TODO maybe use xpath to locate the tag in the doc ? What xpath finds is where to add the
-    // data.
 
     // Split the XPATH into parts.
     final String[] partsArr = getXpathPartsArr(xpathRel);
@@ -301,9 +299,6 @@ public class PhysicalModel {
         System.out.println(depthStr + " tag=" + tag);
         System.out.println(depthStr + " xmlTag=" + xmlNodeElem.getTagName());
       }
-
-      // TODO if the element is not repeatable, reuse it. Maybe here is the right place to
-      // use the counter.
 
       // Find existing elements in the context of the previous element.
       final NodeList foundElements;

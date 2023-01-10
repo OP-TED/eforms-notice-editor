@@ -130,7 +130,6 @@ public class VisualModel {
     // DUMMY NOTICE METADATA (as if coming from a web form before we have the XML).
     //
     {
-      // TODO Not really here ... see front JSON
       // SDK version.
       final ObjectNode visSdkVersion = mapper.createObjectNode();
       visRootChildren.add(visSdkVersion);
@@ -138,7 +137,6 @@ public class VisualModel {
       visSdkVersion.put(VIS_VALUE, fakeSdkForTest);
     }
 
-    // TODO Not really here ... see front JSON
     // Root extension.
     {
       final ObjectNode visRootExtension = mapper.createObjectNode();
