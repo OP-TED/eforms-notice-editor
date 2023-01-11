@@ -6,16 +6,33 @@ For edition it reads a notice file (xml) and the corresponding notice type file 
 
 ## Run server
 
-This is Jetty based (a bit like Tomcat but self contained, you could easily switch to Tomcat):
+You need the eForms Core Library: 
+
+https://github.com/OP-TED/eforms-core-java
+
+`mvn clean install` in the core library project.
+
+After this also install the editor demo:
+
+`mvn clean install`
+
+This is Jetty based (a bit like Tomcat but self contained, you could easily switch to Tomcat).
+We recommend you avoid running the project via mvn, from the `target` folder, example use:
 
 ```
-mvn compile exec:java -Dexec.mainClass="eu.europa.ted.eforms.noticeeditor.EformsNoticeEditorApp"
+java -jar notice-editor-demo-0.0.1-SNAPSHOT.jar
 ```
 
 In your browser go to: `localhost:8080/` (or whatever the start logs say)
 For the port settings see `application.properties`.
 
 Login credentials and security: Spring Security could be used.
+
+For development you may use:
+
+```
+mvn compile exec:java -Dexec.mainClass="eu.europa.ted.eforms.noticeeditor.EformsNoticeEditorApp"
+```
 
 ## Important files
 
@@ -51,6 +68,13 @@ Other exclusions: see `spotbugs-exclude.xml`
 Visitors and detectors:
 https://spotbugs-in-kengo-toda.readthedocs.io/en/lqc-list-detectors/detectors.html
 For contrib rules see: http://fb-contrib.sourceforge.net/bugdescriptions.html
+
+## Github discussions
+
+### Save notice
+
+https://github.com/OP-TED/eForms-SDK/discussions/126
+
 
 ## Reference Documentation
 

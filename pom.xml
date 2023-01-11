@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>eu.europa.ted.eforms</groupId>
   <artifactId>notice-editor-demo</artifactId>
@@ -14,7 +16,8 @@
   <licenses>
     <license>
       <name>European Union Public Licence, Version 1.2</name>
-      <url>https://joinup.ec.europa.eu/sites/default/files/custom-page/attachment/2020-03/EUPL-1.2%20EN.txt</url>
+      <url>https://joinup.ec.europa.eu/sites/default/files/custom-page/attachment/2020-03/EUPL-1.2%20EN.txt
+      </url>
       <distribution>repo</distribution>
     </license>
   </licenses>
@@ -44,7 +47,7 @@
     <maven.compiler.target>${java.version}</maven.compiler.target>
 
     <!-- Versions - eForms -->
-    <version.eforms-core>0.1.2-SNAPSHOT</version.eforms-core>
+    <version.eforms-core>1.0.0</version.eforms-core>
 
     <!-- Versions - Third-party libraries -->
     <version.xml.bind-api>2.3.3</version.xml.bind-api>
@@ -150,6 +153,14 @@
         <version>${version.ph-commons}</version>
       </dependency>
 
+      <!-- https://phax.github.io/ph-schematron/ -->
+      <!-- It transitively contains ph-commons, SLF4J and Saxon HE. -->
+      <dependency>
+        <groupId>com.helger</groupId>
+        <artifactId>ph-schematron</artifactId>
+        <version>5.0.8</version>
+      </dependency>
+
       <!-- SLF4J -->
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -201,6 +212,12 @@
   </dependencyManagement>
 
   <dependencies>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+
     <!-- eForms -->
     <dependency>
       <groupId>eu.europa.ted.eforms</groupId>
@@ -352,18 +369,35 @@
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
       <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
+    <dependency>
+      <!-- Used for namespace aware xpath. -->
+      <groupId>net.sf.saxon</groupId>
+      <artifactId>Saxon-HE</artifactId>
+      <version>11.4</version>
       <exclusions>
+        <!-- To avoid issues with the org.w3c.dom package. -->
         <exclusion>
-          <groupId>*</groupId>
-          <artifactId>*</artifactId>
+          <groupId>xml-apis</groupId>
+          <artifactId>xml-apis</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
-      <dependency>
-        <groupId>org.yaml</groupId>
-        <artifactId>snakeyaml</artifactId>
-        <scope>runtime</scope>
-      </dependency>
+
+    <dependency>
+      <!-- For reading XSD files. -->
+      <groupId>org.apache.ws.xmlschema</groupId>
+      <artifactId>xmlschema-core</artifactId>
+      <version>2.3.0</version>
+    </dependency>
+
   </dependencies>
 
   <build>

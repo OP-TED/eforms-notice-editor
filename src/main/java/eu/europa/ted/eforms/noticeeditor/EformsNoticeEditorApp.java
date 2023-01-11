@@ -19,6 +19,8 @@ import eu.europa.ted.eforms.sdk.resource.SdkDownloader;
  */
 @ConfigurationPropertiesScan
 @SpringBootApplication
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = "EXS_EXCEPTION_SOFTENING_HAS_CHECKED",
+    justification = "Checked to Runtime OK here")
 public class EformsNoticeEditorApp implements CommandLineRunner {
   private static final Logger logger = LoggerFactory.getLogger(EformsNoticeEditorApp.class);
 
@@ -46,11 +48,12 @@ public class EformsNoticeEditorApp implements CommandLineRunner {
     Validate.notEmpty(eformsSdkDir, "Undefined eForms SDK path");
     Validate.notNull(supportedSdks, "Undefined supported SDK versions");
 
-    for (String sdkVersion : supportedSdks) {
+    for (final String sdkVersion : supportedSdks) {
       try {
         SdkDownloader.downloadSdk(new SdkVersion(sdkVersion), Path.of(eformsSdkDir));
       } catch (IOException e) {
-        throw new RuntimeException("Failed to download SDK artifacts", e);
+        throw new RuntimeException(
+            String.format("Failed to download SDK artifacts for sdkVersion=%s", sdkVersion), e);
       }
     }
   }

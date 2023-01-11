@@ -25,12 +25,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -48,17 +49,39 @@ import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.sdk.SdkConstants.SdkResource;
 import eu.europa.ted.eforms.sdk.SdkVersion;
+import eu.europa.ted.eforms.sdk.resource.PathResource;
 import eu.europa.ted.eforms.sdk.resource.SdkResourceLoader;
 
-
 /**
- * Reads and serves data from the SDK.
+ * Reads data from the SDK files and serves it.
  */
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
     value = "EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS", justification = "Checked to Runtime OK here")
+@Service
 public class SdkService {
 
   private static final Logger logger = LoggerFactory.getLogger(SdkService.class);
+
+  @org.springframework.beans.factory.annotation.Value("${eforms.sdk.path}")
+  private String eformsSdkPath;
+
+  /**
+   * Mime type for JSON data.
+   */
+  public static final String MIME_TYPE_JSON = "application/json";
+
+  /**
+   * Mime type for XML data. Or should it be "text/xml"? Because browsers handle "application/xml"
+   * better this will be used in the editor. You are free to use what ever you want, but you have to
+   * be consistent in other parts of the application.
+   */
+  public static final String MIME_TYPE_XML = "application/xml";
+
+  static final String SDK_NOTICE_TYPES_JSON = "notice-types.json";
+  static final String SDK_FIELDS_JSON = "fields.json";
+  static final String SDK_CODELISTS_JSON = "codelists.json";
+
+  public static final String ND_ROOT = "ND-Root";
 
   /**
    * The number of seconds in one hour.
@@ -77,7 +100,7 @@ public class SdkService {
   private static final Pattern REGEX_SDK_VERSION =
       Pattern.compile("\\p{Digit}{1,2}\\.\\p{Digit}{1,2}\\.\\p{Digit}{1,2}");
 
-  public static String buildJsonFromCodelistGc(final String codeListId, final Path path,
+  public static String buildJsonFromCodelistGc(final String codelistGc, final Path path,
       final String langCode) throws IOException {
     // Use GC Helger lib to load SDK .gc file.
     final CustomGenericodeMarshaller marshaller = GenericodeTools.getMarshaller();
@@ -114,7 +137,7 @@ public class SdkService {
         final String technicalCode;
         if (technicalCodeValOpt.isPresent()) {
           technicalCode = technicalCodeValOpt.get().getSimpleValueValue();
-          Validate.notBlank("technicalCode is blank for codeListId=%s", codeListId);
+          Validate.notBlank("technicalCode is blank for codelistGc=%s", codelistGc);
 
           // Get desired language first, fallback to eng.
           final Optional<Value> desiredLabelOpt = gcFindFirstColumnRef(gcRowValues, genericodeLang);
@@ -193,30 +216,34 @@ public class SdkService {
     // this version when reporting a bug.
     map.put("appVersion", EformsNoticeEditorApp.APP_VERSION);
 
-    map.put("sdkVersions",
-        supportedSdks.stream().map(SdkVersion::toStringWithoutPatch)
-            .sorted(new IntuitiveStringComparator<>()).sorted(Collections.reverseOrder())
-            .collect(Collectors.toList()));
+    // Load available sdk versions. They will be listed in the UI.
+    map.put("sdkVersions", supportedSdks.stream()//
+        .map(SdkVersion::toStringWithoutPatch)//
+        .sorted(new IntuitiveStringComparator<>())//
+        .sorted(Collections.reverseOrder())//
+        .collect(Collectors.toList()));
 
     logger.info("Fetching home info: DONE");
     return map;
   }
 
   /**
-   * Dynamically get the available notice sub types from the given SDK.
+   * Dynamically get the available notice sub types from the given SDK. They will be proposed in the
+   * UI for the user to select.
    */
   public static Map<String, Object> getNoticeSubTypes(final SdkVersion sdkVersion,
       final Path eformsSdkDir) {
     final Map<String, Object> map = new LinkedHashMap<>();
+    // Just proxy this back to the UI as XHR calls could be async.
     map.put("sdkVersion", sdkVersion);
     try {
-      final List<String> availableNoticeTypes =
-          JavaTools.listFiles(SdkResourceLoader.getResourceAsPath(sdkVersion,
-              SdkResource.NOTICE_TYPES, eformsSdkDir));
+      final List<String> availableNoticeTypes = JavaTools.listFiles(
+          SdkResourceLoader.getResourceAsPath(sdkVersion, SdkResource.NOTICE_TYPES, eformsSdkDir));
 
       final List<String> noticeTypes = availableNoticeTypes.stream()//
           // Remove some files.
-          .filter(filename -> filename.endsWith(".json") && !"notice-types.json".equals(filename))//
+          .filter(filename -> filename.endsWith(".json")//
+              && !SDK_NOTICE_TYPES_JSON.equals(filename))//
           // Remove extension.
           .map(filename -> filename.substring(0, filename.lastIndexOf('.')))//
           .sorted(new IntuitiveStringComparator<>())//
@@ -232,18 +259,22 @@ public class SdkService {
   }
 
   /**
-   * Serve an SDK codelist information as JSON.
+   * Serve an SDK codelist information as JSON. This is called when a field allows to select codes.
    */
   public static String serveCodelistAsJson(final SdkVersion sdkVersion, final Path eformsSdkDir,
-      final String codeListId, final String langCode, final HttpServletResponse response)
+      final String codelistGc, final String langCode, final HttpServletResponse response)
       throws IOException {
+
+    // SECURITY: just an example here but do not blindly accept any filename here.
+    Validate.isTrue(codelistGc.endsWith(".gc"), "codelistGc=%s must end with .gc", codelistGc);
+
     final Path path = SdkResourceLoader.getResourceAsPath(sdkVersion, SdkResource.CODELISTS,
-        String.format("%s.gc", codeListId), eformsSdkDir);
+        codelistGc, eformsSdkDir);
 
     // As the SDK and other details are inside the url this data can be cached for a while.
     SdkService.setResponseCacheControl(response, SdkService.CACHE_MAX_AGE_SECONDS);
 
-    return SdkService.buildJsonFromCodelistGc(codeListId, path, langCode);
+    return SdkService.buildJsonFromCodelistGc(codelistGc, path, langCode);
   }
 
   /**
@@ -266,7 +297,7 @@ public class SdkService {
         throw new RuntimeException(String.format("InputStream is null for %s", path));
       }
       // Indicate the content type and encoding BEFORE writing to output.
-      response.setContentType("application/json");
+      response.setContentType(MIME_TYPE_JSON);
       response.setCharacterEncoding(StandardCharsets.UTF_8.toString());
       // setGzipResponse(response);
 
@@ -289,26 +320,29 @@ public class SdkService {
    * Serves the specified json string as download.
    *
    * @param response The HTTP response to serve the download to
-   * @param jsonString The JSON string to serve
+   * @param text The JSON string to serve
    * @param filenameForDownload The filename to set in the headers
    * @param isAsDownload Serve as attachement or not
+   * @param mimeType The response mime type
    * @throws IOException If a problem occurs during flush buffer
    */
-  private static void serveJsonString(final HttpServletResponse response, final String jsonString,
-      final String filenameForDownload, final boolean isAsDownload) throws IOException {
-    Validate.notBlank(jsonString, "jsonString is blank");
+  static void serveStringUtf8(final HttpServletResponse response, final String text,
+      final String filenameForDownload, final boolean isAsDownload, String mimeType)
+      throws IOException {
+    Validate.notBlank(text, "jsonString is blank");
     Validate.notBlank(filenameForDownload, "filenameForDownload is blank");
+
     // ---------------------------------
     // THE FILE IS SMALL, JUST COPY IT.
     // ---------------------------------
     final Charset utf8 = StandardCharsets.UTF_8;
-    try (InputStream is = IOUtils.toInputStream(jsonString, utf8)) {
+    try (InputStream is = IOUtils.toInputStream(text, utf8)) {
       if (is == null) {
         throw new RuntimeException(
             String.format("InputStream is null for %s", filenameForDownload));
       }
       // Indicate the content type and encoding BEFORE writing to output.
-      response.setContentType("application/json");
+      response.setContentType(mimeType);
       response.setCharacterEncoding(utf8.toString());
       // setGzipResponse(response);
 
@@ -328,16 +362,14 @@ public class SdkService {
   }
 
   /**
-   * Common SDK folder logic for reading files.
+   * Common SDK folder logic for reading JSON files.
    */
-  public static void serveSdkJsonFile(final HttpServletResponse response,
-      final SdkVersion sdkVersion, final Path eformsSdkDir, final SdkResource resourceType,
-      final String filenameForDownload) {
+  public void serveSdkJsonFile(final HttpServletResponse response, final SdkVersion sdkVersion,
+      final PathResource resourceType, final String filenameForDownload) {
     Validate.notNull(sdkVersion, "Undefined SDK version");
-
     try {
       final Path path = SdkResourceLoader.getResourceAsPath(sdkVersion, resourceType,
-          filenameForDownload, eformsSdkDir);
+          filenameForDownload, Path.of(eformsSdkPath));
 
       // As the sdkVersion and other details are in the url this can be cached for a while.
       setResponseCacheControl(response, CACHE_MAX_AGE_SECONDS);
@@ -351,17 +383,45 @@ public class SdkService {
   }
 
   /**
-   * Common SDK JSON string logic.
+   * Reads SDK JSON file into a JsonNode to be used in the Java code on the server-side.
+   */
+  public JsonNode readSdkJsonFile(final SdkVersion sdkVersion, final PathResource resourceType,
+      final String filenameForDownload) {
+    Validate.notNull(sdkVersion, "Undefined SDK version");
+    try {
+      final Path path = readSdkPath(sdkVersion, resourceType, filenameForDownload);
+      final ObjectMapper mapper = new ObjectMapper();
+      return mapper.readTree(path.toFile());
+    } catch (IOException ex) {
+      logger.error(ex.toString(), ex);
+      throw new RuntimeException(
+          String.format("Exception reading JSON file %s", filenameForDownload), ex);
+    }
+  }
+
+  /**
+   * Sdk resouce as a Path.
+   */
+  public Path readSdkPath(final SdkVersion sdkVersion, final PathResource resourceType,
+      final String filenameForDownload) {
+    Validate.notNull(sdkVersion, "SDK version is null");
+    // For the moment the way the folders work is that the folder "1.1.2" would be in folder "1.1",
+    // if "1.1.3" exists it would overwrite "1.1.2", but the folder would still be "1.1".
+    final String sdkVersionNoPatch = sdkVersion.getMajor() + "." + sdkVersion.getMinor();
+    return SdkResourceLoader.getResourceAsPath(new SdkVersion(sdkVersionNoPatch), resourceType,
+        filenameForDownload, Path.of(eformsSdkPath));
+  }
+
+  /**
+   * Common SDK JSON string logic. Serve any JSON string.
    */
   public static void serveSdkJsonString(final HttpServletResponse response, final String jsonStr,
       final String filenameForDownload) {
-    Validate.notBlank(jsonStr, "jsonStr is blank");
+    Validate.notBlank(jsonStr, "JSON string is blank");
     try {
-
       // As the sdkVersion and other details are in the url this can be cached for a while.
       setResponseCacheControl(response, CACHE_MAX_AGE_SECONDS);
-      serveJsonString(response, jsonStr, filenameForDownload, false);
-
+      serveStringUtf8(response, jsonStr, filenameForDownload, false, MIME_TYPE_JSON);
     } catch (Exception ex) {
       logger.error(ex.toString(), ex);
       throw new RuntimeException(
@@ -378,6 +438,7 @@ public class SdkService {
   public static Map<String, String> getTranslations(final SdkVersion sdkVersion,
       final Path eformsSdkDir, final String labelAssetType, final String langCode)
       throws ParserConfigurationException, SAXException, IOException {
+
     // SECURITY: Do not inject the passed language directly into a string that goes to the file
     // system. We use our internal enum as a whitelist.
     final Language lang = Language.valueOfFromLocale(langCode);
@@ -395,7 +456,7 @@ public class SdkService {
     // ...
 
     // Parse the XML, build a map of text by id.
-    final DocumentBuilder db = SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype();
+    final DocumentBuilder db = SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype(true);
     final File file = path.toFile();
 
     // NOTE: the file may not exist if there are no translations yet.
@@ -432,9 +493,10 @@ public class SdkService {
 
   public static void serveTranslations(final HttpServletResponse response,
       final SdkVersion sdkVersion, final Path eformsSdkDir, final String langCode,
-      String filenameForDownload)
-      throws ParserConfigurationException, SAXException, IOException, JsonProcessingException {
-    final Map<String, String> labelById = new LinkedHashMap<>();
+      final String filenameForDownload)
+      throws ParserConfigurationException, SAXException, IOException {
+
+    final Map<String, String> labelById = new LinkedHashMap<>(1024);
 
     // Security: set the asset type on the server side!
     final String labelAssetTypeField = "field";
@@ -450,7 +512,6 @@ public class SdkService {
     final String jsonStr = new ObjectMapper().writeValueAsString(labelById);
     serveSdkJsonString(response, jsonStr, filenameForDownload);
   }
-
 
   /**
    * HTTP header, cache related.
@@ -471,5 +532,46 @@ public class SdkService {
     // This will work well with large repetitive text files like JSON files, XML files, ...
     // https://stackoverflow.com/questions/21410317/using-gzip-compression-with-spring-boot-mvc-javaconfig-with-restful
     response.setHeader("Content-Encoding", "gzip");
+  }
+
+  /**
+   * Serves basic information about the SDK like fields.json and codelists.json data required to
+   * build the form in the UI.
+   *
+   * @param sdkVersion The version for selecting the correct SDK.
+   */
+  public void serveSdkBasicMetadata(final HttpServletResponse response,
+      final SdkVersion sdkVersion) {
+    Validate.notNull(sdkVersion, "sdkVersion is null");
+
+    final JsonNode fieldsJson = readSdkFieldsJson(sdkVersion);
+    final JsonNode codelistsJson = readSdkCodelistsJson(sdkVersion);
+
+    // Instead of doing several separate calls, it is simpler to group basic information in one go.
+    final ObjectNode basicInfoJson = JsonUtils.createObjectNode();
+    basicInfoJson.set("fieldsJson", fieldsJson);
+    basicInfoJson.set("codelistsJson", codelistsJson);
+
+    // Serve a fictional SDK json file that contains metadata from multiple files.
+    // This avoid doing multiple calls to separate SDK files.
+    final String filenameForDownload = "basic.json";
+
+    serveSdkJsonString(response, basicInfoJson.toPrettyString(), filenameForDownload);
+  }
+
+  JsonNode readSdkCodelistsJson(final SdkVersion sdkVersion) {
+    return readSdkJsonFile(sdkVersion, SdkResource.CODELISTS, SdkService.SDK_CODELISTS_JSON);
+  }
+
+  JsonNode readNoticeTypesJson(final SdkVersion sdkVersion) {
+    return readSdkJsonFile(sdkVersion, SdkResource.NOTICE_TYPES, SdkService.SDK_NOTICE_TYPES_JSON);
+  }
+
+  JsonNode readSdkFieldsJson(final SdkVersion sdkVersion) {
+    return readSdkJsonFile(sdkVersion, SdkResource.FIELDS, SdkService.SDK_FIELDS_JSON);
+  }
+
+  public Path getSdkRootFolder() {
+    return Path.of(this.eformsSdkPath);
   }
 }

@@ -7,6 +7,9 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Secure document builder.
+ */
 public class SafeDocumentBuilder {
   private static final Logger logger = LoggerFactory.getLogger(SafeDocumentBuilder.class);
 
@@ -14,22 +17,25 @@ public class SafeDocumentBuilder {
     throw new AssertionError("Utility class.");
   }
 
-  public static DocumentBuilder buildSafeDocumentBuilderAllowDoctype()
+  public static DocumentBuilder buildSafeDocumentBuilderAllowDoctype(final boolean namespaceAware)
       throws ParserConfigurationException {
-    return buildSafeDocumentBuilder(false);
+    return buildSafeDocumentBuilder(false, namespaceAware);
   }
 
-  public static DocumentBuilder buildSafeDocumentBuilderStrict()
+  public static DocumentBuilder buildSafeDocumentBuilderStrict(final boolean namespaceAware)
       throws ParserConfigurationException {
-    return buildSafeDocumentBuilder(true);
+    return buildSafeDocumentBuilder(true, namespaceAware);
   }
 
-  private static DocumentBuilder buildSafeDocumentBuilder(final boolean disallowDoctypeDecl)
-      throws ParserConfigurationException {
+  private static DocumentBuilder buildSafeDocumentBuilder(final boolean disallowDoctypeDecl,
+      final boolean namespaceAware) throws ParserConfigurationException {
     // https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html#java
     final DocumentBuilderFactory dbf = DocumentBuilderFactory.newDefaultInstance();
     String FEATURE = null;
     try {
+      if (namespaceAware) {
+        dbf.setNamespaceAware(true);
+      }
       // This is the PRIMARY defence. If DTDs (doctypes) are disallowed, almost
       // all
       // XML entity attacks are prevented

@@ -8,8 +8,8 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.commons.lang3.Validate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,7 +25,6 @@ import eu.europa.ted.eforms.sdk.SdkVersion;
 /**
  * REST API implementation for download of SDK related resources.
  */
-@SuppressWarnings("static-method")
 @RestController
 @RequestMapping(value = "/sdk")
 public class SdkRestController implements AsyncConfigurer {
@@ -34,8 +33,11 @@ public class SdkRestController implements AsyncConfigurer {
   @Value("${eforms.sdk.versions}")
   private List<SdkVersion> supportedSdks;
 
-  public SdkRestController(@Value("${eforms.sdk.path}") String eformsSdkDir,
-      @Value("${eforms.sdk.versions}") List<String> supportedSdks) {
+  @Autowired
+  private SdkService sdkService;
+
+  public SdkRestController(@Value("${eforms.sdk.path}") final String eformsSdkDir,
+      @Value("${eforms.sdk.versions}") final List<String> supportedSdks) {
     Validate.notEmpty(eformsSdkDir, "Undefined eForms SDK directory");
     Validate.notNull(supportedSdks, "Undefined supported SDK versions");
 
@@ -45,11 +47,9 @@ public class SdkRestController implements AsyncConfigurer {
 
   /**
    * Get JSON containing basic home info.
-   * @throws IOException 
    */
-  @RequestMapping(value = "/info", method = RequestMethod.GET,
-      produces = MediaType.APPLICATION_JSON_VALUE)
-  public Map<String, Object> selectHomeInfo() throws IOException {
+  @RequestMapping(value = "/info", method = RequestMethod.GET, produces = SdkService.MIME_TYPE_JSON)
+  public Map<String, Object> selectHomeInfo() {
     return SdkService.getHomePageInfo(supportedSdks);
   }
 
@@ -57,60 +57,57 @@ public class SdkRestController implements AsyncConfigurer {
    * Get JSON containing basic home info.
    */
   @RequestMapping(value = "/{sdkVersion}/notice-types", method = RequestMethod.GET,
-      produces = MediaType.APPLICATION_JSON_VALUE)
+      produces = SdkService.MIME_TYPE_JSON)
   public Map<String, Object> selectNoticeTypesList(
-      @PathVariable(value = "sdkVersion") String sdkVersion) {
+      @PathVariable(value = "sdkVersion") final String sdkVersion) {
     return SdkService.getNoticeSubTypes(new SdkVersion(sdkVersion), eformsSdkDir);
   }
 
   /**
    * Get JSON containing data about the specified codelist, with text in the given language.
    */
-  @RequestMapping(value = "/{sdkVersion}/codelists/{codeListId}/lang/{langCode}",
-      method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+  @RequestMapping(value = "/{sdkVersion}/codelists/{codelistGc}/lang/{langCode}",
+      method = RequestMethod.GET, produces = SdkService.MIME_TYPE_JSON)
   @ResponseBody
   private String serveCodelist(@PathVariable(value = "sdkVersion") final String sdkVersion,
-      @PathVariable(value = "codeListId") final String codeListId,
+      @PathVariable(value = "codelistGc") final String codelistGc,
       @PathVariable(value = "langCode") final String langCode, final HttpServletResponse response)
       throws IOException {
-    return SdkService.serveCodelistAsJson(new SdkVersion(sdkVersion), eformsSdkDir, codeListId,
-        langCode,
-        response);
+    return SdkService.serveCodelistAsJson(new SdkVersion(sdkVersion), eformsSdkDir, codelistGc,
+        langCode, response);
   }
 
   /**
-   * GET JSON containing data about the SDK fields.
+   * GET JSON containing data about the SDK fields and the codelists metadata.
    */
-  @RequestMapping(value = "/{sdkVersion}/fields", method = RequestMethod.GET,
-      produces = MediaType.APPLICATION_JSON_VALUE)
+  @RequestMapping(value = "/{sdkVersion}/basic-meta-data", method = RequestMethod.GET,
+      produces = SdkService.MIME_TYPE_JSON)
   public void serveFieldsJson(final HttpServletResponse response,
-      @PathVariable(value = "sdkVersion") String sdkVersion) {
-    final String filenameForDownload = "fields.json";
-    SdkService.serveSdkJsonFile(response, new SdkVersion(sdkVersion), eformsSdkDir,
-        SdkResource.FIELDS, filenameForDownload);
+      final @PathVariable(value = "sdkVersion") String sdkVersion) {
+    sdkService.serveSdkBasicMetadata(response, new SdkVersion(sdkVersion));
   }
 
   /**
    * Get JSON containing data about the SDK notice types.
    */
   @RequestMapping(value = "/{sdkVersion}/notice-types/{noticeId}", method = RequestMethod.GET,
-      produces = MediaType.APPLICATION_JSON_VALUE)
+      produces = SdkService.MIME_TYPE_JSON)
   public void serveNoticeTypeJson(final HttpServletResponse response,
-      @PathVariable(value = "sdkVersion") String sdkVersion,
-      @PathVariable(value = "noticeId") String noticeId) {
+      @PathVariable(value = "sdkVersion") final String sdkVersion,
+      @PathVariable(value = "noticeId") final String noticeId) {
     final String filenameForDownload = String.format("%s.json", noticeId);
-    SdkService.serveSdkJsonFile(response, new SdkVersion(sdkVersion), eformsSdkDir,
-        SdkResource.NOTICE_TYPES, filenameForDownload);
+    sdkService.serveSdkJsonFile(response, new SdkVersion(sdkVersion), SdkResource.NOTICE_TYPES,
+        filenameForDownload);
   }
 
   /**
    * Get JSON containing data about translations for the given language.
    */
   @RequestMapping(value = "/{sdkVersion}/translations/{langCode}.json", method = RequestMethod.GET,
-      produces = MediaType.APPLICATION_JSON_VALUE)
+      produces = SdkService.MIME_TYPE_JSON)
   public void serveTranslationsFields(final HttpServletResponse response,
-      @PathVariable(value = "sdkVersion") String sdkVersion,
-      @PathVariable(value = "langCode") String langCode)
+      @PathVariable(value = "sdkVersion") final String sdkVersion,
+      @PathVariable(value = "langCode") final String langCode)
       throws ParserConfigurationException, SAXException, IOException {
     final Language lang = Language.valueOfFromLocale(langCode);
     final String filenameForDownload = String.format("i18n_%s.xml", lang.getLocale().getLanguage());
