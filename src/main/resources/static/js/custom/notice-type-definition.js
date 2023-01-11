@@ -1,3 +1,8 @@
+import { LanguageSelector, NoticeSubtypeSelector, SdkVersionSelector } from "./context.js";
+import { Constants, I18N } from "./global.js";
+import { FormElement } from "./notice-form.js";
+import { SdkServiceClient } from "./service-clients.js";
+
 
 /*******************************************************************************
  * Base class for all elements found in a Notice Type Definition file.
@@ -11,7 +16,7 @@
  * by instantiating the appropriate {@link FormElement}. The NoticeTypeDefinitionElement extends DocumentFragment so that it can be 
  * added to the DOM directly.
  */
-class NoticeTypeDefinitionElement extends DocumentFragment {
+export class NoticeTypeDefinitionElement extends DocumentFragment {
 
   /**
    * Factory method.
@@ -113,7 +118,7 @@ class NoticeTypeDefinitionElement extends DocumentFragment {
  * - Notice-metadata section,
  * - Notice-data section (a.k.a. the top level "contents" object in notice-type-definition JSON file).
  */
-class RootLevelGroup extends NoticeTypeDefinitionElement {
+export class RootLevelGroup extends NoticeTypeDefinitionElement {
   constructor(content, level = 0) {
     super(content, level, "div");
     this.contentTypeAttribute = content.contentType;
@@ -123,7 +128,7 @@ class RootLevelGroup extends NoticeTypeDefinitionElement {
 /*******************************************************************************
  * Represents display-group elements of the visual model. 
  */
-class DisplayGroup extends NoticeTypeDefinitionElement {
+export class DisplayGroup extends NoticeTypeDefinitionElement {
 
   /**
    * Factory method
@@ -175,7 +180,7 @@ class DisplayGroup extends NoticeTypeDefinitionElement {
 /*******************************************************************************
  * Display-group elements of the visual model that are marked as "sections".
  */
-class FormSection extends DisplayGroup {
+export class FormSection extends DisplayGroup {
   constructor(content, level = 0) {
     super(content, level, "div");
 
@@ -189,7 +194,7 @@ class FormSection extends DisplayGroup {
  * Input-fields are linked with fields in the conceptual model and are used to
  * and hold the input-controls where the user enters notice data. 
  */
-class InputField extends NoticeTypeDefinitionElement {
+export class InputField extends NoticeTypeDefinitionElement {
 
   /**
    * Factory method.
@@ -311,7 +316,7 @@ class InputField extends NoticeTypeDefinitionElement {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "id".
  */
-class IdInputField extends InputField {
+export class IdInputField extends InputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -350,7 +355,7 @@ class IdInputField extends InputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "id-ref".
  */
-class IdRefInputField extends InputField {
+export class IdRefInputField extends InputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -378,7 +383,7 @@ class IdRefInputField extends InputField {
     return this.content?._idSchemes ?? [];
   }
 
-  
+
   get idSchemesAttribute() {
     return this.htmlElement.getAttribute(Constants.Attributes.ID_SCHEMES_ATTRIBUTE);
   }
@@ -391,7 +396,7 @@ class IdRefInputField extends InputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "code".
  */
-class CodeInputField extends InputField {
+export class CodeInputField extends InputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -434,7 +439,7 @@ class CodeInputField extends InputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "date".
  */
-class DateInputField extends InputField {
+export class DateInputField extends InputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -447,7 +452,7 @@ class DateInputField extends InputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "time".
  */
-class TimeInputField extends InputField {
+export class TimeInputField extends InputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -459,7 +464,7 @@ class TimeInputField extends InputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "measure".
  */
-class MeasureInputField extends InputField {
+export class MeasureInputField extends InputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -470,7 +475,7 @@ class MeasureInputField extends InputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "indicator".
  */
-class IndicatorInputField extends InputField {
+export class IndicatorInputField extends InputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -485,7 +490,7 @@ class IndicatorInputField extends InputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "number".
  */
-class NumberInputField extends InputField {
+export class NumberInputField extends InputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -505,7 +510,7 @@ class NumberInputField extends InputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "integer".
  */
-class IntegerInputField extends NumberInputField {
+export class IntegerInputField extends NumberInputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -517,7 +522,7 @@ class IntegerInputField extends NumberInputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "amount".
  */
-class AmountInputField extends NumberInputField {
+export class AmountInputField extends NumberInputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -528,7 +533,7 @@ class AmountInputField extends NumberInputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "text".
  */
-class TextInputField extends InputField {
+export class TextInputField extends InputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -546,7 +551,7 @@ class TextInputField extends InputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "text-multilingual".
  */
-class TextMultilingualInputField extends TextInputField {
+export class TextMultilingualInputField extends TextInputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -557,7 +562,7 @@ class TextMultilingualInputField extends TextInputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "phone".
  */
-class PhoneInputField extends TextInputField {
+export class PhoneInputField extends TextInputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -568,7 +573,7 @@ class PhoneInputField extends TextInputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "email".
  */
-class EmailInputField extends TextInputField {
+export class EmailInputField extends TextInputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -579,7 +584,7 @@ class EmailInputField extends TextInputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "url".
  */
-class UrlInputField extends TextInputField {
+export class UrlInputField extends TextInputField {
 
   constructor(content, level = 0) {
     super(content, level);

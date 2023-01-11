@@ -1,3 +1,5 @@
+import { SdkServiceClient } from "./service-clients.js";
+
 /**
  * The classes in this file are used to encapsulate the code necessary for controlling the context of the editor.
  * There are three controls providing context to the editor. All of them are hosted in the toolbar at the top of the
@@ -12,7 +14,7 @@
 /*******************************************************************************
  * Controls the dropdown which is used to select the version of the SDK to be loaded.
  */
-class SdkVersionSelector {
+export class SdkVersionSelector {
 
   static instance = new SdkVersionSelector("notice-sdk-selector");
 
@@ -59,7 +61,7 @@ class SdkVersionSelector {
 /*******************************************************************************
  * Controls the dropdown which is used to select the notice subtype to be loaded.
  */
-class NoticeSubtypeSelector {
+export class NoticeSubtypeSelector {
 
   static instance = new NoticeSubtypeSelector("notice-subtype-selector");
 
@@ -100,7 +102,7 @@ class NoticeSubtypeSelector {
 /*******************************************************************************
  * Controls the dropdown which is used to select the language that is to be used.
  */
-class LanguageSelector {
+export class LanguageSelector {
 
   static instance = new LanguageSelector("language-selector");
 

@@ -1,3 +1,5 @@
+import { Constants } from "./global.js";
+
 /**
  * Some elements in notice-type-definition files, have dependencies to each other.
  * For example, some elements have a valueSource property that indicates that their value is a copy of the value of another element.  
@@ -18,7 +20,7 @@
  *   (see {@link SyncCenter.subscribeToIdentifierNotifications}).
  * - Input-fields with a valueSource property, need to synchronise their value with the value of another input-field.
  */
-class SyncCenter extends MutationObserver {
+export class SyncCenter extends MutationObserver {
 
     /**
      * Being declared as static, when this property is initialized it creates the single instance of
