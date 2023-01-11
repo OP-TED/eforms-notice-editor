@@ -376,6 +376,7 @@ export class IdRefInputField extends InputField {
 
     if (this.idSchemes) {
       this.idSchemesAttribute = this.idSchemes.join(',');
+      this.populate();
     }
   }
 
@@ -390,6 +391,23 @@ export class IdRefInputField extends InputField {
 
   set idSchemesAttribute(idSchemes) {
     this.htmlElement.setAttribute(Constants.Attributes.ID_SCHEMES_ATTRIBUTE, idSchemes);
+  }
+
+  /**
+   * Populates the control with any existing identifies that comply with the idSchemes it requires.
+   */
+  populate() {
+    if (this.idSchemes?.length < 1) {
+      return;
+    }
+
+    const query = `[${Constants.Attributes.ID_SCHEME_ATTRIBUTE} = "${this.idSchemes[0]}"]`;
+    for (var i = 1; i < this.idSchemes.length; i++) {
+      query += `, [${Constants.Attributes.ID_SCHEME_ATTRIBUTE} = "${this.idSchemes[i]}"]`;
+    }
+
+    const elements = document.querySelectorAll(query);
+    this.formElement.populate(Array.from(elements).map(element => [element.value, element.value]));
   }
 }
 
