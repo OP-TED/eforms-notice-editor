@@ -581,7 +581,7 @@ input, select, textarea, .ts-control {
 #json-window, #xml-window {
   display: block;
   height: 20em;
-  white-space: nowrap;
+  white-space: pre;
   background-color: var(--eui-grey-2);
 }
 
