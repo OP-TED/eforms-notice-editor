@@ -1,84 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
-<head> 
-  <meta charset=utf-8>
+
+<head>
+	<meta charset=utf-8>
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>eForms Notice Editor Demo</title>
-  <meta name="description" content="eForms notice editor demo application" /> 
+	<title>eForms Notice Editor Demo</title>
+	<meta name="description" content="eForms notice editor demo application" />
 	<meta name="robots" content="noindex" />
-  <link rel="stylesheet" type="text/css" media="all" href="css/external/tom-select.css" />
-  <link rel="stylesheet" type="text/css" media="all" href="css/custom/editor.css" />
+	<link rel="stylesheet" type="text/css" media="all" href="css/external/tom-select.css" />
+	<link rel="stylesheet" type="text/css" media="all" href="css/custom/editor.css" />
+	<script src="js/external/tom-select.complete.min.js" defer></script>
+	<script src="js/custom/global.js" defer></script>
+	<script src="js/custom/service-clients.js" defer></script>
+	<script src="js/custom/context.js" defer></script>
+	<script src="js/custom/notice-form.js" defer></script>
+	<script src="js/custom/notice-type-definition.js" defer></script>
+	<script src="js/custom/visual-model.js" defer></script>
+	<script src="js/custom/sync-center.js" defer></script>
+	<script src="js/custom/editor.js" defer></script>
 </head>
-<body>
-  <div class="top-bar">
-  	<h1>eForms Notice Editor Demo - Version <span id="editor-version"/></h1>
-  </div>
-	<div id="main">
-		
-		<ul id="toolbar">
-			<li>
-				<label for="notice-sub-type-selector">Select notice subtype:</label>
-				<select id="notice-sub-type-selector">
-				  <option value=""></option>
-				</select>
-			</li>			<li>
-				<label for="notice-lang-selector">Language:</label>
-				<select id="notice-lang-selector">
-					<option value="en">English</option>
-					<option value="fr">French</option>
-				</select>
-			</li>
-			<li>
-				<label for="notice-sdk-selector">SDK:</label>
-				<select id="notice-sdk-selector"></select>
-			</li>
-		</ul>
-		
-		<section id="notice-info" style="display: none;">
-			<h1>Edit</h1>
-			<!-- For data injection into page DOM, see associated .js files-->
-			<div class="main-part">
-				<p>* Mandatory fields</p>
-			</div>
-		
-			<section>
-				<form id="editor-id-form">
-					<div id="notice-type" class="notice-type">
-						<!-- The form elements will be generated dynamically by javascript. -->
-						<!-- For data injection into page DOM, see associated .js files-->
-					</div>
-					<div class="main-part">
-						<input type="submit" id="id-editor-submit-form-2" class="notice-type-submit-button" />
-					</div>
-				</form>
-			</section>
-		</section>
-		
-		<section>
-			<h1>Debug</h1>
-			<div class="main-part">
-				<button type="button" id="id-editor-log-json" class="notice-content-button"
-					title="This may not work properly if required values are missing!">Serialize to JSON and XML</button>
-				<input type="submit" id="id-editor-submit-form-1" class="notice-type-submit-button" />
-			</div>
-			<div style="display: flex; flex-direction: row;">
-				<div style="display: flex; flex-direction: column; width: 50%;">
-					<label for="id-editor-log-json-area">Visual Model</label>
-					<textarea id="id-editor-log-json-area" title="Visual model JSON"></textarea>
-				</div>
-				<div style="display: flex; flex-direction: column; width: 50%;">
-					<label for="id-editor-log-xml-area">Physical Model</label>
-					<textarea id="id-editor-log-xml-area" title="Notice XML"></textarea>
-				</div>
-			</div>
-		</section>
+
+<body onload="Editor.loaded()">
+
+	<div id="page-header">
+		<h1>eForms Notice Editor</h1>
+		<p>Sample Application | v<span id="app-version" /></p>
 	</div>
 
-	<script src="js/external/tom-select.complete.min.js"></script>
-	<script src="js/custom/service-clients.js"></script>
-	<script src="js/custom/editor.js" async defer></script>
+	<ul id="toolbar">
+		<li>
+			<label for="notice-subtype-selector">Select notice subtype:</label>
+			<select id="notice-subtype-selector" onchange="Editor.selectedNoticeSubtypeChanged()">
+				<option value=""></option>
+			</select>
+		</li>
+		<li style="flex-grow: 1;">
+			<label for="notice-sdk-selector">SDK:</label>
+			<select id="notice-sdk-selector"></select>
+		</li>
+		<li>
+			<label for="language-selector">Language:</label>
+			<select id="language-selector" onchange="Editor.selectedLanguageChanged()">
+				<option value="en">English</option>
+				<option value="fr">French</option>
+			</select>
+		</li>
+	</ul>
 
+	<label id="loading-indicator">loading...</label>
+
+	<div id="form-section" class="hidden">
+		<form id="form-element" spellcheck="false" translate="no">
+			<div id="form-content-root" class="body" lang="en">
+				<!-- The form elements will be generated dynamically by javascript. -->
+				<!-- For data injection into page DOM, see associated .js files-->
+			</div>
+			<div style="text-align: center;">
+				<input type="submit" id="id-editor-submit-form-2" class="notice-type-submit-button" value="Submit Notice"/>
+			</div>
+		</form>
+	</div>
+
+	<div id="debug-section">
+		<div class="header" style="display: flex; flex-direction: row;">
+			<div style="display:grid; flex-grow: 1">
+				<label class="title">Debug</label>
+				<label class="sub-title">Click on the "serialize" button to generate and view the notice XML.</label>
+			</div>
+			<button type="button" id="id-editor-log-json" class="button" onclick="Editor.serializeToJson(event)"
+				title="This may not work properly if required values are missing!">Serialize to JSON and
+				XML</button>
+		</div>
+		<output for="form-element" id="debug-output" class="body hidden">
+			<div style="display: flex; flex-direction: column; width: 50%;">
+				<label for="json-window">Visual Model</label>
+				<textarea id="json-window" title="Visual model JSON"></textarea>
+			</div>
+			<div style="display: flex; flex-direction: column; width: 50%;">
+				<label for="xml-window">Physical Model</label>
+				<textarea id="xml-window" title="Notice XML"></textarea>
+			</div>
+		</output>
+	</div>
+
+	<div id="page-footer"></div>
 </body>
+
 </html>

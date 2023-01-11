@@ -1,127 +1,252 @@
+/* Borrowing some color from EUI */
+:root {
+  --eui-primary-100: #004494;
+  --eui-primary-75: #4073af;
+  --eui-primary-50: #80a2ca;
+  --eui-primary-25: #bfd0e4;
+  --eui-primary-10: #e6ecf4;
+  --eui-primary-5: #f2f6fa;
+  --eui-grey-100: #404040;
+  --eui-grey-90: #535353;
+  --eui-grey-80: #666;
+  --eui-grey-75: #707070;
+  --eui-grey-25: #cfcfcf;
+  --eui-grey-50: #a0a0a0;
+  --eui-grey-20: #d9d9d9;
+  --eui-grey-10: #ececec;
+  --eui-grey-5: #f5f5f5;
+  --eui-grey-2: #fbfbfb;
+  --eui-accent-140: #99800e;
+  --eui-accent-100: #ffd617;
+  --eui-accent-75: #ffde39;
+  --eui-accent-50: #ffe879;
+  --eui-accent-25: #fff4bb;
+  --eui-accent-10: #fffbe8;
+  --eui-accent-5: #fffdf3;
+  --eui-info-100: #006fb4;
+  --eui-info-75: #4093c7;
+  --eui-info-50: #80b7da;
+  --eui-info-25: #bfdbec;
+  --eui-info-10: #e6f1f8;
+  --eui-info-5: #f2f8fb;
+  --eui-success-100: #467a39;
+  --eui-success-75: #749b6b;
+  --eui-success-50: #a3bd9c;
+  --eui-success-25: #d1dece;
+  --eui-success-10: #edf2eb;
+  --eui-success-5: #f6f8f5;
+  --eui-warning-100: #f29527;
+  --eui-warning-75: #f5b05d;
+  --eui-warning-50: #f9ca93;
+  --eui-warning-25: #fce5c9;
+  --eui-warning-10: #fef4e9;
+  --eui-warning-5: #fefaf4;
+  --eui-danger-100: #da2131;
+  --eui-danger-75: #e35965;
+  --eui-danger-50: #ed9098;
+  --eui-danger-25: #f6c8cc;
+  --eui-danger-10: #fbe9ea;
+  --eui-danger-5: #fdf4f5;
+  --eui-black: #000000;
+  --eui-white: #ffffff;
+  --section-background: var(--eui-white);
+  --group-background: var(--eui-primary-5);
+  --section-border: var(--eui-grey-20);
+  --group-border: var(--eui-primary-50);
+  --section-header: var(--eui-grey-100);
+  --group-header: var(--eui-primary-100);
+  --field-header: var(--eui-primary-100);
+  --small-radius: .25em;
+  --large-radius: .5em;
+  --min-width:480px;
+  --max-width:1024px;
+}
+
 html {
-  background-color: rgb(187, 187, 187);
+  background-color: var(--eui-white);
 }
 
 body {
-	font-family: Arial, Helvetica Neue, Helvetica, sans-serif;
+	font-family: system-ui,Arial,Helvetica Neue,Helvetica,sans-serif;
   font-size: 14px;
-	line-height: 1.667;
-	color: #404040;
-  max-width: 1240px;
-  margin-left: auto;
-  margin-right: auto;
-  margin-top: 0;
-  background-color: #fff;
+	line-height: 1.66;
+  margin: 0px;
+	color: var(--eui-primary-100);
+  background-color: var(--eui-white);
   min-width: 480px;
 }
 
+/* 
+ * Page header 
+ */
+
+#page-header {
+  align-items: center;
+  background-color: var(--eui-primary-100);
+  padding: 1.2em 1.2em 0.6em 1.2em;
+  margin: 0px;
+  display: flex;
+  align-items: baseline;
+}
+
+#page-header h1 {
+  font-size: 2em;
+  font-weight: bold;
+  color: var(--eui-white);
+  text-align: left;
+  flex-grow: 1;
+  line-height: normal;
+}
+
+#page-header p {
+  color: var(--eui-white);
+  margin: 0px;
+}
+
+/* 
+ * Toolbar
+ */
+
+/* The toolbar is an unordered list. Items are aligned left arranged in one row. */
 #toolbar {
   display: flex;
   flex-direction: row;
-  justify-content: flex-end;
+  justify-content: flex-start;
   list-style-type: none;
   margin: 0px;
-  padding: 8px;
-  background-color: lightgray;
-  border-bottom: 1px solid darkgray;
+  padding: 8px 12px;
+  background-color: var(--eui-grey-10);
+  border-bottom: 1px solid var(--eui-grey-20);
+  column-gap: 1em;
 }
 
-#toolbar li {
-  margin-left: 12px;
+/* Toolbar comboboxes are slightly padded to match the style of other controls in the page */
+#toolbar select {
+  padding: 3px 3px;
+  border: 1px solid var(--eui-grey-75);
+  border-radius: var(--small-radius);
 }
 
-#main {
-  background-color: #fff;
+/* Toolbar labels allow some breathing space between them and the combobox. */
+#toolbar label {
+  padding: 0em;  
+  margin-right: .25em;
 }
 
-#main section {
+#loading-indicator {
+  display:block;
+  margin:1em;
+}
+
+#loading-indicator.hidden {
+  display: none;
+}
+
+/*
+ * Form section
+ */
+
+/* The form section is a max with to avoid spreading too much on wide screens. */
+#form-section {
+  display: block;
+  max-width: var(--max-width);
+  min-width: var(--min-width);
+  background-color: var(--eui-white);
   margin: 8px;
   padding: 8px;
 }
 
-.main-part {
-  padding: 0.5em;
+#form-section.hidden {
+  display: none;
 }
 
-.top-bar {
-  align-items: center;
-  background-color: #004494;
-  padding: 0.5em;
-  text-align: center;
-  margin-top: 0;
-}
-
-.top-bar h1 {
-  font: normal normal 400 2rem/2.5rem Arial,sans-serif;
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: #fff;
-}
-
-.notice-type {
+#form-content-root {
   font-size: 14px;
 }
 
-.notice-type-submit-button {
-  padding-left: 0.5em;
-  padding-right: 0.5em;
+#form-content-root input:invalid, #form-content-root textarea:invalid, #form-content-root select:invalid + .ts-wrapper > .ts-control {
+  border: 2px dashed var(--eui-warning-100);
 }
 
-.notice-type input:invalid {
-  border-color: red;
+.focus .ts-control, select:invalid + .ts-wrapper.focus > .ts-control {
+  border: 2px solid var(--eui-black)!important;
 }
 
-.notice-type select {
+
+/* #form-content-root select {
   max-width: 20em;
-}
+} */
 
-.notice-content {
+/* .notice-content {
   padding: 0.25em;
   margin: 0.5em 0.25em 0.5em 0.25em;
   display: block;
-}
+} */
 
-.notice-content-container:hover {
-  background-color: #ddd;
-  cursor: pointer;
-}
-
-.notice-content-header {
+/* .notice-content-header {
   cursor: pointer;
   user-select: none;
-  color: #004494;
-}
+  color: var(--primary-blue);
+} */
 
-.notice-content-section {
-  border: solid 2px #004494;
-  border-bottom: solid 4px #004494;
-  border-radius: 0.5em;
-}
+
 
 .notice-content-section-opened {
   border: solid 1px #bbb !important;
 }
 
-.notice-content-non-section {
+.display-group {
 }
 
-.notice-content-button {
-  margin-right: 1em;
+input[type='submit'], button {
+  white-space: nowrap;
+  padding: .5em 1em;
+  margin: .5em;
+  border-radius: var(--small-radius);
+  border-width: 1px;
 }
 
-.notice-content-button-add {
+input[type='submit'] {
+  background-color: var(--eui-primary-100);
+  color: var(--eui-white);
+  font-size: medium;
+  font-weight: bold;
+  margin: 1em 0em;
+  padding: .6em 1.8em;
 }
 
-.notice-content-button-remove {
-  color: #a50;
+button {
+  border-color: var(--eui-primary-100);
+  background-color: var(--eui-white);
+  color: var(--eui-primary-100);
 }
 
-.notice-content-repeatable {
-  border: solid 4px #ddd;
+
+.display-group .header .button {
+  padding: .25em 1em;
+  margin: 0em 0em 0em 1em;
+  white-space: nowrap;
+  border: 1px solid ar(--eui-grey-100);
+  border-radius: var(--small-radius);
 }
 
-.notice-content-idRef {
-  background-color: #ff0 !important;
+.input-field .header .button {
+  padding: .2em .6em;
+  margin: 0em 0em 0em .2em;
+  white-space: nowrap;
+  font-size: x-small;
+  border: 1px solid var(--eui-grey-100);
+  border-radius: var(--small-radius);
+}
+
+.input-field.container.repeatable {
+  border: dashed 2px var(--eui-grey-20);
+  border-radius: var(--large-radius);
+  padding: .25em;
+}
+
+.id-ref.input-field .ts-control {
+  background-color: var(--eui-accent-10) !important;
 }
 
 .notice-content-hidden {
@@ -129,113 +254,347 @@ body {
 }
 
 .notice-content-hidden-devel {
-  background-color: #999;
+  opacity: .5;
+  font-style: italic;
 }
 
-.notice-content-readOnly {
-  background-color: #ddd;
+#notice-metadata.body {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  font-size: smaller;
+  grid-column-gap: 1em;
+}
+
+#notice-metadata.body .input-field.container {
+  display: flex;
+  flex-direction: row;
+  border-width: 0px 0px 1px 0px;;
+  border-color: var(--eui-grey-20);
+  border-style: dashed;
+}
+
+#notice-metadata.body .input-field .label::after {
+  content: ": ";
+} 
+
+
+#notice-metadata.body .input-field .body {
+  flex-grow: 1;
+} 
+
+input[type='text']:read-only, input[type='date']:read-only, input[type='time']:read-only  {
+  background-color: transparent;
+  border: 0px;
+}
+
+#form-element select:read-only {
+  background-color: transparent;
+  border: 0px;
 }
 
 textarea:read-only {
-  background-color: #ddd;
+  background-color: transparent;
 }
 
-.notice-content-field-label {
+label, .label {
   padding-right: 1em;
-  color: #004494; /* Label color */
+  color: var(--eui-primary-100);
 }
 
-.notice-content-field-label-block {
-  display: block;
+.input-field.container:has(input:required:read-write) .label::after, 
+.input-field.container:has(textarea:required) .label::after,
+.input-field.container:has(select:required) .label::after {
+  content: ' ✽';
+  color: var(--eui-danger-100);
+  font-weight: normal;
 }
 
-.notice-content-field {
-  min-width: 30em;
-  border: solid 1px #999;
-  border-radius: 2px;
+
+
+.field {
+  /* min-width: 30em; */
+  border: solid 1px var(--eui-grey-50);
+  border-radius: var(--small-radius);
 }
 
-.notice-content-field[type="radio"] {
-  min-width: 5em;
-}
-
-.notice-content-field-url {
-  min-width: 32em;
-}
-
-.notice-content-collapsed {
-  border: dashed 1px #049;
+.collapsed {
+  border: dashed 1px var(--eui-primary-100);
 }
 
 .notice-content-field-privacy {
-  background-color: #fff;
+  background-color: ar(--eui-white);
 }
 
 .notice-content-required::after {
   content: " *";
 }
 
-.notice-content-field-repeatable-mismatch {
+.repeatable-mismatch {
   content: " [+]";
-  color: #a50;
+  color: var(--eui-danger-100);
 }
 
-.notice-content-field-repeatable::after {
-  content: " [+]";
-}
 
-.notice-content-level1 .notice-content-header {
-  font-size: 1.4em;
-}
-.notice-content-level2 .notice-content-header {
-  font-size: 1.1em;
-}
-.notice-content-level3 .notice-content-header {
-  font-size: 1em;
-}
-.notice-content-level4 .notice-content-header {
-  font-size: 1em;
-}
-.notice-content-level5 .notice-content-header {
-  font-size: 1em;
-}
-.notice-content-level6 .notice-content-header {
-  font-size: 1em;
-}
 
-.editor-link {
-  color: #fff;
-  background-color: #339933;
-  padding: 0.5em;
-  text-decoration: none;
-  border-radius: 4px;
-}
-
-.editor-list {
-  list-style: none;
-}
-
-.editor-list li:not(:last-child) {
-  padding-bottom: 1em;
-}
-
-#editor-version-title {
-  font-size: 1.2rem;
-}
-
-#id-editor-log-json-area, #id-editor-log-xml-area {
-  display: none;
-  height: 20em;
-  white-space: nowrap;
-}
-
-/* Override */
 .ts-wrapper {
-  width: 30em;
-  max-width: 30em;
   display: inline-block;
 }
 
+/* Tom-select controls do not have a border when their input control is read-only. */
+.ts-control:has(input:read-only) {
+  border: 0px !important;
+  background-color: transparent;
+}
+
+/* Standard headings don't introduce any margins. Adequate spacing is provided by their container. */
+h1, h2, h3, h4, h5, h6 {
+  margin: 0px;
+  line-height: normal;
+}
+
+/* Standard headings decrease in size progressively, with the smallest being 1em and the largest being twice as large. */
+h1 { font-size: 2.0em; }
+h2 { font-size: 1.8em; }
+h3 { font-size: 1.6em; }
+h4 { font-size: 1.4em; }
+h5 { font-size: 1.2em; }
+h6 { font-size: 1.0em; }
+
 .models {
   display: flex;
+}
+
+.header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.header > .label {
+  flex-grow: 1;
+}
+
+.section > .header > .label {
+  color: var(--section-header);
+}
+
+.display-group > .header > .label {
+  color: var(--group-header);
+}
+
+.input-field > .header > .label {
+  color: var(--field-header);
+}
+
+/*
+ * Forms sections
+ */
+
+.section.container {
+  background-color: var(--section-background);
+  border: dashed 2px var(--section-border);
+  border-radius: var(--large-radius);
+  margin: 1em 0em 0em 0em;
+  padding: .25em;
+}
+
+
+.section.container > .header {
+  margin: .25em .5em .25em .5em;
+}
+
+.section.container > .body {
+  display: grid;
+  padding: .5em .5em .5em .5em;
+  grid-row-gap: 1em;
+}
+
+/* Sub-sections always span both columns of their parent section's grid. */
+.section.container > .body > .section.container {
+  margin: 1em 0em 0em 0em;
+  grid-column-start: 1;
+  grid-column-end: 3;
+}
+
+/* Input-fields placed directly inside a section, always span both columns of its grid. */
+.section.container > .body > .input-field.container {
+  grid-column-start: 1;
+  grid-column-end: 3;
+}
+
+/*
+ * Display groups
+ */
+
+/* Display-groups use a different background color to visually separate them from sections.
+ * They always span both columns of the grid of their parent display-group's body. 
+ */
+.display-group.container {
+  background-color: var(--group-background);
+  grid-column-start: 1;
+  grid-column-end: 3;
+  padding: .5em;
+  border: 1px solid var(--group-border); 
+  border-radius: var(--large-radius);
+}
+
+/* Display-group contents are arranged in a two-column grid. */
+.display-group.container > .body {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-gap: 1em;
+  padding: .5em 0em;
+}
+
+/* 
+ * Field-sets
+ */
+
+
+/* Field-sets are not used for the moment. 
+ * We should normally be using field-sets for rendering display-groups. 
+ * Maybe in a future version. 
+ */
+fieldset {
+  border: 2px solid var(--group-border);
+  border-radius: var(--large-radius);
+  padding: .5em;
+}
+
+/* Field-set titles are not used for the moment. Maybe in a future version. */
+legend {
+  margin: 0em 1em;
+  padding: 0em 1em;
+  color: var(--group-header);;
+  font-weight: bold;
+}
+
+/*
+ * Input-fields
+ */
+
+/* Input-field containers display their contents one below the other (header, body, footer). */
+.input-field.container {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Checkboxes of input-fields are placed to the the left of their label. */
+.input-field.container:has(input[type='checkbox']) {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+
+/* Radio-buttons of input-fields are placed to the the left of their label. */
+.input-field.container > .body:has(input[type='radio']) > label {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  align-items: baseline;
+}
+
+/* Check-boxes of input-fields are larger to match the size of other input-field controls. */
+.input-field.container input[type='checkbox'] {
+  min-width: 21px;
+  min-height: 21px;
+  margin-right: 1em;
+}
+
+/* Radio-buttons of input-fields keep a small spacing to their right to separate more clearly from their label text. */
+.input-field.container input[type='radio'] {
+  margin-right: .5em;
+}
+
+/* Input-fields of type "id" and "id-ref" are displayed with monospace uppercase type. */
+.input-field.id > input[type='text'], .input-field.id-ref > input[type='text']  {
+  font-family: monospace;
+  text-transform: uppercase;
+}
+
+ /* Input-field controls all use the same padding to "breathe" and a discrete, slightly rounded border */
+input, select, textarea, .ts-control {
+  padding: 8px 8px;
+  border: 1px solid var(--eui-grey-20);
+  border-radius: var(--small-radius);
+  line-height: 18px;
+}
+
+.ts-dropdown {
+  border: 2px solid var(--eui-grey-20);
+  border-radius: var(--small-radius);
+}
+
+/*
+ * Debug section
+ */
+
+#debug-section {
+  background-color: var(--eui-white);
+  margin: 2em 1em;
+  max-width: var(--max-width);
+}
+
+#debug-section > .header {
+  border: 1px solid var(--eui-grey-20);
+  padding: .5em 1em;
+}
+
+#debug-section > .header  .title {
+  font-weight: bold;
+  font-size: 16px;
+  margin: 0px;
+  padding: 0px;
+  line-height: normal;
+}
+
+#debug-section > .header > .sub-title {
+  font-size: 14px;
+  font-weight: normal;
+  color: var(--eui-grey-100);
+}
+
+#debug-section > .body {
+  border-bottom: 1px solid var(--eui-grey-20);
+  border-left: 1px solid var(--eui-grey-20);
+  border-right: 1px solid var(--eui-grey-20);
+  padding: 1em;
+}
+
+/* Debug-output contains two textarea elements arranged side-by side */
+#debug-output {
+  display: flex; 
+  flex-direction: row; 
+  column-gap: 1em;
+}
+
+/* Debug output gets hidden when a new notice-subtype is loaded. */
+#debug-output.hidden {
+  display: none;
+}
+
+#debug-output label {
+  font-weight: bold;
+}
+
+#json-window, #xml-window {
+  display: block;
+  height: 20em;
+  white-space: nowrap;
+  background-color: var(--eui-grey-2);
+}
+
+/*
+ * Page footer
+ */
+
+#page-footer {
+  align-items: center;
+  background-color: var(--eui-grey-10);
+  padding: 0.6em 1.2em 1.2em 1.2em;
+  margin: 0px;
+  display: flex;
+  align-items: baseline;
+border-top: 1px solid var(--eui-grey-20);
 }
