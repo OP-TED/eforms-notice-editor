@@ -1,8 +1,14 @@
+import { LanguageSelector, NoticeSubtypeSelector, SdkVersionSelector } from "./context.js";
+import { Constants, DomUtil } from "./global.js";
+import { FormElement } from "./notice-form.js";
+import { NoticeTypeDefinitionElement } from "./notice-type-definition.js";
+import { SdkServiceClient, XmlServiceClient } from "./service-clients.js";
+import { VisualModel } from "./visual-model.js";
 
 /**
 * Editor class: it stores SDK data like loaded fields, nodes, translations, ...
 */
-class Editor {
+export default class Editor {
 
   static instance = new Editor();
 
@@ -141,3 +147,5 @@ class Editor {
     document.getElementById("loading-indicator").classList.add("hidden");
   }
 }
+
+window.Editor = Editor;

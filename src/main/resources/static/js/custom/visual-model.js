@@ -1,7 +1,9 @@
+import { Constants } from "./global.js";
+
 /**
  * 
  */
-class VisualModelElement {
+export class VisualModelElement {
 
     static create(htmlElement) {
         switch (htmlElement.getAttribute(Constants.Attributes.CONTENT_TYPE_ATTRIBUTE)) {
@@ -61,7 +63,7 @@ class VisualModelElement {
  * These two "sections" are contained directly under the root element of the visual-model.
  * The root element of teh visual-model, is also a VisualModelTopLevelElement (see {@link VisualModel} class).
  */
-class VisualModelTopLevelElement extends VisualModelElement {
+export class VisualModelTopLevelElement extends VisualModelElement {
     constructor(htmlElement) {
         super(htmlElement);
         this.visType = Constants.VIS_TYPE_NON_FIELD;
@@ -72,7 +74,7 @@ class VisualModelTopLevelElement extends VisualModelElement {
  * A VisualModelGroupElement is created for every display-group that is associated with a Node.
  * Display-groups that have no associated Node are flattened-out (omitted) in the visual-model.
  */
-class VisualModelGroupElement extends VisualModelElement {
+export class VisualModelGroupElement extends VisualModelElement {
 
     /**
      * Factory method.
@@ -95,7 +97,7 @@ class VisualModelGroupElement extends VisualModelElement {
     }
 }
 
-class VisualModelFieldElement extends VisualModelElement {
+export class VisualModelFieldElement extends VisualModelElement {
     constructor(htmlElement) {
         super(htmlElement);
         this.visType = Constants.VIS_TYPE_FIELD;
@@ -125,7 +127,7 @@ class VisualModelFieldElement extends VisualModelElement {
  * Extends the VisualModelTopLevelElement to define the root element of the VisualModel 
  * which, after having being constructed, contains the entire visual-model.  
  */
-class VisualModel extends VisualModelTopLevelElement {
+export class VisualModel extends VisualModelTopLevelElement {
 
     constructor(rootElement) {
         super(rootElement);

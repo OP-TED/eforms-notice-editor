@@ -1,4 +1,7 @@
-const Constants = {
+import { LanguageSelector } from "./context.js";
+import { SdkServiceClient } from "./service-clients.js";
+
+export const Constants = {
     DEBUG: true,
 
     DATA_EDITOR_ID_REFERENCE: "data-editor-id-reference",
@@ -87,7 +90,7 @@ const Constants = {
     }
 }
 
-class DomUtil {
+export class DomUtil {
     static findElementsHavingAttribute(attributeName) {
         const selector = "[" + attributeName + "]";
         return document.querySelectorAll(selector);
@@ -141,7 +144,7 @@ class DomUtil {
     }
 }
 
-class I18N {
+export class I18N {
 
     // This could be covered by "auxiliary labels" or be something fully custom.
     // The i18nOfEditor is loaded before other translations, thus it can be used to override them.
