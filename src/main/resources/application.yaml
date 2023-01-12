@@ -14,6 +14,7 @@ server:
     # Number of selector threads to use.
     # selectors:
 
+
 eforms:
   sdk:
     # Path to eForms SDK
@@ -21,3 +22,16 @@ eforms:
 
     # Comma-separated list of the supported major versions of eForms SDK
     versions: 1.0,1.1,1.2,1.3,1.4,1.5
+
+
+proxy:
+  hostname: "PROXY_HOSTNAME"
+  port: 8012
+  username: "YOUR_USERNAME"
+  password: "YOUR_PASSWORD"
+
+
+client:
+  cvs:
+    url: "https://cvs.ted.europa.eu"
+    api-key: "YOUR_API_KEY"

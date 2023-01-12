@@ -76,18 +76,23 @@ public class PhysicalModel {
 
   private final FieldsAndNodes fieldsAndNodes;
   private final XPath xpathInst;
+  private final Optional<Path> mainXsdPathOpt;
 
   /**
    * @param document W3C DOM document
    * @param xpathInst Used for xpath evaluation
    * @param fieldsAndNodes Holds SDK field and node metadata
+   * @param mainXsdPathOpt Path to the main XSD file to use, may be empty if the feature is not
+   *        supported in an older SDK
    */
   public PhysicalModel(final Document document, final XPath xpathInst,
-      final FieldsAndNodes fieldsAndNodes) {
+      final FieldsAndNodes fieldsAndNodes, final Optional<Path> mainXsdPathOpt) {
     this.domDocument = document;
     this.fieldsAndNodes = fieldsAndNodes;
     this.xpathInst = xpathInst;
+    this.mainXsdPathOpt = mainXsdPathOpt;
   }
+
 
   public Document getDomDocument() {
     return domDocument;
@@ -95,6 +100,10 @@ public class PhysicalModel {
 
   public FieldsAndNodes getFieldsAndNodes() {
     return fieldsAndNodes;
+  }
+
+  public Optional<Path> getMainXsdPathOpt() {
+    return mainXsdPathOpt;
   }
 
   /**
@@ -188,9 +197,16 @@ public class PhysicalModel {
         buildFields, depth, onlyIfPriority, xpathInst);
 
     // Reorder the physical model.
-    reorderPhysicalModel(safeDocBuilder, xmlDocRoot, xpathInst, docTypeInfo, sdkRootFolder);
+    final NoticeXmlTagSorter sorter =
+        new NoticeXmlTagSorter(safeDocBuilder, xpathInst, docTypeInfo, sdkRootFolder);
+    sorter.sortXml(xmlDocRoot);
 
-    return new PhysicalModel(xmlDoc, xpathInst, fieldsAndNodes);
+    final Optional<Path> mainXsdPathOpt = sorter.getMainXsdPathOpt();
+    if (mainXsdPathOpt.isPresent()) {
+      Validate.isTrue(mainXsdPathOpt.get().toFile().exists(), "File does not exist: mainXsdPath=%s",
+          mainXsdPathOpt);
+    }
+    return new PhysicalModel(xmlDoc, xpathInst, fieldsAndNodes, mainXsdPathOpt);
   }
 
   /**
@@ -588,18 +604,6 @@ public class PhysicalModel {
 
     final JsonNode documentTypeInfo = documentInfoByType.get(documentType);
     return new DocumentTypeInfo(documentTypeInfo, concept.getSdkVersion());
-  }
-
-  /**
-   * Changes the order of the elements to the schema sequence order. The XML DOM model is modified
-   * as a side effect.
-   */
-  private static void reorderPhysicalModel(final DocumentBuilder safeDocBuilder,
-      final Element noticeRootElem, final XPath xpathInst, final DocumentTypeInfo docTypeInfo,
-      final Path sdkRootFolder) throws SAXException, IOException {
-    final NoticeXmlTagSorter sorter =
-        new NoticeXmlTagSorter(safeDocBuilder, xpathInst, docTypeInfo, sdkRootFolder);
-    sorter.sortXml(noticeRootElem);
   }
 
   /**

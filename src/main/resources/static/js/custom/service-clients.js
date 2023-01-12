@@ -57,7 +57,7 @@ class SdkServiceClient {
 /**
  * Client for the back-end XmlWriteService.
  * 
- * Using static  methods instead of implementing a singleton pattern for simplicity,
+ * Using static methods instead of implementing a singleton pattern for simplicity,
  * as there is no need for inheritance or implementing specific interfaces in this scenario. 
  */
 class XmlServiceClient {
@@ -70,7 +70,31 @@ class XmlServiceClient {
             },
             body: visualModel
         };
-        const response = await fetch("/xml/notice/save", settings);
+        const response = await fetch("/xml/notice/save/validation/none", settings);
+        return await response.text();
+    }
+
+    static async xsdValidation(visualModel) {
+        const settings = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: visualModel
+        };
+        const response = await fetch("/xml/notice/save/validation/xsd", settings);
+        return await response.text();
+    }
+
+    static async cvsValidation(visualModel) {
+        const settings = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: visualModel
+        };
+        const response = await fetch("/xml/notice/save/validation/cvs", settings);
         return await response.text();
     }
 }

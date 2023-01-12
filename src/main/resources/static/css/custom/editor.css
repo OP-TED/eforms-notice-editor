@@ -564,8 +564,9 @@ input, select, textarea, .ts-control {
 
 /* Debug-output contains two textarea elements arranged side-by side */
 #debug-output {
-  display: flex; 
-  flex-direction: row; 
+  display: grid; 
+  grid-column-gap: 1em;
+  grid-template-columns: repeat(2, 1fr);
   column-gap: 1em;
 }
 
@@ -596,5 +597,5 @@ input, select, textarea, .ts-control {
   margin: 0px;
   display: flex;
   align-items: baseline;
-border-top: 1px solid var(--eui-grey-20);
+  border-top: 1px solid var(--eui-grey-20);
 }

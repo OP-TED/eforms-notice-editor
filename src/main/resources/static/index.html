@@ -69,18 +69,27 @@
 				<label class="title">Debug</label>
 				<label class="sub-title">Click on the "serialize" button to generate and view the notice XML.</label>
 			</div>
-			<button type="button" id="id-editor-log-json" class="button" onclick="Editor.serializeToJson(event)"
-				title="This may not work properly if required values are missing!">Serialize to JSON and
-				XML</button>
+			<button type="button" id="id-editor-log-json" class="button" onclick="Editor.serializeToJson(event, 'no-validation')"
+				title="This may not work properly if required values are missing!">Generate XML</button>
+				
+			<button type="button" id="id-editor-log-json" class="button" onclick="Editor.serializeToJson(event, 'xsd-validation')"
+				title="This may not work properly if required values are missing!">XSD Validation</button>
+
+			<button type="button" id="id-editor-log-json" class="button" onclick="Editor.serializeToJson(event, 'cvs-validation')"
+				title="This may not work properly if required values are missing!">CVS Validation</button>
 		</div>
 		<output for="form-element" id="debug-output" class="body hidden">
-			<div style="display: flex; flex-direction: column; width: 50%;">
+			<div style="display: flex; flex-direction: column;">
 				<label for="json-window">Visual Model</label>
 				<textarea id="json-window" title="Visual model JSON"></textarea>
 			</div>
-			<div style="display: flex; flex-direction: column; width: 50%;">
+			<div style="display: flex; flex-direction: column;">
 				<label for="xml-window">Physical Model</label>
 				<textarea id="xml-window" title="Notice XML"></textarea>
+			</div>
+			<div style="display: flex; flex-direction: column; grid-column-start: 1; grid-column-end: 3; margin-top: 1em;">
+				<label for="validation-window">Validation response</label>
+				<textarea id="validation-window" title="Validation response"></textarea>
 			</div>
 		</output>
 	</div>

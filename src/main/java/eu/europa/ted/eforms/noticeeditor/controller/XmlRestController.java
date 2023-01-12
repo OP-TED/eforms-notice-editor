@@ -24,11 +24,37 @@ public class XmlRestController implements AsyncConfigurer {
   /**
    * Save: Takes notice as JSON and builds notice XML. The SDK version is in the notice metadata.
    */
-  @RequestMapping(value = "/notice/save", method = RequestMethod.POST,
+  @RequestMapping(value = "/notice/save/validation/none", method = RequestMethod.POST,
       produces = SdkService.MIME_TYPE_XML, consumes = SdkService.MIME_TYPE_JSON)
   public void saveNotice(final HttpServletResponse response, final @RequestBody String noticeJson)
       throws Exception {
     final boolean debug = false;
+    xmlService.saveNoticeAsXml(Optional.of(response), noticeJson, debug);
+  }
+
+  /**
+   * Save: Takes notice as JSON and builds notice XML. The SDK version is in the notice metadata.
+   * The notice XML is validated against the appropriate SDK XSDs.
+   */
+  @RequestMapping(value = "/notice/save/validation/xsd", method = RequestMethod.POST,
+      produces = SdkService.MIME_TYPE_XML, consumes = SdkService.MIME_TYPE_JSON)
+  public void saveNoticeAndXsdValidate(final HttpServletResponse response,
+      final @RequestBody String noticeJson) throws Exception {
+    final boolean debug = false;
+    xmlService.validateUsingXsd(Optional.of(response), noticeJson, debug);
+  }
+
+  /**
+   * Save: Takes notice as JSON and builds notice XML. The SDK version is in the notice metadata.
+   * The notice XML is validated using the remote CVS service (through the API). You must configure
+   * this in the application.yaml file.
+   */
+  @RequestMapping(value = "/notice/save/validation/cvs", method = RequestMethod.POST,
+      produces = SdkService.MIME_TYPE_XML, consumes = SdkService.MIME_TYPE_JSON)
+  public void saveNoticeAndCvsValidate(final HttpServletResponse response,
+      final @RequestBody String noticeJson) throws Exception {
+    final boolean debug = false;
+    // TODO
     xmlService.saveNoticeAsXml(Optional.of(response), noticeJson, debug);
   }
 }
