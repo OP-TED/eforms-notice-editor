@@ -65,6 +65,7 @@ public abstract class SaveNoticeTest {
   static final String TYPE_CODE = "code";
   static final String TYPE_ID = "id";
 
+
   static final void contains(final String xml, final String text) {
     assertTrue(xml.contains(text), text);
   }
@@ -120,6 +121,7 @@ public abstract class SaveNoticeTest {
    */
   @SuppressWarnings("static-method")
   protected Map<String, JsonNode> setupFieldsJsonFields(final ObjectMapper mapper) {
+    // This only sets most commonly required fields.
     final Map<String, JsonNode> fieldById = new LinkedHashMap<>(1024);
     {
       final ObjectNode field = mapper.createObjectNode();
@@ -140,6 +142,15 @@ public abstract class SaveNoticeTest {
       field.put(KEY_TYPE, TYPE_CODE);
       SaveNoticeTest.fieldPutRepeatable(field, false);
       FieldsAndNodes.setFieldFlatCodeList(mapper, field, CODELIST_NOTICE_SUBTYPE);
+    }
+    {
+      final ObjectNode field = mapper.createObjectNode();
+      fieldById.put(ConceptualModel.FIELD_NOTICE_ID, field);
+      field.put(KEY_PARENT_NODE_ID, ND_ROOT);
+      field.put(KEY_XPATH_ABS, "/*/cbc:ID[@schemeName='notice-id']");
+      field.put(KEY_XPATH_REL, "cbc:ID[@schemeName='notice-id']");
+      field.put(KEY_TYPE, TYPE_ID);
+      SaveNoticeTest.fieldPutRepeatable(field, false);
     }
     return fieldById;
   }

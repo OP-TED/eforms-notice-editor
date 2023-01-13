@@ -51,8 +51,8 @@ import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
  * Demo implementation of a Common Validation Service (CVS) API.
  *
  * <p>
- * Note that this relies on Jackson for the JSON and on Apache HTTP for the API calls. There is no
- * dependency on Spring.
+ * There is no dependency on Spring, this relies on Jackson for the JSON and on Apache HTTP client
+ * for the API calls (network).
  * </p>
  */
 public class CvsApiClient {
@@ -106,7 +106,7 @@ public class CvsApiClient {
    * @param configOpt Optional configuration (proxy, ...)
    * @return The response body, SVRL XML as text in this case
    */
-  public String validateNoticeXmlUsing(final String noticeXml, final Optional<String> svrlLangA2,
+  public String validateNoticeXml(final String noticeXml, final Optional<String> svrlLangA2,
       final Optional<String> eformsSdkVersion, final Optional<CsvValidationMode> sdkValidationMode)
       throws IOException {
     if (noticeXml == null || noticeXml.isEmpty()) {
@@ -160,7 +160,7 @@ public class CvsApiClient {
     //
     // HTTP POST HEADERS.
     //
-    setupHeaders(this.tedDevApiKey, requestContentType, responseContentType, post);
+    setupHeaders(requestContentType, responseContentType, post);
 
     //
     // HTTP POST ENTITY (payload).
@@ -177,17 +177,22 @@ public class CvsApiClient {
           throws ClientProtocolException, IOException {
         final StatusLine statusLine = response.getStatusLine();
         final int status = statusLine.getStatusCode();
+        logger.info("CVS responded with status={}", status);
         final HttpEntity entity = response.getEntity(); // It could be null.
+
         if (status >= HttpStatus.SC_OK && status < HttpStatus.SC_MULTIPLE_CHOICES) {
           final String text = entity != null ? EntityUtils.toString(entity) : null;
           EntityUtils.consumeQuietly(entity);
           return text;
         }
+
+        // There was a problem.
         if (entity != null) {
           EntityUtils.consumeQuietly(entity);
         }
-        throw new ClientProtocolException(String.format("Unexpected response status: %s, reason=%s",
-            status, statusLine.getReasonPhrase()));
+        final String msg = String.format("CVS POST response error: reason=%s, status=%s",
+            statusLine.getReasonPhrase(), status);
+        throw new CvsApiException(msg, status);
       }
     };
 
@@ -200,10 +205,11 @@ public class CvsApiClient {
     return this.closeableHttpClient.execute(post, responseHandler);
   }
 
-  private void setupHeaders(final String apiKey, final String requestContentType,
-      final String responseContentType, final HttpPost post) {
+  private void setupHeaders(final String requestContentType, final String responseContentType,
+      final HttpPost post) {
 
-    post.setHeader(CVS_API_HTTP_HEADER_API_KEY, apiKey); // Security, authentication related.
+    // Security, authentication / authorization related.
+    post.setHeader(CVS_API_HTTP_HEADER_API_KEY, this.tedDevApiKey);
     post.setHeader("User-Agent", this.userAgent);
 
     // Mime types.
@@ -218,23 +224,24 @@ public class CvsApiClient {
     post.setHeader("cache-control", "no-cache, no-store, max-age=0, must-revalidate");
   }
 
+  /**
+   * Provided for convenience.
+   */
   public static CloseableHttpClient createDefaultCloseableHttpClient(final int timeoutSeconds,
-      final boolean redirectsEnabled, final Optional<ProxyConfig> configOpt) {
+      final boolean redirectsEnabled, final Optional<ProxyConfig> proxyConfigOpt) {
 
     final HttpClientBuilder builder =
         HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy());
 
-    if (configOpt.isPresent()) {
-      final ProxyConfig customConf = configOpt.get();
+    if (proxyConfigOpt.isPresent()) {
+      final ProxyConfig customConf = proxyConfigOpt.get();
 
       final String proxyHost = customConf.getHostname();
       Validate.notBlank(proxyHost, "Proxy hostname is blank");
 
       final int proxyPort = customConf.getPort();
-
       final String proxyUsername = customConf.getUsername();
       Validate.notBlank(proxyUsername, "Proxy username is blank");
-
       final String proxyPass = customConf.getPassword();
 
       // Setup proxy credentials.
@@ -261,10 +268,11 @@ public class CvsApiClient {
     }
 
     // Reuse connections from a pool.
+    // Adapt the settings to your needs.
     final PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
     connManager.setDefaultMaxPerRoute(5);
-    connManager.setMaxTotal(5);
-    connManager.setValidateAfterInactivity(30 * 1000);
+    connManager.setMaxTotal(10);
+    connManager.setValidateAfterInactivity(60 * 1000);
     builder.setConnectionManager(connManager);
 
     return builder.build();

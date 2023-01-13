@@ -5,9 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,16 +17,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.ConceptualModel;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.PhysicalModel;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.VisualModel;
-import eu.europa.ted.eforms.noticeeditor.helper.validation.XsdValidator;
+import eu.europa.ted.eforms.noticeeditor.helper.validation.CsvValidationMode;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.sdk.SdkConstants;
 import eu.europa.ted.eforms.sdk.SdkVersion;
@@ -51,6 +47,9 @@ public class XmlWriteService {
   @Autowired
   private SdkService sdkService;
 
+  @Autowired
+  private NoticeValidationService noticeValidationService;
+
   /**
    * @param responseOpt used to respond with the XML
    * @param noticeJson The notice as JSON as built by the front-end form.
@@ -59,25 +58,18 @@ public class XmlWriteService {
    */
   public void saveNoticeAsXml(final Optional<HttpServletResponse> responseOpt,
       final String noticeJson, final boolean debug) throws Exception {
-    Validate.notBlank(noticeJson, "noticeJson is blank");
-
-    logger.info("Attempting to save notice as XML.");
-    final ObjectMapper mapper = new ObjectMapper();
-    final JsonNode visualRoot = mapper.readTree(noticeJson);
-    final SdkVersion sdkVersion = parseSdkVersion(visualRoot);
-    final UUID noticeUuid = parseNoticeUuid(visualRoot);
+    final PhysicalModel physicalModel = buildPhysicalModel(noticeJson, debug);
+    final UUID noticeUuid = physicalModel.getNoticeId();
+    final SdkVersion sdkVersion = physicalModel.getSdkVersion();
     try {
-      final PhysicalModel physicalModel =
-          buildPhysicalModel(visualRoot, sdkVersion, noticeUuid, debug);
-
       // Transform physical model to XML.
-      final String xmlAsText = physicalModel.toXmlText(true);
+      final String noticeXmlText = physicalModel.toXmlText(true);
 
       // We perform no validation on the XML.
       // Respond with the XML.
-      final String filenameForDownload = generateNoticeFilename(noticeUuid, sdkVersion);
       if (responseOpt.isPresent()) {
-        serveSdkXmlStringAsDownload(responseOpt.get(), xmlAsText, filenameForDownload);
+        final String filenameForDownload = generateNoticeFilename(noticeUuid, sdkVersion);
+        serveSdkXmlStringAsDownload(responseOpt.get(), noticeXmlText, filenameForDownload);
       }
     } catch (final Exception e) {
       // Catch any error, log some useful context and rethrow.
@@ -88,61 +80,32 @@ public class XmlWriteService {
   }
 
   /**
-   * @param responseOpt used to respond with the XML
+   * Validate the notice using the appropriate SDK XSDs.
+   *
+   * @param responseOpt used to respond with a report
    * @param noticeJson The notice as JSON as built by the front-end form.
    * @param debug Adds special debug info to the XML, useful for humans and unit tests. Not for
    *        production
    */
   public void validateUsingXsd(final Optional<HttpServletResponse> responseOpt,
       final String noticeJson, final boolean debug) throws Exception {
-    Validate.notBlank(noticeJson, "noticeJson is blank");
-
-    logger.info("Attempting to save notice as XML.");
-    final ObjectMapper mapper = new ObjectMapper();
-    final JsonNode visualRoot = mapper.readTree(noticeJson);
-    final SdkVersion sdkVersion = parseSdkVersion(visualRoot);
-    final UUID noticeUuid = parseNoticeUuid(visualRoot);
+    final PhysicalModel physicalModel = buildPhysicalModel(noticeJson, debug);
+    final SdkVersion sdkVersion = physicalModel.getSdkVersion();
+    final UUID noticeUuid = physicalModel.getNoticeId();
     try {
-      final PhysicalModel physicalModel =
-          buildPhysicalModel(visualRoot, sdkVersion, noticeUuid, debug);
-
       // Transform physical model to XML.
-      final String xmlAsText = physicalModel.toXmlText(true);
+      final String noticeXmlText = physicalModel.toXmlText(true);
 
       // Validate it using XSD.
       final Optional<Path> mainXsdPathOpt = physicalModel.getMainXsdPathOpt();
 
-      // Create a JSON report about the errors.
-      final ObjectNode xsdReport = JsonUtils.createObjectNode();
-      xsdReport.put("noticeUuid", noticeUuid.toString());
-      xsdReport.put("sdkVersion", sdkVersion.toString());
-      xsdReport.put("timestamp", Instant.now().toString());
-
-      if (mainXsdPathOpt.isPresent()) {
-        final Path mainXsdPath = mainXsdPathOpt.get();
-        final List<SAXParseException> validationExceptions =
-            XsdValidator.validateXml(xmlAsText, mainXsdPath);
-        xsdReport.put("errorCount", validationExceptions.size());
-
-        if (!validationExceptions.isEmpty()) {
-          final ArrayNode xsdErrors = xsdReport.putArray("xsdErrors");
-          for (SAXParseException ex : validationExceptions) {
-            logger.error(ex.toString(), ex);
-            final ObjectNode xsdError = JsonUtils.createObjectNode();
-            xsdError.put("lineNumber", ex.getLineNumber());
-            xsdError.put("columnNumber", ex.getColumnNumber());
-            xsdError.put("message", ex.getMessage());
-            xsdErrors.add(xsdError);
-          }
-        }
-      } else {
-        xsdReport.put("Unsupported",
-            "XSD validation is not supported for this SDK version in the demo.");
-      }
+      final ObjectNode xsdReport = noticeValidationService.validateNoticeUsingXsd(noticeUuid,
+          sdkVersion, noticeXmlText, mainXsdPathOpt);
 
       final String jsonText = xsdReport.toPrettyString();
-      final String filenameForDownload = generateNoticeFilename(noticeUuid, sdkVersion);
       if (responseOpt.isPresent()) {
+        final String filenameForDownload =
+            String.format("notice-%s-%s-xsd-report.json", sdkVersion, noticeUuid);
         serveJson(responseOpt.get(), filenameForDownload, true, jsonText);
       }
 
@@ -154,32 +117,57 @@ public class XmlWriteService {
     }
   }
 
-  private static void serveJson(final HttpServletResponse response,
-      final String filenameForDownload, final boolean isAsDownload, final String jsonText) {
-    Validate.notBlank(jsonText, "jsonText is blank");
-    Validate.notBlank(filenameForDownload, "filenameForDownload is blank");
+  public PhysicalModel buildPhysicalModel(final String noticeJson, final boolean debug)
+      throws Exception {
+    final ObjectMapper mapper = JsonUtils.getStandardJacksonObjectMapper();
+    final JsonNode visualRoot = mapper.readTree(noticeJson);
+    final SdkVersion sdkVersion = parseSdkVersion(visualRoot);
+    final UUID noticeUuid = parseNoticeUuid(visualRoot);
+    try {
+      logger.info("Attempting to transform visual model into physical model as XML.");
+      return buildPhysicalModel(visualRoot, sdkVersion, noticeUuid, debug);
+    } catch (final Exception e) {
+      // Catch any error, log some useful context and rethrow.
+      logger.error("Error for notice uuid={}, sdkVersion={}", noticeUuid,
+          sdkVersion.toNormalisedString(true));
+      throw e;
+    }
+  }
 
-    // ---------------------------------
-    // THE FILE IS SMALL, JUST COPY IT.
-    // ---------------------------------
-    try (InputStream is = new ByteArrayInputStream(jsonText.getBytes(StandardCharsets.UTF_8))) {
-      // Indicate the content type and encoding BEFORE writing to output.
-      response.setContentType(MIME_TYPE_JSON);
-      response.setCharacterEncoding(StandardCharsets.UTF_8.toString());
-      // setGzipResponse(response);
+  /**
+   * Validate the notice using the remote Central Validation Service (CVS). Configuration is
+   * required for this to work, see application.yaml
+   *
+   * @param responseOpt used to respond with a report
+   * @param noticeJson The notice as JSON as built by the front-end form.
+   * @param debug Adds special debug info to the XML, useful for humans and unit tests. Not for
+   *        production
+   */
+  public void validateUsingCvs(final Optional<HttpServletResponse> responseOpt,
+      final String noticeJson, final boolean debug) throws Exception {
+    Validate.notBlank(noticeJson, "noticeJson is blank");
 
-      if (isAsDownload) {
-        response.setHeader("Content-Disposition",
-            String.format("attachment; filename=\"%s\"", filenameForDownload));
-      }
+    final PhysicalModel physicalModel = buildPhysicalModel(noticeJson, debug);
+    final UUID noticeUuid = physicalModel.getNoticeId();
+    final SdkVersion sdkVersion = physicalModel.getSdkVersion();
 
-      // Write response content.
-      org.apache.commons.io.IOUtils.copy(is, response.getOutputStream());
-      response.flushBuffer();
+    // Transform physical model to XML.
+    final String noticeXmlText = physicalModel.toXmlText(true);
 
-    } catch (final IOException ex) {
-      logger.info("Error responding with JSON for download.", ex);
-      throw new RuntimeException("IOException writing JSON to output stream.", ex);
+    // Validate using the CVS.
+
+    // Could pass the language of the UI for the SVRL report.
+    final Optional<String> svrlLangA2 = Optional.empty();
+
+    final Optional<String> eformsSdkVersion = Optional.empty(); // Use default.
+    final Optional<CsvValidationMode> validationMode = Optional.empty(); // Use default.
+
+    final String svrlXml = noticeValidationService.validateNoticeXmlUsingCvs(noticeXmlText,
+        eformsSdkVersion, svrlLangA2, validationMode);
+
+    if (responseOpt.isPresent()) {
+      final String filenameForDownload = String.format("notice-%s-%s.svrl", sdkVersion, noticeUuid);
+      serveSdkXmlStringAsDownload(responseOpt.get(), svrlXml, filenameForDownload);
     }
   }
 
@@ -294,7 +282,6 @@ public class XmlWriteService {
     Validate.notBlank(eformsSdkVersion, "virtual root eFormsSdkVersion is blank");
 
     final String sdkVersionStr = parseEformsSdkVersionText(eformsSdkVersion);
-
     logger.info("Found SDK version: {}, using {}", eformsSdkVersion, sdkVersionStr);
 
     // Load fields json depending of the correct SDK version.
@@ -330,5 +317,34 @@ public class XmlWriteService {
         version, uuidStr);
 
     return uuidV4;
+  }
+
+  private static void serveJson(final HttpServletResponse response,
+      final String filenameForDownload, final boolean isAsDownload, final String jsonText) {
+    Validate.notBlank(jsonText, "jsonText is blank");
+    Validate.notBlank(filenameForDownload, "filenameForDownload is blank");
+
+    // ---------------------------------
+    // THE FILE IS SMALL, JUST COPY IT.
+    // ---------------------------------
+    try (InputStream is = new ByteArrayInputStream(jsonText.getBytes(StandardCharsets.UTF_8))) {
+      // Indicate the content type and encoding BEFORE writing to output.
+      response.setContentType(MIME_TYPE_JSON);
+      response.setCharacterEncoding(StandardCharsets.UTF_8.toString());
+      // setGzipResponse(response);
+
+      if (isAsDownload) {
+        response.setHeader("Content-Disposition",
+            String.format("attachment; filename=\"%s\"", filenameForDownload));
+      }
+
+      // Write response content.
+      org.apache.commons.io.IOUtils.copy(is, response.getOutputStream());
+      response.flushBuffer();
+
+    } catch (final IOException ex) {
+      logger.info("Error responding with JSON for download.", ex);
+      throw new RuntimeException("IOException writing JSON to output stream.", ex);
+    }
   }
 }

@@ -1,19 +1,29 @@
 package eu.europa.ted.eforms.noticeeditor.service;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.apache.commons.lang3.Validate;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import eu.europa.ted.eforms.noticeeditor.helper.validation.CsvValidationMode;
 import eu.europa.ted.eforms.noticeeditor.helper.validation.CvsApiClient;
 import eu.europa.ted.eforms.noticeeditor.helper.validation.CvsConfig;
 import eu.europa.ted.eforms.noticeeditor.helper.validation.ProxyConfig;
+import eu.europa.ted.eforms.noticeeditor.helper.validation.XsdValidator;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
+import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
  * Demo implementation of how to validate a notice.
@@ -42,9 +52,49 @@ public class NoticeValidationService {
     } else {
       proxyConfigOpt = Optional.empty();
     }
+
     final int timeoutSeconds = 8;
     this.httpClient =
         CvsApiClient.createDefaultCloseableHttpClient(timeoutSeconds, true, proxyConfigOpt);
+  }
+
+  public ObjectNode validateNoticeUsingXsd(final UUID noticeUuid, final SdkVersion sdkVersion,
+      final String noticeXmlText, final Optional<Path> mainXsdPathOpt)
+      throws SAXException, IOException {
+
+    // Create a JSON report about the errors.
+    logger.info("Attempting to validate notice using XSD.");
+    final ObjectNode xsdReport = objectMapper.createObjectNode();
+    xsdReport.put("noticeUuid", noticeUuid.toString());
+    xsdReport.put("sdkVersion", sdkVersion.toString());
+    xsdReport.put("timestamp", Instant.now().toString());
+
+    if (mainXsdPathOpt.isPresent()) {
+      final Path mainXsdPath = mainXsdPathOpt.get();
+      final List<SAXParseException> validationExceptions =
+          XsdValidator.validateXml(noticeXmlText, mainXsdPath);
+      xsdReport.put("errorCount", validationExceptions.size());
+
+      if (!validationExceptions.isEmpty()) {
+        final ArrayNode xsdErrors = xsdReport.putArray("xsdErrors");
+        for (SAXParseException ex : validationExceptions) {
+          logger.error(ex.toString(), ex);
+          final ObjectNode xsdError = objectMapper.createObjectNode();
+          xsdError.put("lineNumber", ex.getLineNumber());
+          xsdError.put("columnNumber", ex.getColumnNumber());
+          xsdError.put("message", ex.getMessage());
+          xsdErrors.add(xsdError);
+        }
+      }
+    } else {
+      // This problem is related to how the XML is build and sorted, relying on the SDK definition
+      // of all namespaces.
+      final String message = String.format(
+          "This XSD validation feature is not supported in the editor demo for SDK version=%s",
+          sdkVersion);
+      xsdReport.put("Unsupported", message);
+    }
+    return xsdReport;
   }
 
   /**
@@ -54,9 +104,9 @@ public class NoticeValidationService {
    * @param svrlLangA2 The language the svrl messages should be in
    * @return The response body
    */
-  public String validateNoticeXml(final String noticeXml, final Optional<String> eformsSdkVersion,
-      final Optional<String> svrlLangA2, final Optional<CsvValidationMode> sdkValidationMode)
-      throws IOException {
+  public String validateNoticeXmlUsingCvs(final String noticeXml,
+      final Optional<String> eformsSdkVersion, final Optional<String> svrlLangA2,
+      final Optional<CsvValidationMode> sdkValidationMode) throws IOException {
     logger.info("Attempting to validate notice using the CVS");
 
     // https://docs.ted.europa.eu/api/index.html
@@ -73,8 +123,8 @@ public class NoticeValidationService {
     //
     // Call the CVS API.
     //
-    final String responseBody = cvsClient.validateNoticeXmlUsing(noticeXml, svrlLangA2,
-        eformsSdkVersion, sdkValidationMode);
+    final String responseBody =
+        cvsClient.validateNoticeXml(noticeXml, svrlLangA2, eformsSdkVersion, sdkValidationMode);
 
     return responseBody;
   }

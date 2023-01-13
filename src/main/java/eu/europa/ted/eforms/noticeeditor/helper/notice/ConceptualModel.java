@@ -42,7 +42,12 @@ public class ConceptualModel {
   /**
    * Sector of activity.
    */
-  public static final String OPP_105_BUSINESS = "OPP-105-Business";
+  public static final String FIELD_SECTOR_OF_ACTIVITY = "OPP-105-Business";
+
+  /**
+   * Notice ID.
+   */
+  public static final String FIELD_NOTICE_ID = "BT-701-notice";
 
   /**
    * The root node of the conceptual model.

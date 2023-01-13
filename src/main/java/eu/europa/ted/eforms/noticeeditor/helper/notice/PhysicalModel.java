@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.UUID;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
@@ -46,7 +47,15 @@ public class PhysicalModel {
 
   private static final Logger logger = LoggerFactory.getLogger(PhysicalModel.class);
 
+  private static final String CBC_CUSTOMIZATION_ID = "cbc:CustomizationID";
+  private static final String CBC_ID = "cbc:ID";
   private static final String XMLNS = "xmlns";
+
+  /**
+   * The same prefix is used in the fields.json but technically nothing ensures this will remain
+   * like that.
+   */
+  public static final String EFORMS_SDK_PREFIX = "eforms-sdk-";
 
   /**
    * A special case that we have to solve. HARDCODED. TODO
@@ -93,7 +102,6 @@ public class PhysicalModel {
     this.mainXsdPathOpt = mainXsdPathOpt;
   }
 
-
   public Document getDomDocument() {
     return domDocument;
   }
@@ -104,6 +112,19 @@ public class PhysicalModel {
 
   public Optional<Path> getMainXsdPathOpt() {
     return mainXsdPathOpt;
+  }
+
+  public UUID getNoticeId() {
+    final Node jsonNode = this.domDocument.getElementsByTagName(CBC_ID).item(0);
+    Validate.notNull(jsonNode, "The physical model notice id cannot be found!");
+    return UUID.fromString(jsonNode.getTextContent());
+  }
+
+  public SdkVersion getSdkVersion() {
+    final Node jsonNode = this.domDocument.getElementsByTagName(CBC_CUSTOMIZATION_ID).item(0);
+    Validate.notNull(jsonNode, "The physical model SDK version cannot be found!");
+    final String text = jsonNode.getTextContent();
+    return new SdkVersion(text.substring(EFORMS_SDK_PREFIX.length()));
   }
 
   /**
@@ -131,6 +152,11 @@ public class PhysicalModel {
    */
   public String toXmlText(final boolean indented) {
     return EditorXmlUtils.asText(domDocument, indented);
+  }
+
+  @Override
+  public String toString() {
+    return toXmlText(true);
   }
 
   /**
@@ -574,7 +600,7 @@ public class PhysicalModel {
       final JsonNode codelistValue =
           FieldsAndNodes.getFieldPropertyValue(fieldMeta, FIELD_CODE_LIST);
       String codelistName = JsonUtils.getTextStrict(codelistValue, "id", "fieldId=" + fieldId);
-      if (ConceptualModel.OPP_105_BUSINESS.equals(fieldId)) {
+      if (ConceptualModel.FIELD_SECTOR_OF_ACTIVITY.equals(fieldId)) {
         // TODO sector, temporary hardcoded fix here, this information should be provided in the
         // SDK. Maybe via a special key/value.
         codelistName = "sector";

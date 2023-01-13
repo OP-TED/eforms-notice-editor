@@ -54,7 +54,6 @@ public class XmlRestController implements AsyncConfigurer {
   public void saveNoticeAndCvsValidate(final HttpServletResponse response,
       final @RequestBody String noticeJson) throws Exception {
     final boolean debug = false;
-    // TODO
-    xmlService.saveNoticeAsXml(Optional.of(response), noticeJson, debug);
+    xmlService.validateUsingCvs(Optional.of(response), noticeJson, debug);
   }
 }
