@@ -1,7 +1,9 @@
-import { LanguageSelector, NoticeSubtypeSelector, SdkVersionSelector } from "./context.js";
+import { Context } from "./context.js";
 import { Constants, I18N } from "./global.js";
 import { FormElement } from "./notice-form.js";
 import { SdkServiceClient } from "./service-clients.js";
+import { Validator} from "./validator.js";
+import { MandatoryProperty, ForbiddenProperty, RepeatableProperty, PatternProperty, AssertProperty, CodelistProperty, InChangeNoticeProperty } from "./dynamic-property.js";
 
 
 /*******************************************************************************
@@ -229,31 +231,41 @@ export class InputField extends NoticeTypeDefinitionElement {
 
     this.fieldId = content.id;
 
-    // Pattern, regex for validation.
-    const field = this.field;
-    if (field.pattern && field.pattern.severity === "ERROR") {
-      this.htmlElement.setAttribute("pattern", field.pattern.value);
-
-      // The browser will show: "Please match the requested format: _TITLE_HERE_"
-      // TODO the fields json pattern should come with english text explaining the pattern for error messages. 
-      this.htmlElement.setAttribute("title", field.pattern.value);
+    if (this.field?.mandatory) {
+      this.mandatoryProperty = new MandatoryProperty(this.htmlElement, this.field.mandatory);
+      Validator.register(this.mandatoryProperty);
+    }
+    if (this.field?.repeatable) {
+      this.repeatableProperty = new RepeatableProperty(this.htmlElement, this.field.repeatable);
+      Validator.register(this.repeatableProperty);
+    }
+    if (this.field?.pattern) {
+      this.patternProperty = new PatternProperty(this.htmlElement, this.field.pattern);
+      Validator.register(this.patternProperty);
+    }
+    if (this.field?.assert) {
+      this.assertProperty = new AssertProperty(this.htmlElement, this.field.assert);
+      Validator.register(this.assertProperty);
+    }
+    if (this.field?.forbidden) {
+      this.forbiddenProperty = new ForbiddenProperty(this.htmlElement, this.field.forbidden);
+      Validator.register(this.forbiddenProperty);
+    }
+    if (this.field?.inChangeNotice) {
+      this.inChangeNoticeProperty = new InChangeNoticeProperty(this.htmlElement, this.field.inChangeNotice);
+      Validator.register(this.inChangeNoticeProperty);
+    }
+    if (this.field?.codelist) {
+      this.codelistProperty = new CodelistProperty(this.htmlElement, this.field.codelist);
+      Validator.register(this.codelistProperty);
     }
 
-    if (this.isMandatory) {
-      this.htmlElement.setAttribute("required", "required");
-      if (this.label) {
-        this.label.classList.add("notice-content-required");
-      }
-    }
-
-    // TODO repeatable, severity is a bit confusing ...
     if (this.isRepeatable) {
       // Allow to add / remove fields.
       this.container.classList.add("repeatable");
 
       if (!content._repeatable) {
         console.error("fields.json repeatable mismatch on: " + this.field.id);
-        this.container.classList.add("repeatable-mismatch");
       }
     }
 
@@ -278,26 +290,35 @@ export class InputField extends NoticeTypeDefinitionElement {
   }
 
   get isMandatory() {
-    const mandatory = this.field?.mandatory;
-    if (mandatory?.severity === "ERROR") {
-      for (const constraint of mandatory.constraints) {
-        if (constraint?.severity === "ERROR" && constraint?.noticeTypes) {
-          if (constraint.noticeTypes.includes(NoticeSubtypeSelector.selectedNoticeSubtype)) {
-            return constraint?.value ? true : false;
-          }
-        }
-      }
-      return mandatory?.value ? true : false;
-    }
-    return false;
+    return this.mandatoryProperty?.value ?? false;
+  }
+
+  get isForbidden() {
+    return this.forbiddenProperty?.value ?? false;
+  }
+
+  get isRepeatable() {
+    return this.repeatableProperty?.value ?? false;
+  }
+
+  get assert() {
+    return this.assertProperty?.value ?? true;
+  }
+
+  get pattern() {
+    return this.patternProperty?.value ?? undefined;
+  }
+
+  get codelist() {
+    return this.codelistProperty?.value ?? undefined;
+  }
+
+  get inChangeNotice() {
+    return this.inChangeNoticeProperty?.value ?? undefined;
   }
 
   get valueSource() {
     return this.content?.valueSource;
-  }
-
-  get isRepeatable() {
-    return this.field?.repeatable?.value ? true : false;
   }
 
   get hasPrivacy() {
@@ -401,7 +422,7 @@ export class IdRefInputField extends InputField {
       return;
     }
 
-    const query = `[${Constants.Attributes.ID_SCHEME_ATTRIBUTE} = "${this.idSchemes[0]}"]`;
+    var query = `[${Constants.Attributes.ID_SCHEME_ATTRIBUTE} = "${this.idSchemes[0]}"]`;
     for (var i = 1; i < this.idSchemes.length; i++) {
       query += `, [${Constants.Attributes.ID_SCHEME_ATTRIBUTE} = "${this.idSchemes[i]}"]`;
     }
@@ -426,7 +447,7 @@ export class CodeInputField extends InputField {
       console.log("Editor: hierarchical codelists are not handled yet, codelistId=" + this.getCodelistId());
     }
 
-    this.populate(SdkVersionSelector.selectedSdkVersion, LanguageSelector.selectedLanguage);
+    this.populate(Context.sdkVersion, Context.language);
   }
 
   async populate(sdkVersion, language) {
@@ -439,9 +460,9 @@ export class CodeInputField extends InputField {
     // After the select options have been set, an option can be selected.
     // Special case for some of the metadata fields.
     if (this.getCodelistId() === "notice-subtype") {
-      this.formElement.select(NoticeSubtypeSelector.selectedNoticeSubtype);
+      this.formElement.select(Context.noticeSubtype);
     } else if (this.getCodelistId() === "language_eu-official-language" && "BT-702(a)-notice" === content.id) {
-      this.formElement.select(LanguageSelector.selectedLanguageAsIso6393);
+      this.formElement.select(Context.languageAsIso6393);
     }
   }
 
@@ -558,7 +579,7 @@ export class TextInputField extends InputField {
     this.container.classList.add("text");
 
     // Let the browser know in which language the text is, for example for spell checkers orscreen readers.
-    this.htmlElement.setAttribute("lang", LanguageSelector.selectedLanguage);
+    this.htmlElement.setAttribute("lang", Context.language);
 
     if (this.field.maxLength) {
       this.htmlElement.setAttribute("maxlength", this.field.maxLength);

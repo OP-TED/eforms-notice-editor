@@ -1,4 +1,4 @@
-import { LanguageSelector } from "./context.js";
+import { Context } from "./context.js";
 import { SdkServiceClient } from "./service-clients.js";
 
 export const Constants = {
@@ -179,7 +179,7 @@ export class I18N {
     };
 
     static getLabel(labelId) {
-        var applicationLabels = I18N.labels[LanguageSelector.selectedLanguage] ?? I18N.labels["en"];
+        var applicationLabels = I18N.labels[Context.language] ?? I18N.labels["en"];
         return applicationLabels[labelId] ?? SdkServiceClient.translations[labelId] ?? labelId;
     }
 }

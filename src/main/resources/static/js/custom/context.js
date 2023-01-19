@@ -1,5 +1,3 @@
-import { SdkServiceClient } from "./service-clients.js";
-
 /**
  * The classes in this file are used to encapsulate the code necessary for controlling the context of the editor.
  * There are three controls providing context to the editor. All of them are hosted in the toolbar at the top of the
@@ -10,6 +8,46 @@ import { SdkServiceClient } from "./service-clients.js";
  * 
  * To keep things simple all classes are implemented as singletons, using a static property to instantiate themselves autonomously
  */
+
+import { SdkServiceClient } from "./service-clients.js";
+
+/*******************************************************************************
+ * Provides a central point of access to the application's context .
+ */
+export class Context {
+
+  /**
+   * Gets the selected notice subtype.
+   * @returns {string}
+   */
+  static get noticeSubtype() {
+    return NoticeSubtypeSelector.selectedNoticeSubtype;
+  }
+
+  /**
+   * Gets the selected SDK version
+   * @returns {string}
+   */
+  static get sdkVersion() {
+    return SdkVersionSelector.selectedSdkVersion;
+  }
+
+  /**
+   * Gets the ISO 639-1, two-letter code of the selected language
+   * @returns {string}
+   */
+  static get language() {
+    return LanguageSelector.selectedLanguage;
+  } 
+
+  /**
+   * Gets the ISO 639-3, three-letter code of the selected language
+   * @returns {string}
+   */
+  static get languageAsIso6393() {
+    return I18N.Iso6391ToIso6393Map[LanguageSelector.selectedLanguage];
+  }
+}
 
 /*******************************************************************************
  * Controls the dropdown which is used to select the version of the SDK to be loaded.
@@ -118,9 +156,5 @@ export class LanguageSelector {
 
   static get selectedLanguage() {
     return LanguageSelector.element.value;
-  }
-
-  static get selectedLanguageAsIso6393() {
-    return I18N.Iso6391ToIso6393Map[LanguageSelector.selectedLanguage];
   }
 }
