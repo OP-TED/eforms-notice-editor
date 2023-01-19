@@ -1,4 +1,4 @@
-import { Context, } from "./context.js";
+import { Context } from "./context.js";
 import { Constants, DomUtil, I18N } from "./global.js";
 import { NoticeTypeDefinitionElement } from "./notice-type-definition.js";
 

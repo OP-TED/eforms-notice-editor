@@ -73,10 +73,18 @@ export class Validator {
         }
     }
 
+    /**
+     * 
+     * @param {Event} event 
+     */
     static onValidate(event) {
-        Validator.instance.checkValidityOfElement(event.target);
+        Validator.instance.checkValidityOfElement(event.currentTarget);
     }
 
+    /**
+     * 
+     * @param {Event} event 
+     */
     static onSubmit(event) {
         Validator.instance.checkValidity();
         const invalidFields = Validator.instance.form.querySelectorAll(":invalid");
