@@ -1,4 +1,4 @@
-import { LanguageSelector, NoticeSubtypeSelector, SdkVersionSelector } from "./context.js";
+import { Context, } from "./context.js";
 import { Constants, DomUtil, I18N } from "./global.js";
 import { NoticeTypeDefinitionElement } from "./notice-type-definition.js";
 
@@ -375,7 +375,7 @@ export class InputFieldElement extends FormElement {
     // REPEAT LOGIC SETUP.
     const addButton = document.createElement("button");
     addButton.setAttribute("type", "button");
-    addButton.textContent = I18N.getLabel("editor.add.more", LanguageSelector.selectedLanguage);
+    addButton.textContent = I18N.getLabel("editor.add.more", Context.language);
     addButton.classList.add("button");
     // this.container.appendChild(addButton);
 
@@ -452,7 +452,7 @@ export class RadioInputElement extends InputFieldElement {
   }
 
   createBody() {
-    return document.createElement("div");
+    return document.createElement("fieldset");
   }
 
   populate(map) {

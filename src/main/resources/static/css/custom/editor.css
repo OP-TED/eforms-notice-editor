@@ -329,13 +329,6 @@ label, .label {
   content: " *";
 }
 
-.repeatable-mismatch {
-  content: " [+]";
-  color: var(--eui-danger-100);
-}
-
-
-
 .ts-wrapper {
   display: inline-block;
 }
@@ -495,6 +488,12 @@ legend {
   align-items: baseline;
 }
 
+/* Radio-buttons of input-fields appear inside a field set that looks similar the other input controls. */
+.input-field.container > fieldset.body:has(input[type='radio']) {
+  border: 1px solid var(--eui-grey-20);
+  background-color: var(--eui-white);
+}
+
 /* Check-boxes of input-fields are larger to match the size of other input-field controls. */
 .input-field.container input[type='checkbox'] {
   min-width: 21px;
@@ -505,6 +504,12 @@ legend {
 /* Radio-buttons of input-fields keep a small spacing to their right to separate more clearly from their label text. */
 .input-field.container input[type='radio'] {
   margin-right: .5em;
+}
+
+/* Display validation errors in bold, red type */
+.input-field.container .footer {
+  color: var(--eui-danger-100);
+  font-weight: bold;
 }
 
 /* Input-fields of type "id" and "id-ref" are displayed with monospace uppercase type. */
@@ -596,5 +601,5 @@ input, select, textarea, .ts-control {
   margin: 0px;
   display: flex;
   align-items: baseline;
-border-top: 1px solid var(--eui-grey-20);
+  border-top: 1px solid var(--eui-grey-20);
 }
