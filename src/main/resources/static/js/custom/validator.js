@@ -61,7 +61,9 @@ export class Validator {
             property.checkValidity();
             property.htmlElement.checkValidity();
 
-            if (!htmlElement.validity.valid) {
+            if (htmlElement.validity.valid) {
+                htmlElement.closest(".container").querySelector(".footer").textContent = "";
+            } else {
                 // The element is not valid.
                 
                 // 1. Display the validation message to the user.
@@ -105,7 +107,7 @@ export class Validator {
 
         if (Validator.instance.validationRoster.has(htmlElement.id)) {
             const registeredProperties = Validator.instance.validationRoster.get(htmlElement.id);
-            const isSameEventUsedByOtherRegisteredProperties = registeredProperties.find(p => p.validateOnEventName == eventName);
+            const isSameEventUsedByOtherRegisteredProperties = registeredProperties.find(p => p.validateOnEventName == eventName) ? true : false;
             
             registeredProperties.push(dynamicProperty);
             
