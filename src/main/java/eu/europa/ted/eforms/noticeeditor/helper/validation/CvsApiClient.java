@@ -8,6 +8,7 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.Optional;
 import javax.xml.parsers.DocumentBuilder;
@@ -19,6 +20,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.http.HttpEntity;
@@ -44,11 +46,15 @@ import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
+import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
+import eu.europa.ted.eforms.noticeeditor.util.XmlUtils;
 
 /**
  * Demo implementation of a Common Validation Service (CVS) API client.
@@ -138,7 +144,7 @@ public class CvsApiClient {
       putIfPresent(jsonPayload, "eFormsSdkVersion", eformsSdkVersion);
     }
 
-    return httpPostToCvs(postUrl, requestContentType, responseContentType, jsonPayload);
+    return httpPostToCvs(postUrl, requestContentType, responseContentType, jsonPayload, svrlLangA2);
   }
 
   private static void putIfPresent(final ObjectNode jsonPayload, final String key,
@@ -153,7 +159,8 @@ public class CvsApiClient {
    * @return The response body
    */
   private String httpPostToCvs(final String postUrl, final String requestContentType,
-      final String responseContentType, final ObjectNode jsonPayload) throws IOException {
+      final String responseContentType, final ObjectNode jsonPayload,
+      final Optional<String> svrlLangA2) throws IOException {
     //
     // SETUP HTTP POST.
     //
@@ -183,9 +190,24 @@ public class CvsApiClient {
         final HttpEntity entity = response.getEntity(); // It could be null.
 
         if (status >= HttpStatus.SC_OK && status < HttpStatus.SC_MULTIPLE_CHOICES) {
-          final String text = entity != null ? EntityUtils.toString(entity) : null;
+          final String svrlText = entity != null ? EntityUtils.toString(entity) : null;
           EntityUtils.consumeQuietly(entity);
-          return text;
+
+          try {
+            // Create a JSON report from parts of the SVRL.
+            final DocumentBuilder db =
+                SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype(false);
+            final Document doc = db.parse(IOUtils.toInputStream(svrlText, CHARSET));
+            doc.normalize();
+            final ObjectNode jsonReport = createJsonReport(doc, svrlLangA2);
+            // return jsonReport;
+          } catch (ParserConfigurationException e) {
+            logger.error(e.toString(), e);
+          } catch (SAXException e) {
+            logger.error(e.toString(), e);
+          }
+
+          return svrlText;
         }
 
         // There was a problem.
@@ -314,13 +336,13 @@ public class CvsApiClient {
   /**
    * @return The text encoded in base 64
    */
-  public static String getXmlInBase64(final Path xmlPath)
+  public static String getNoticeXmlInBase64(final Path xmlPath)
       throws TransformerFactoryConfigurationError {
     try {
       final Document doc = getXmlAsDoc(xmlPath);
       final NodeList elements =
           doc.getDocumentElement().getElementsByTagName("cbc:CustomizationID");
-      final String eformsSdkVersionInFile = elements.item(0).getTextContent();
+      final String eformsSdkVersionInFile = XmlUtils.getTextNodeContentOneLine(elements.item(0));
       logger.debug("eformsSdkVersionInFile={}", eformsSdkVersionInFile);
       doc.normalize();
       final String xmlAsText = getDocAsText(doc);
@@ -328,6 +350,81 @@ public class CvsApiClient {
     } catch (ParserConfigurationException | SAXException | IOException | TransformerException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  static ObjectNode createJsonReport(final Document svrlDoc, final Optional<String> svrlLangA2) {
+
+    final ObjectNode jsonReport = JsonUtils.createObjectNode();
+    jsonReport.put("description", "Data extracted from the svrl report");
+    jsonReport.put("timestamp", Instant.now().toString());
+
+    // Find failed assertions.
+    final ArrayNode jsonArr = jsonReport.putArray("failedAsserts");
+    final NodeList failedAsserts = svrlDoc.getElementsByTagName("svrl:failed-assert");
+    for (int i = 0; i < failedAsserts.getLength(); i++) {
+
+      final Element failedAssert = (Element) failedAsserts.item(i);
+
+      final String role = failedAssert.getAttribute("role"); // ERROR, WARN
+
+      // TODO Skip WARN level??
+      // if ("WARN".equals(role)) {
+      // continue;
+      // }
+
+      final String flag = failedAssert.getAttribute("flag"); // Example: LAWFULNESS
+      final String id = failedAssert.getAttribute("id");
+      final String test = failedAssert.getAttribute("test");
+      final String locationXpath = failedAssert.getAttribute("location");
+
+      final Element textElem = XmlUtils.getDirectChild(failedAssert, "svrl:text");
+      final String labelId = XmlUtils.getTextNodeContentOneLine(textElem);
+
+      final ObjectNode jsonItem = JsonUtils.createObjectNode();
+      jsonItem.put("id", id);
+      jsonItem.put("labelId", labelId);
+      jsonItem.put("role", role);
+      // jsonItem.put("flag", flag);
+      // jsonItem.put("test", test);
+
+      if (locationXpath != null) {
+        // TODO extract instance id from location xpath .../abcd[2]/...
+        jsonItem.put("location", locationXpath);
+      }
+
+      // Diagnostic ref.
+      // Example of diagnostic: ND-Company_BT-514-Organization-Company
+      final Element diagnosticRef =
+          XmlUtils.getDirectChild(failedAssert, "svrl:diagnostic-reference");
+
+      // There may be no diagnostic in case the element is missing from the notice.
+      if (diagnosticRef != null) {
+        final String diagXpath = XmlUtils.getTextNodeContentOneLine(diagnosticRef);
+        jsonItem.put("diagnosticXpath", diagXpath);
+
+        // Complete XPath location of the element.
+        final String diagnostic = diagnosticRef.getAttribute("diagnostic");
+
+        final String nodeId, fieldId;
+        final int indexOfUnderscore = diagnostic.indexOf("_");
+        if (indexOfUnderscore > 0) {
+          nodeId = diagnostic.substring(0, indexOfUnderscore);
+          // In case of something like (c) inside of an id ... those are replaced by underscore.
+          // BT-01_c_-Procedure
+          // fieldId = diagnostic.substring(indexOfUnderscore, diagnostic.length());
+        } else {
+          nodeId = null;
+          // fieldId = diagnostic;
+        }
+        jsonItem.put("nodeId", nodeId);
+        // jsonItem.put("fieldId", fieldId); // TODO wait for TEDEFO-1758
+
+        // TODO accumulate labelIds and get them all in one call ...or get labels from the UI later?
+        // jsonItem.put("label", labelId + svrlLangA2 = label);
+      }
+      jsonArr.add(jsonItem);
+    }
+    return jsonReport;
   }
 
   /**
