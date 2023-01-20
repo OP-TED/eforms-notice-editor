@@ -223,7 +223,7 @@ export class AssertConstraint extends Constraint {
     }
 
     checkValidity() {
-        this.htmlElement.setCustomValidity( this.evaluate ? this.message : "");
+        this.htmlElement.setCustomValidity( this.evaluate ? "" : this.message);
     }
 
     evaluate() {
