@@ -77,9 +77,8 @@ public class ConceptualModel {
     final Optional<ConceptTreeNode> rootExtOpt = conceptNodes.stream()
         .filter(item -> item.getNodeId().equals(ND_ROOT_EXTENSION)).findFirst();
     if (rootExtOpt.isEmpty()) {
-      throw new RuntimeException(String.format(
-          "Conceptual model: Expecting to find root extension in conceptual model! Missing important nodeId=%s",
-          ND_ROOT_EXTENSION));
+      throw new RuntimeException(String.format("Conceptual model: Expecting to find root extension "
+          + "in conceptual model! Missing important nodeId=%s", ND_ROOT_EXTENSION));
     }
 
     final ConceptTreeNode rootExtension = rootExtOpt.get();

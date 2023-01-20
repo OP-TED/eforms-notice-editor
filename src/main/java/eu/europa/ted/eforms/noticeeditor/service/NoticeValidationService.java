@@ -11,6 +11,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
@@ -20,7 +21,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import eu.europa.ted.eforms.noticeeditor.helper.validation.CsvValidationMode;
 import eu.europa.ted.eforms.noticeeditor.helper.validation.CvsApiClient;
 import eu.europa.ted.eforms.noticeeditor.helper.validation.CvsConfig;
-import eu.europa.ted.eforms.noticeeditor.helper.validation.ProxyConfig;
 import eu.europa.ted.eforms.noticeeditor.helper.validation.XsdValidator;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.sdk.SdkVersion;
@@ -37,25 +37,15 @@ public class NoticeValidationService {
   private final CloseableHttpClient httpClient;
 
   @Autowired
-  public NoticeValidationService(final CvsConfig cvsConfig, final ProxyConfig proxyConfig) {
+  public NoticeValidationService(final CvsConfig cvsConfig,
+      @Value("${proxy.url:}") final String proxyUrl) {
     this.cvsConfig = cvsConfig;
 
     // It can be reused.
     this.objectMapper = JsonUtils.getStandardJacksonObjectMapper();
 
-    // The HTTP client and established connections of the client can also be reused.
-    // The disadvantage would be that if the proxy config changes the server would need to be
-    // restarted as the config is set inside the client.
-    final Optional<ProxyConfig> proxyConfigOpt;
-    if (proxyConfig.getUsername() != null && proxyConfig.getPassword() != null) {
-      proxyConfigOpt = Optional.of(proxyConfig);
-    } else {
-      proxyConfigOpt = Optional.empty();
-    }
-
     final int timeoutSeconds = 8;
-    this.httpClient =
-        CvsApiClient.createDefaultCloseableHttpClient(timeoutSeconds, true, proxyConfigOpt);
+    this.httpClient = CvsApiClient.createDefaultCloseableHttpClient(timeoutSeconds, true, proxyUrl);
   }
 
   public ObjectNode validateNoticeUsingXsd(final UUID noticeUuid, final SdkVersion sdkVersion,

@@ -3,6 +3,8 @@ package eu.europa.ted.eforms.noticeeditor.helper.validation;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -17,6 +19,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -48,7 +51,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
 
 /**
- * Demo implementation of a Common Validation Service (CVS) API.
+ * Demo implementation of a Common Validation Service (CVS) API client.
  *
  * <p>
  * There is no dependency on Spring, this relies on Jackson for the JSON and on Apache HTTP client
@@ -63,7 +66,7 @@ public class CvsApiClient {
   private static final String MIME_TYPE_APPLICATION_JSON = "application/json";
   private static final String DEFAULT_USER_AGENT = "Editor demo (Java-SDK)";
 
-  private static final String CVS_V1_VALIDATION = "v1/notices/validation";
+  private static final String CVS_API_V1_VALIDATION = "v1/notices/validation";
   private static final String CVS_API_HTTP_HEADER_API_KEY = "X-API-Key";
 
   /**
@@ -103,7 +106,6 @@ public class CvsApiClient {
    *        encoded in base64, if not specified the version contained in the XML will be used
    * @param sdkValidationMode Specify the validation mode that will be applied, selecting the
    *        corresponding sub-group of the eForms SDK version ("static" or "dynamic")
-   * @param configOpt Optional configuration (proxy, ...)
    * @return The response body, SVRL XML as text in this case
    */
   public String validateNoticeXml(final String noticeXml, final Optional<String> svrlLangA2,
@@ -118,7 +120,7 @@ public class CvsApiClient {
     // It will be done here.
 
     // See: https://cvs.ted.europa.eu/swagger-ui/index.html#/notice-rest-controller/validate
-    final String postUrl = this.cvsApiRootUrl + CVS_V1_VALIDATION;
+    final String postUrl = this.cvsApiRootUrl + "/" + CVS_API_V1_VALIDATION;
 
     final String requestContentType = MIME_TYPE_APPLICATION_JSON; // Known to be JSON.
     final String responseContentType = "*/*"; // "application/xml"; (if valid it is xml, otherwise?)
@@ -228,43 +230,58 @@ public class CvsApiClient {
    * Provided for convenience.
    */
   public static CloseableHttpClient createDefaultCloseableHttpClient(final int timeoutSeconds,
-      final boolean redirectsEnabled, final Optional<ProxyConfig> proxyConfigOpt) {
+      final boolean redirectsEnabled, final String proxyUrl) {
 
     final HttpClientBuilder builder =
         HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy());
 
-    if (proxyConfigOpt.isPresent()) {
-      final ProxyConfig customConf = proxyConfigOpt.get();
+    if (!StringUtils.isBlank(proxyUrl)) {
+      try {
+        final URL proxy = new URL(proxyUrl);
+        final String proxyHost = proxy.getHost();
+        Validate.notBlank(proxyHost, "Proxy hostname is blank");
 
-      final String proxyHost = customConf.getHostname();
-      Validate.notBlank(proxyHost, "Proxy hostname is blank");
+        final int proxyPort = proxy.getPort();
 
-      final int proxyPort = customConf.getPort();
-      final String proxyUsername = customConf.getUsername();
-      Validate.notBlank(proxyUsername, "Proxy username is blank");
-      final String proxyPass = customConf.getPassword();
+        final String userInfo = proxy.getUserInfo();
+        Validate.isTrue(userInfo.contains(":"), "Proxy userInfo should contain :");
 
-      // Setup proxy credentials.
-      // https://hc.apache.org/httpcomponents-client-4.5.x/examples.html
-      // https://stackoverflow.com/questions/6962047/apache-httpclient-4-1-proxy-authentication
-      final CredentialsProvider credsProvider = new BasicCredentialsProvider();
-      credsProvider.setCredentials(new AuthScope(proxyHost, proxyPort),
-          new UsernamePasswordCredentials(proxyUsername, proxyPass));
-      builder.setDefaultCredentialsProvider(credsProvider);
+        final String[] userInfos = userInfo.split(":");
+        Validate.isTrue(userInfos.length == 2, "Proxy userInfos should have length 2");
 
-      // Setup proxy connection.
-      final HttpHost proxy = new HttpHost(proxyHost, proxyPort);
-      final int timeoutMillis = timeoutSeconds * 1000;
-      final RequestConfig defaultRequestConfig = RequestConfig.custom()//
-          .setProxy(proxy)//
-          .setRedirectsEnabled(redirectsEnabled)//
-          .setSocketTimeout(timeoutMillis)//
-          .setConnectTimeout(timeoutMillis)//
-          .setConnectionRequestTimeout(timeoutMillis)//
-          .build();
+        final String proxyUsername = userInfos[0];
+        Validate.notBlank(proxyUsername, "Proxy username is blank");
 
-      // By default use this config for all requests going through the client.
-      builder.setDefaultRequestConfig(defaultRequestConfig);
+        final String proxyPass = userInfos[1];
+        if (proxyPass.isBlank()) {
+          throw new RuntimeException("Proxy pass is blank");
+        }
+
+        // Setup proxy credentials.
+        // https://hc.apache.org/httpcomponents-client-4.5.x/examples.html
+        // https://stackoverflow.com/questions/6962047/apache-httpclient-4-1-proxy-authentication
+        final CredentialsProvider credsProvider = new BasicCredentialsProvider();
+        credsProvider.setCredentials(new AuthScope(proxyHost, proxyPort),
+            new UsernamePasswordCredentials(proxyUsername, proxyPass));
+        builder.setDefaultCredentialsProvider(credsProvider);
+
+        // Setup proxy connection.
+        final HttpHost proxyHttpHost = new HttpHost(proxyHost, proxyPort);
+        final int timeoutMillis = timeoutSeconds * 1000;
+        final RequestConfig defaultRequestConfig = RequestConfig.custom()//
+            .setProxy(proxyHttpHost)//
+            .setRedirectsEnabled(redirectsEnabled)//
+            .setSocketTimeout(timeoutMillis)//
+            .setConnectTimeout(timeoutMillis)//
+            .setConnectionRequestTimeout(timeoutMillis)//
+            .build();
+
+        // By default use this config for all requests going through the client.
+        builder.setDefaultRequestConfig(defaultRequestConfig);
+      } catch (@SuppressWarnings("unused") MalformedURLException e) {
+        throw new RuntimeException(
+            "Malformed proxy url (not logging it as it could contain passwords).");
+      }
     }
 
     // Reuse connections from a pool.

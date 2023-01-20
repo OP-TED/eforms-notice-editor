@@ -25,13 +25,13 @@ eforms:
 
 
 proxy:
-  hostname: "PROXY_HOSTNAME"
-  port: 8012
-  username: "YOUR_USERNAME"
-  password: "YOUR_PASSWORD"
-
+  ### Security: use a command line parameter for security related data
+  ### Example -Dproxy.url=ENVIRONMENT_VARIABLE_VALUE_HERE
+  # url: http://user:pass@hostname:port
 
 client:
   cvs:
     url: "https://cvs.ted.europa.eu"
-    api-key: "YOUR_API_KEY"
+    ### Security: use a command line parameter for security related data
+    ### Example -Dclient.cvs.apiKey=ENVIRONMENT_VARIABLE_VALUE_HERE
+    apiKey: "YOUR_API_KEY"
