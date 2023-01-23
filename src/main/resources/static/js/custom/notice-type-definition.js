@@ -26,7 +26,7 @@ export class NoticeTypeDefinitionElement extends DocumentFragment {
   static create(content, level = 0) {
     switch (content?.contentType?.toLowerCase()) {
       case Constants.ContentType.GROUP: return DisplayGroup.create(content, level);
-      case Constants.ContentType.FIELD: return InputField.create(content, level)
+      case Constants.ContentType.FIELD: return InputField.create(content, level);
       case Constants.ContentType.METADATA_CONTAINER: return new RootLevelGroup(content, level); // Used for the root-level "metadata" and "contents" sections.
       case Constants.ContentType.DATA_CONTAINER: return new RootLevelGroup(content, level); // Used for the root-level "metadata" and "contents" sections.
       default: throw new Error("Unsupported contentType for NTD element: " + content?.contentType);
@@ -405,7 +405,6 @@ export class IdRefInputField extends InputField {
     return this.content?._idSchemes ?? [];
   }
 
-
   get idSchemesAttribute() {
     return this.htmlElement.getAttribute(Constants.Attributes.ID_SCHEMES_ATTRIBUTE);
   }
@@ -520,9 +519,9 @@ export class IndicatorInputField extends InputField {
     super(content, level);
     this.container.classList.add("indicator");
 
-    const whenTrue = I18N.getLabel(`indicator|when-true|${this.content.id}`)
-    const whnFalse =  I18N.getLabel(`indicator|when-false|${this.content.id}`)
-    this.formElement.populate(new Map([["true", whenTrue], ["false", whnFalse]]));
+    const whenTrue = I18N.getLabel(`indicator|when-true|${this.content.id}`);
+    const whenFalse = I18N.getLabel(`indicator|when-false|${this.content.id}`);
+    this.formElement.populate(new Map([["true", whenTrue], ["false", whenFalse]]));
   }
 }
 

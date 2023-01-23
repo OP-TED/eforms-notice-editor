@@ -2,9 +2,12 @@ package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 import static eu.europa.ted.eforms.noticeeditor.helper.notice.VisualModel.putFieldDef;
 import static eu.europa.ted.eforms.noticeeditor.helper.notice.VisualModel.putGroupDef;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.util.Map;
 import javax.xml.parsers.ParserConfigurationException;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +34,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
   private static final String ND_BUSINESS_PARTY = "ND-BusinessParty";
 
   private static final String OPP_100_BUSINESS = "OPP-100-Business";
-  private static final String OPP_105_BUSINESS = ConceptualModel.OPP_105_BUSINESS;
+  private static final String OPP_105_BUSINESS = ConceptualModel.FIELD_SECTOR_OF_ACTIVITY;
   private static final String OPP_113_BUSINESS_EUROPEAN = "OPP-113-Business-European";
 
   private static final String BT_500_BUSINESS = "BT-500-Business";
@@ -278,8 +281,17 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
    * be used to quickly debug a problem by modification of the dummy data or metadata.
    */
   @Test
-  public void testDummy() throws ParserConfigurationException, IOException, SAXException {
+  public void testWithDummyNoticeAndSdk()
+      throws ParserConfigurationException, IOException, SAXException {
+
     final ObjectMapper mapper = new ObjectMapper();
+
+    // This test was initially used to test the "to XML" feature.
+    // Here a small dummy visual model is created inside of the test.
+    // A dummy minimal fields.json equivalent and other needed data for the test is also created.
+    // The entire thing is tested in isolation to exclude SDK download or path (no download) and
+    // also to demonstrate how the entire thing works but based on something much smaller and more
+    // controllable.
 
     // A dummy 1.5.0, not real 1.5.0
     final SdkVersion sdkVersion = new SdkVersion("1.5.0");
@@ -290,6 +302,11 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
 
     final PhysicalModel physicalModel =
         setupPhysicalModel(mapper, noticeSubType, NOTICE_DOCUMENT_TYPE, visualModel, sdkVersion);
+
+    // As this dummy test example has some metadata, ensure those getters work:
+    assertEquals(sdkVersion, physicalModel.getSdkVersion());
+    assertTrue(StringUtils.isNotBlank(physicalModel.getMainXsdPathOpt().toString()));
+    assertTrue(StringUtils.isNotBlank(physicalModel.getNoticeId().toString()));
 
     logger.info("XML as text:");
     final String xml = physicalModel.toXmlText(false); // Not indented to avoid line breaks.

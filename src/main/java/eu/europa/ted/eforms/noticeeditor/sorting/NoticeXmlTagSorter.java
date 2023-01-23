@@ -129,8 +129,8 @@ public class NoticeXmlTagSorter {
     //
     // Setup main XSD path.
     //
-    final Path mainXsdPath = getMainXsdPath();
-    if (mainXsdPath == null) {
+    final Optional<Path> mainXsdPathOpt = getMainXsdPathOpt();
+    if (mainXsdPathOpt.isEmpty()) {
       return;
     }
 
@@ -138,7 +138,7 @@ public class NoticeXmlTagSorter {
         xmlRoot.getTagName());
     logger.info("XML uri={}", xmlRoot.getOwnerDocument().getBaseURI());
 
-    final Document xsdRootDoc = buildDoc(mainXsdPath);
+    final Document xsdRootDoc = buildDoc(mainXsdPathOpt.get());
     final Element xsdRootElem = xsdRootDoc.getDocumentElement();
 
     // The used map does not need to be a LinkedHashMap but it helps to see in which order the
@@ -166,13 +166,17 @@ public class NoticeXmlTagSorter {
     }
   }
 
-  public Path getMainXsdPath() {
+  /**
+   * @return The path of the main XSD file, this is not supported in some older versions, in that
+   *         case it returns empty.
+   */
+  public Optional<Path> getMainXsdPathOpt() {
     final Optional<String> sdkXsdPathOpt = this.docTypeInfo.getSdkXsdPathOpt();
     if (sdkXsdPathOpt.isEmpty()) {
       logger.info("Sorting not supported for version={}", getSorterSdkVersion());
-      return null;
+      return Optional.empty();
     }
-    return sdkRootFolder.resolve(sdkXsdPathOpt.get());
+    return Optional.of(sdkRootFolder.resolve(sdkXsdPathOpt.get()));
   }
 
   private SdkVersion getSorterSdkVersion() {

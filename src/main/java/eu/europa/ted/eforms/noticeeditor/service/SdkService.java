@@ -310,7 +310,7 @@ public class SdkService {
       org.apache.commons.io.IOUtils.copy(is, response.getOutputStream());
       response.flushBuffer();
 
-    } catch (IOException ex) {
+    } catch (final IOException ex) {
       logger.info("Error responding with file '{}' for download.", path, ex);
       throw new RuntimeException("IOException writing file to output stream.", ex);
     }
