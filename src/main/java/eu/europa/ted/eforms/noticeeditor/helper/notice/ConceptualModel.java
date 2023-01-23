@@ -45,7 +45,7 @@ public class ConceptualModel {
   public static final String FIELD_SECTOR_OF_ACTIVITY = "OPP-105-Business";
 
   /**
-   * Notice ID.
+   * Notice ID (becomes the cbc:ID tag later).
    */
   public static final String FIELD_NOTICE_ID = "BT-701-notice";
 
@@ -107,9 +107,9 @@ public class ConceptualModel {
     final ConceptTreeNode root = this.treeRootNode;
     toDotRec(fieldsAndNodes, sb, root, includeFields);
 
-    final StringBuilder sbDot = new StringBuilder();
+    final StringBuilder sbDot = new StringBuilder(1024);
     final String noticeSubType = this.getNoticeSubType();
-    final String title = "conceptual-" + noticeSubType;
+    final String title = "conceptual_" + noticeSubType; // - is not supported.
     GraphvizDotTool.appendDiGraph(sb.toString(), sbDot, title,
         "Conceptual model of " + noticeSubType, false, true);
 
@@ -154,9 +154,10 @@ public class ConceptualModel {
       final String color =
           nodeIsRepeatable ? GraphvizDotTool.COLOR_GREEN : GraphvizDotTool.COLOR_BLACK;
 
+      final String childId = childNode.getIdUnique() + "_" + childNode.getNodeId();
       GraphvizDotTool.appendEdge("", color,
 
-          cnIdUnique, childNode.getIdUnique(), // concept node -> concept node
+          cnIdUnique, childId, // concept node -> concept node
 
           sb);
 

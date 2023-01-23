@@ -48,7 +48,7 @@ public class PhysicalModel {
   private static final Logger logger = LoggerFactory.getLogger(PhysicalModel.class);
 
   private static final String CBC_CUSTOMIZATION_ID = "cbc:CustomizationID";
-  private static final String CBC_ID = "cbc:ID";
+  private static final String CBC_ID = "cbc:ID"; // Notice id, related to BT-701-notice.
   private static final String XMLNS = "xmlns";
 
   /**
@@ -115,9 +115,13 @@ public class PhysicalModel {
   }
 
   public UUID getNoticeId() {
-    final Node jsonNode = this.domDocument.getElementsByTagName(CBC_ID).item(0);
-    Validate.notNull(jsonNode, "The physical model notice id cannot be found!");
-    return UUID.fromString(jsonNode.getTextContent());
+    final String tagName = CBC_ID;
+    // Get the direct child as we know it is directly under the root.
+    final Element child = XmlUtils.getDirectChild(this.domDocument.getDocumentElement(), tagName);
+    Validate.notNull(child, "The physical model notice id cannot be found by tagName=%s", tagName);
+    final String text = child.getTextContent();
+    Validate.notBlank(text, "The physical model notice id is blank via tagName=%s", tagName);
+    return UUID.fromString(text);
   }
 
   public SdkVersion getSdkVersion() {
@@ -335,9 +339,11 @@ public class PhysicalModel {
           xmlNodeElem);
       final PhysicalXpathPart px = handleXpathPart(xpathPart);
       final Optional<String> schemeNameOpt = px.getSchemeNameOpt();
-      String xpathExpr = px.getXpathExpr();
+      final String xpathExpr = px.getXpathExpr();
       final String tag = px.getTagOrAttribute();
       if (debug) {
+        // System out is used here because it is more readable than the logger lines.
+        // This is not a replacement for logger.debug(...)
         System.out.println(depthStr + " tag=" + tag);
         System.out.println(depthStr + " xmlTag=" + xmlNodeElem.getTagName());
       }
@@ -379,7 +385,10 @@ public class PhysicalModel {
       previousElem.appendChild(partElem); // SIDE-EFFECT! Adding item to the tree.
 
       if (schemeNameOpt.isPresent()) {
-        partElem.setAttribute(XML_ATTR_SCHEME_NAME, schemeNameOpt.get()); // SIDE-EFFECT!
+        final String schemeName = schemeNameOpt.get();
+        final String msg = String.format("%s=%s", XML_ATTR_SCHEME_NAME, schemeName);
+        System.out.println(depthStr + " " + msg);
+        partElem.setAttribute(XML_ATTR_SCHEME_NAME, schemeName); // SIDE-EFFECT!
       }
       previousElem = partElem;
 
@@ -698,44 +707,46 @@ public class PhysicalModel {
 
   @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
       value = "UCPM_USE_CHARACTER_PARAMETERIZED_METHOD",
-      justification = "OK here, used in other places a string")
+      justification = "OK here, used in other places as a string")
   private static PhysicalXpathPart handleXpathPart(final String partParam) {
     Validate.notBlank(partParam, "partParam is blank");
 
-    // NOTE: ideally we would want to fully avoid using xpath.
-    String tagOrAttr = partParam;
-
     final Optional<String> schemeNameOpt;
+
+    // NOTE: ideally we would want to fully avoid using xpath.
+    // NOTE: in the future the SDK will provide the schemeName separately for convenience!
+    String tagOrAttr = partParam;
+    if (tagOrAttr.contains("@schemeName='")) {
+      // Normalize the string before we start parsing it.
+      tagOrAttr = tagOrAttr.replace("@schemeName='", "@schemeName = '");
+    }
 
     if (tagOrAttr.contains("[not(@schemeName = 'EU')]")) {
       // HARDCODED
       // TODO This is a TEMPORARY FIX until we have a proper solution inside of the SDK. National is
       // only indirectly described by saying not EU, but the text itself is not given.
+
+      // Example:
+      // "xpathAbsolute" : "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName =
+      // 'EU']",
+
       tagOrAttr =
           tagOrAttr.replace("[not(@schemeName = 'EU')]", "[@schemeName = '" + NATIONAL + "']");
     }
 
     if (tagOrAttr.contains("[@schemeName = '")) {
-      // TODO investigate
-      // efx-toolkit-java/XPathAttributeLocator.java at develop · OP-TED/efx-toolkit-java
-      // (github.com)
-      // Example:
-      // "xpathAbsolute" : "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName =
-      // 'EU']",
-
-      // Example: Here we want to extract EU text.
       final int indexOfSchemeName = tagOrAttr.indexOf("[@schemeName = '");
       String schemeName = tagOrAttr.substring(indexOfSchemeName + "[@schemeName = '".length());
       // Remove the ']
       schemeName = schemeName.substring(0, schemeName.length() - "']".length());
-      Validate.notBlank(schemeName);
+      Validate.notBlank(schemeName, "schemeName is blank for %s", tagOrAttr);
       tagOrAttr = tagOrAttr.substring(0, indexOfSchemeName);
       schemeNameOpt = Optional.of(schemeName);
     } else {
       schemeNameOpt = Optional.empty();
     }
 
-    // We want to remove the predicate from the tag.
+    // We want to remove the predicate as we only want the name.
     if (tagOrAttr.contains("[")) {
       // TEMPORARY FIX.
       // Ignore predicate with negation as it is not useful for XML generation.

@@ -468,13 +468,13 @@ public class VisualModel {
    */
   private String toDot(final FieldsAndNodes fieldsAndNodes, final boolean includeFields) {
 
-    final StringBuilder sb = new StringBuilder();
+    final StringBuilder sb = new StringBuilder(1024);
     final JsonNode root = this.visRoot;
     toDotRec(fieldsAndNodes, sb, root, includeFields);
 
     final StringBuilder sbDot = new StringBuilder();
     final String noticeSubType = this.getNoticeSubType();
-    final String title = noticeSubType;
+    final String title = "visual_" + noticeSubType; // - is not supported.
     GraphvizDotTool.appendDiGraph(sb.toString(), sbDot, title, "Visual model of " + noticeSubType,
         false, true);
 
@@ -507,9 +507,11 @@ public class VisualModel {
         final String color =
             nodeIsRepeatable ? GraphvizDotTool.COLOR_GREEN : GraphvizDotTool.COLOR_BLACK;
 
+        final String idUniqueChild =
+            getContentId(child) + (childNodeIdOpt.isPresent() ? "_" + childNodeIdOpt.get() : "");
         GraphvizDotTool.appendEdge(edgeLabel, color,
 
-            idUnique, VisualModel.getContentId(child), // concept node -> concept node
+            idUnique, idUniqueChild, // concept node -> child concept node
 
             sb);
 

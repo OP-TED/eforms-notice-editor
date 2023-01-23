@@ -28,6 +28,8 @@ public class XmlRestController implements AsyncConfigurer {
       produces = SdkService.MIME_TYPE_XML, consumes = SdkService.MIME_TYPE_JSON)
   public void saveNotice(final HttpServletResponse response, final @RequestBody String noticeJson)
       throws Exception {
+    // Enriches the XML for human readability but it becomes invalid.
+    // Also adds .dot files in target.
     final boolean debug = false;
     xmlService.saveNoticeAsXml(Optional.of(response), noticeJson, debug);
   }
