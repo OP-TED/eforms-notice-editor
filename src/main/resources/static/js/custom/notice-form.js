@@ -1,3 +1,6 @@
+import { Context } from "./context.js";
+import { Constants, DomUtil, I18N } from "./global.js";
+import { NoticeTypeDefinitionElement } from "./notice-type-definition.js";
 
 /*******************************************************************************
  * Base class for all elements visible in the form.
@@ -9,7 +12,7 @@
  * - For display-groups, the body is just a container that hosts the groups contents.
  * The footer is meant to contain tips or error messages related to this element.
  */
-class FormElement extends DocumentFragment {
+export class FormElement extends DocumentFragment {
 
   /**
    * Factory method; Instantiates the appropriate sub-class based on the content-type of the passed content object.
@@ -161,7 +164,7 @@ class FormElement extends DocumentFragment {
  * - Notice-Metadata 
  * - Notice-Data (a.k.a. the top level "contents" object of the notice-type-definition JSON file). 
  */
-class RootElement extends FormElement {
+export class RootElement extends FormElement {
   constructor(content, level) {
     super(content, level);
   }
@@ -180,7 +183,7 @@ class RootElement extends FormElement {
 /*******************************************************************************
  * Used to create display-groups. Also as a base class for notice sections.
  */
-class GroupElement extends FormElement {
+export class GroupElement extends FormElement {
   constructor(content, level) {
     super(content, level);
     this.containerElement.classList.add("display-group");
@@ -293,7 +296,7 @@ class GroupElement extends FormElement {
 /*******************************************************************************
  * Extends {@link GroupElement} to create a notice-section.
  */
-class SectionElement extends GroupElement {
+export class SectionElement extends GroupElement {
   constructor(content, level) {
     super(content, level);
     this.containerElement.classList.add("section");
@@ -303,7 +306,7 @@ class SectionElement extends GroupElement {
 /*******************************************************************************
  * Base class of all input-field elements.
  */
-class InputFieldElement extends FormElement {
+export class InputFieldElement extends FormElement {
 
   /**
    * Factory method. Instantiates the appropriate subclass based on the display-type of the passed object.
@@ -372,7 +375,7 @@ class InputFieldElement extends FormElement {
     // REPEAT LOGIC SETUP.
     const addButton = document.createElement("button");
     addButton.setAttribute("type", "button");
-    addButton.textContent = I18N.getLabel("editor.add.more", LanguageSelector.selectedLanguage);
+    addButton.textContent = I18N.getLabel("editor.add.more", Context.language);
     addButton.classList.add("button");
     // this.container.appendChild(addButton);
 
@@ -413,7 +416,7 @@ class InputFieldElement extends FormElement {
 /*******************************************************************************
  * 
  */
-class TextBoxInputElement extends InputFieldElement {
+export class TextBoxInputElement extends InputFieldElement {
   constructor(content, level) {
     super(content, level);
   }
@@ -434,7 +437,7 @@ class TextBoxInputElement extends InputFieldElement {
 /*******************************************************************************
  * 
  */
-class CheckBoxInputElement extends InputFieldElement {
+export class CheckBoxInputElement extends InputFieldElement {
   constructor(content, level) {
     super(content, level);
   }
@@ -455,13 +458,13 @@ class CheckBoxInputElement extends InputFieldElement {
 /*******************************************************************************
  * 
  */
-class RadioInputElement extends InputFieldElement {
+export class RadioInputElement extends InputFieldElement {
   constructor(content, level) {
     super(content, level);
   }
 
   createBody() {
-    return document.createElement("div");
+    return document.createElement("fieldset");
   }
 
   populate(map) {
@@ -494,7 +497,7 @@ class RadioInputElement extends InputFieldElement {
 /*******************************************************************************
  * Extends {@link InputFieldElement} to create a combobox.
  */
-class ComboBoxInputElement extends InputFieldElement {
+export class ComboBoxInputElement extends InputFieldElement {
   constructor(content, level) {
     super(content, level);
     new TomSelect(this.bodyElement, {});
@@ -530,7 +533,7 @@ class ComboBoxInputElement extends InputFieldElement {
 /*******************************************************************************
  * Extends {@link InputFieldElement} to create a textarea for multi-line text input-fields.
  */
-class TextAreaInputElement extends InputFieldElement {
+export class TextAreaInputElement extends InputFieldElement {
   constructor(content, level) {
     super(content, level);
   }

@@ -5,7 +5,7 @@
  * Using static  methods instead of implementing a singleton pattern for simplicity,
  * as there is no need for inheritance or implementing specific interfaces in this scenario. 
  */
-class SdkServiceClient {
+export class SdkServiceClient {
 
     static appVersion = undefined;
     static availableSdkVersions = undefined;
@@ -60,7 +60,7 @@ class SdkServiceClient {
  * Using static methods instead of implementing a singleton pattern for simplicity,
  * as there is no need for inheritance or implementing specific interfaces in this scenario. 
  */
-class XmlServiceClient {
+export class XmlServiceClient {
 
     static async saveXml(visualModel) {
         const settings = {

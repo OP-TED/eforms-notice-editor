@@ -9,10 +9,50 @@
  * To keep things simple all classes are implemented as singletons, using a static property to instantiate themselves autonomously
  */
 
+import { SdkServiceClient } from "./service-clients.js";
+
+/*******************************************************************************
+ * Provides a central point of access to the application's context .
+ */
+export class Context {
+
+  /**
+   * Gets the selected notice subtype.
+   * @returns {string}
+   */
+  static get noticeSubtype() {
+    return NoticeSubtypeSelector.selectedNoticeSubtype;
+  }
+
+  /**
+   * Gets the selected SDK version
+   * @returns {string}
+   */
+  static get sdkVersion() {
+    return SdkVersionSelector.selectedSdkVersion;
+  }
+
+  /**
+   * Gets the ISO 639-1, two-letter code of the selected language
+   * @returns {string}
+   */
+  static get language() {
+    return LanguageSelector.selectedLanguage;
+  } 
+
+  /**
+   * Gets the ISO 639-3, three-letter code of the selected language
+   * @returns {string}
+   */
+  static get languageAsIso6393() {
+    return I18N.Iso6391ToIso6393Map[LanguageSelector.selectedLanguage];
+  }
+}
+
 /*******************************************************************************
  * Controls the dropdown which is used to select the version of the SDK to be loaded.
  */
-class SdkVersionSelector {
+export class SdkVersionSelector {
 
   static instance = new SdkVersionSelector("notice-sdk-selector");
 
@@ -59,7 +99,7 @@ class SdkVersionSelector {
 /*******************************************************************************
  * Controls the dropdown which is used to select the notice subtype to be loaded.
  */
-class NoticeSubtypeSelector {
+export class NoticeSubtypeSelector {
 
   static instance = new NoticeSubtypeSelector("notice-subtype-selector");
 
@@ -100,7 +140,7 @@ class NoticeSubtypeSelector {
 /*******************************************************************************
  * Controls the dropdown which is used to select the language that is to be used.
  */
-class LanguageSelector {
+export class LanguageSelector {
 
   static instance = new LanguageSelector("language-selector");
 
@@ -116,9 +156,5 @@ class LanguageSelector {
 
   static get selectedLanguage() {
     return LanguageSelector.element.value;
-  }
-
-  static get selectedLanguageAsIso6393() {
-    return I18N.Iso6391ToIso6393Map[LanguageSelector.selectedLanguage];
   }
 }

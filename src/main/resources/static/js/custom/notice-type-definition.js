@@ -1,3 +1,10 @@
+import { Context } from "./context.js";
+import { Constants, I18N } from "./global.js";
+import { FormElement } from "./notice-form.js";
+import { SdkServiceClient } from "./service-clients.js";
+import { Validator} from "./validator.js";
+import { MandatoryProperty, ForbiddenProperty, RepeatableProperty, PatternProperty, AssertProperty, CodelistProperty, InChangeNoticeProperty } from "./dynamic-property.js";
+
 
 /*******************************************************************************
  * Base class for all elements found in a Notice Type Definition file.
@@ -11,7 +18,7 @@
  * by instantiating the appropriate {@link FormElement}. The NoticeTypeDefinitionElement extends DocumentFragment so that it can be 
  * added to the DOM directly.
  */
-class NoticeTypeDefinitionElement extends DocumentFragment {
+export class NoticeTypeDefinitionElement extends DocumentFragment {
 
   /**
    * Factory method.
@@ -113,7 +120,7 @@ class NoticeTypeDefinitionElement extends DocumentFragment {
  * - Notice-metadata section,
  * - Notice-data section (a.k.a. the top level "contents" object in notice-type-definition JSON file).
  */
-class RootLevelGroup extends NoticeTypeDefinitionElement {
+export class RootLevelGroup extends NoticeTypeDefinitionElement {
   constructor(content, level = 0) {
     super(content, level, "div");
     this.contentTypeAttribute = content.contentType;
@@ -123,7 +130,7 @@ class RootLevelGroup extends NoticeTypeDefinitionElement {
 /*******************************************************************************
  * Represents display-group elements of the visual model. 
  */
-class DisplayGroup extends NoticeTypeDefinitionElement {
+export class DisplayGroup extends NoticeTypeDefinitionElement {
 
   /**
    * Factory method
@@ -175,7 +182,7 @@ class DisplayGroup extends NoticeTypeDefinitionElement {
 /*******************************************************************************
  * Display-group elements of the visual model that are marked as "sections".
  */
-class FormSection extends DisplayGroup {
+export class FormSection extends DisplayGroup {
   constructor(content, level = 0) {
     super(content, level, "div");
 
@@ -189,7 +196,7 @@ class FormSection extends DisplayGroup {
  * Input-fields are linked with fields in the conceptual model and are used to
  * and hold the input-controls where the user enters notice data. 
  */
-class InputField extends NoticeTypeDefinitionElement {
+export class InputField extends NoticeTypeDefinitionElement {
 
   /**
    * Factory method.
@@ -224,31 +231,41 @@ class InputField extends NoticeTypeDefinitionElement {
 
     this.fieldId = content.id;
 
-    // Pattern, regex for validation.
-    const field = this.field;
-    if (field.pattern && field.pattern.severity === "ERROR") {
-      this.htmlElement.setAttribute("pattern", field.pattern.value);
-
-      // The browser will show: "Please match the requested format: _TITLE_HERE_"
-      // TODO the fields json pattern should come with english text explaining the pattern for error messages. 
-      this.htmlElement.setAttribute("title", field.pattern.value);
+    if (this.field?.mandatory) {
+      this.mandatoryProperty = new MandatoryProperty(this.htmlElement, this.field.mandatory);
+      Validator.register(this.mandatoryProperty);
+    }
+    if (this.field?.repeatable) {
+      this.repeatableProperty = new RepeatableProperty(this.htmlElement, this.field.repeatable);
+      Validator.register(this.repeatableProperty);
+    }
+    if (this.field?.pattern) {
+      this.patternProperty = new PatternProperty(this.htmlElement, this.field.pattern);
+      Validator.register(this.patternProperty);
+    }
+    if (this.field?.assert) {
+      this.assertProperty = new AssertProperty(this.htmlElement, this.field.assert);
+      Validator.register(this.assertProperty);
+    }
+    if (this.field?.forbidden) {
+      this.forbiddenProperty = new ForbiddenProperty(this.htmlElement, this.field.forbidden);
+      Validator.register(this.forbiddenProperty);
+    }
+    if (this.field?.inChangeNotice) {
+      this.inChangeNoticeProperty = new InChangeNoticeProperty(this.htmlElement, this.field.inChangeNotice);
+      Validator.register(this.inChangeNoticeProperty);
+    }
+    if (this.field?.codelist) {
+      this.codelistProperty = new CodelistProperty(this.htmlElement, this.field.codelist);
+      Validator.register(this.codelistProperty);
     }
 
-    if (this.isMandatory) {
-      this.htmlElement.setAttribute("required", "required");
-      if (this.label) {
-        this.label.classList.add("notice-content-required");
-      }
-    }
-
-    // TODO repeatable, severity is a bit confusing ...
     if (this.isRepeatable) {
       // Allow to add / remove fields.
       this.container.classList.add("repeatable");
 
       if (!content._repeatable) {
         console.error("fields.json repeatable mismatch on: " + this.field.id);
-        this.container.classList.add("repeatable-mismatch");
       }
     }
 
@@ -273,26 +290,35 @@ class InputField extends NoticeTypeDefinitionElement {
   }
 
   get isMandatory() {
-    const mandatory = this.field?.mandatory;
-    if (mandatory?.severity === "ERROR") {
-      for (const constraint of mandatory.constraints) {
-        if (constraint?.severity === "ERROR" && constraint?.noticeTypes) {
-          if (constraint.noticeTypes.includes(NoticeSubtypeSelector.selectedNoticeSubtype)) {
-            return constraint?.value ? true : false;
-          }
-        }
-      }
-      return mandatory?.value ? true : false;
-    }
-    return false;
+    return this.mandatoryProperty?.value ?? false;
+  }
+
+  get isForbidden() {
+    return this.forbiddenProperty?.value ?? false;
+  }
+
+  get isRepeatable() {
+    return this.repeatableProperty?.value ?? false;
+  }
+
+  get assert() {
+    return this.assertProperty?.value ?? true;
+  }
+
+  get pattern() {
+    return this.patternProperty?.value ?? undefined;
+  }
+
+  get codelist() {
+    return this.codelistProperty?.value ?? undefined;
+  }
+
+  get inChangeNotice() {
+    return this.inChangeNoticeProperty?.value ?? undefined;
   }
 
   get valueSource() {
     return this.content?.valueSource;
-  }
-
-  get isRepeatable() {
-    return this.field?.repeatable?.value ? true : false;
   }
 
   get hasPrivacy() {
@@ -311,7 +337,7 @@ class InputField extends NoticeTypeDefinitionElement {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "id".
  */
-class IdInputField extends InputField {
+export class IdInputField extends InputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -350,7 +376,7 @@ class IdInputField extends InputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "id-ref".
  */
-class IdRefInputField extends InputField {
+export class IdRefInputField extends InputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -371,6 +397,7 @@ class IdRefInputField extends InputField {
 
     if (this.idSchemes) {
       this.idSchemesAttribute = this.idSchemes.join(',');
+      this.populate();
     }
   }
 
@@ -385,12 +412,29 @@ class IdRefInputField extends InputField {
   set idSchemesAttribute(idSchemes) {
     this.htmlElement.setAttribute(Constants.Attributes.ID_SCHEMES_ATTRIBUTE, idSchemes);
   }
+
+  /**
+   * Populates the control with any existing identifies that comply with the idSchemes it requires.
+   */
+  populate() {
+    if (this.idSchemes?.length < 1) {
+      return;
+    }
+
+    var query = `[${Constants.Attributes.ID_SCHEME_ATTRIBUTE} = "${this.idSchemes[0]}"]`;
+    for (var i = 1; i < this.idSchemes.length; i++) {
+      query += `, [${Constants.Attributes.ID_SCHEME_ATTRIBUTE} = "${this.idSchemes[i]}"]`;
+    }
+
+    const elements = document.querySelectorAll(query);
+    this.formElement.populate(Array.from(elements).map(element => [element.value, element.value]));
+  }
 }
 
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "code".
  */
-class CodeInputField extends InputField {
+export class CodeInputField extends InputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -402,7 +446,7 @@ class CodeInputField extends InputField {
       console.log("Editor: hierarchical codelists are not handled yet, codelistId=" + this.getCodelistId());
     }
 
-    this.populate(SdkVersionSelector.selectedSdkVersion, LanguageSelector.selectedLanguage);
+    this.populate(Context.sdkVersion, Context.language);
   }
 
   async populate(sdkVersion, language) {
@@ -415,9 +459,9 @@ class CodeInputField extends InputField {
     // After the select options have been set, an option can be selected.
     // Special case for some of the metadata fields.
     if (this.getCodelistId() === "notice-subtype") {
-      this.formElement.select(NoticeSubtypeSelector.selectedNoticeSubtype);
+      this.formElement.select(Context.noticeSubtype);
     } else if (this.getCodelistId() === "language_eu-official-language" && "BT-702(a)-notice" === content.id) {
-      this.formElement.select(LanguageSelector.selectedLanguageAsIso6393);
+      this.formElement.select(Context.languageAsIso6393);
     }
   }
 
@@ -433,7 +477,7 @@ class CodeInputField extends InputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "date".
  */
-class DateInputField extends InputField {
+export class DateInputField extends InputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -446,7 +490,7 @@ class DateInputField extends InputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "time".
  */
-class TimeInputField extends InputField {
+export class TimeInputField extends InputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -458,7 +502,7 @@ class TimeInputField extends InputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "measure".
  */
-class MeasureInputField extends InputField {
+export class MeasureInputField extends InputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -469,7 +513,7 @@ class MeasureInputField extends InputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "indicator".
  */
-class IndicatorInputField extends InputField {
+export class IndicatorInputField extends InputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -484,7 +528,7 @@ class IndicatorInputField extends InputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "number".
  */
-class NumberInputField extends InputField {
+export class NumberInputField extends InputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -504,7 +548,7 @@ class NumberInputField extends InputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "integer".
  */
-class IntegerInputField extends NumberInputField {
+export class IntegerInputField extends NumberInputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -516,7 +560,7 @@ class IntegerInputField extends NumberInputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "amount".
  */
-class AmountInputField extends NumberInputField {
+export class AmountInputField extends NumberInputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -527,14 +571,14 @@ class AmountInputField extends NumberInputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "text".
  */
-class TextInputField extends InputField {
+export class TextInputField extends InputField {
 
   constructor(content, level = 0) {
     super(content, level);
     this.container.classList.add("text");
 
     // Let the browser know in which language the text is, for example for spell checkers orscreen readers.
-    this.htmlElement.setAttribute("lang", LanguageSelector.selectedLanguage);
+    this.htmlElement.setAttribute("lang", Context.language);
 
     if (this.field.maxLength) {
       this.htmlElement.setAttribute("maxlength", this.field.maxLength);
@@ -545,7 +589,7 @@ class TextInputField extends InputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "text-multilingual".
  */
-class TextMultilingualInputField extends TextInputField {
+export class TextMultilingualInputField extends TextInputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -556,7 +600,7 @@ class TextMultilingualInputField extends TextInputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "phone".
  */
-class PhoneInputField extends TextInputField {
+export class PhoneInputField extends TextInputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -567,7 +611,7 @@ class PhoneInputField extends TextInputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "email".
  */
-class EmailInputField extends TextInputField {
+export class EmailInputField extends TextInputField {
 
   constructor(content, level = 0) {
     super(content, level);
@@ -578,7 +622,7 @@ class EmailInputField extends TextInputField {
 /*******************************************************************************
  * Visual model element (input-field) used for fields of type "url".
  */
-class UrlInputField extends TextInputField {
+export class UrlInputField extends TextInputField {
 
   constructor(content, level = 0) {
     super(content, level);

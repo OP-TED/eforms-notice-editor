@@ -1,3 +1,6 @@
+import { Constants } from "./global.js";
+import { Validator } from "./validator.js";
+
 /**
  * Some elements in notice-type-definition files, have dependencies to each other.
  * For example, some elements have a valueSource property that indicates that their value is a copy of the value of another element.  
@@ -18,7 +21,7 @@
  *   (see {@link SyncCenter.subscribeToIdentifierNotifications}).
  * - Input-fields with a valueSource property, need to synchronise their value with the value of another input-field.
  */
-class SyncCenter extends MutationObserver {
+export class SyncCenter extends MutationObserver {
 
     /**
      * Being declared as static, when this property is initialized it creates the single instance of
@@ -165,6 +168,9 @@ class SyncCenter extends MutationObserver {
             if (proxy.isField) {
                 // An input-field was just removed. We should disconnect the event listener we attached earlier.
                 this.removePublisherOfValueSourceChanges(proxy.target, proxy.contentId);
+
+                // Also remove the input-field from form validation.
+                Validator.unregister(proxy.target);
             }
         }
     }
@@ -231,9 +237,12 @@ class SyncCenter extends MutationObserver {
         }
         const publishers = this.publications.get(fieldId); 
         if (!publishers.has(htmlElement)) {
+            // 1. Update any existing subscribers
+            this.valueSourceChanged(fieldId, htmlElement.value);
+
+            // 2. Attach an event handler to update subscribers when publisher's value changes
             publishers.set(htmlElement, (event) => { this.valueSourceChanged(fieldId, event.target.value) })
             htmlElement.addEventListener("change", publishers.get(htmlElement));
-            htmlElement.dispatchEvent(new Event("change"));
         }
     }
 
