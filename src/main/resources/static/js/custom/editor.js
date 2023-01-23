@@ -21,26 +21,37 @@ export default class Editor {
     return document.getElementById(Constants.HtmlElements.FORM_CONTENT_ROOT_ELEMENT);
   }
 
-  static async serializeToJson(event) {
+  static async serializeToJson(event, validationType) {
     console.debug("Attempting to serialize form to visual model JSON.");
     event.preventDefault();
 
     const textAreaJson = document.getElementById("json-window");
-    textAreaJson.value = "Generating visual model...";
-
+    const textAreaValidation = document.getElementById("validation-window");
     const textAreaXml = document.getElementById("xml-window");
-    textAreaXml.value = "Generating physical model...";
 
     Editor.instance.showDebugOutput();
 
-    const visualModel = new VisualModel(Editor.formContainerElement);
-
     // Transform visual model to JSON text and show it in the UI.
+    textAreaJson.value = "Generating visual model...";
+    const visualModel = new VisualModel(Editor.formContainerElement);
     const jsonText = JSON.stringify(visualModel, null, 2);
     textAreaJson.value = jsonText;
 
-    const xmlText = await XmlServiceClient.saveXml(jsonText);
-    textAreaXml.value = xmlText;
+    if (validationType === "no-validation") {
+      textAreaXml.value = "Generating physical model...";
+      const xmlText = await XmlServiceClient.saveXml(jsonText);
+      textAreaXml.value = xmlText;
+      
+    } else if (validationType === "xsd-validation") {
+        textAreaValidation.value = "Generating XSD validation report...";
+        const reportJson = await XmlServiceClient.xsdValidation(jsonText);
+        textAreaValidation.value = reportJson;
+        
+    } else if (validationType === "cvs-validation") {
+        textAreaValidation.value = "Generating CVS validation report...";
+        const reportJson = await XmlServiceClient.cvsValidation(jsonText);
+        textAreaValidation.value = reportJson;
+    }
   };
 
   static async selectedNoticeSubtypeChanged() {

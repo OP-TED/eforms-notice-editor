@@ -17,17 +17,17 @@ public class ConceptTreeNode extends ConceptTreeItem {
    */
   private final List<ConceptTreeNode> conceptNodes = new ArrayList<>();
 
-  private final boolean isRepeatable;
+  private final boolean repeatable;
 
   /**
    * @param idUnique A unique id, at least unique at the level of the siblings
    * @param idInSdkFieldsJson The id of the item in the SDK fields.json
-   * @param isRepeatable
+   * @param repeatable True if this kind of node instance can be repeated, false otherwise
    */
   public ConceptTreeNode(final String idUnique, final String idInSdkFieldsJson, final int counter,
-      final boolean isRepeatable) {
+      final boolean repeatable) {
     super(idUnique, idInSdkFieldsJson, counter);
-    this.isRepeatable = isRepeatable;
+    this.repeatable = repeatable;
   }
 
   /**
@@ -99,7 +99,8 @@ public class ConceptTreeNode extends ConceptTreeItem {
     if (strict) {
       if (contained) {
         throw new RuntimeException(String.format(
-            "Conceptual model: node is not repeatable but it is added twice, id=%s (nodeId=%s), parentId=%s",
+            "Conceptual model: node is not repeatable "
+                + "but it is added twice, id=%s (nodeId=%s), parentId=%s",
             conceptNode.getIdUnique(), conceptNode.getNodeId(), this.getIdUnique()));
       }
       conceptNodes.add(conceptNode);
@@ -119,13 +120,13 @@ public class ConceptTreeNode extends ConceptTreeItem {
   }
 
   public boolean isRepeatable() {
-    return isRepeatable;
+    return repeatable;
   }
 
   @Override
   public String toString() {
     return "ConceptTreeNode [conceptFields=" + conceptFields + ", conceptNodes=" + conceptNodes
-        + ", isRepeatable=" + isRepeatable + "]";
+        + ", repeatable=" + repeatable + "]";
   }
 
 }

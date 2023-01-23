@@ -42,7 +42,12 @@ public class ConceptualModel {
   /**
    * Sector of activity.
    */
-  public static final String OPP_105_BUSINESS = "OPP-105-Business";
+  public static final String FIELD_SECTOR_OF_ACTIVITY = "OPP-105-Business";
+
+  /**
+   * Notice ID (becomes the cbc:ID tag later).
+   */
+  public static final String FIELD_NOTICE_ID = "BT-701-notice";
 
   /**
    * The root node of the conceptual model.
@@ -72,9 +77,8 @@ public class ConceptualModel {
     final Optional<ConceptTreeNode> rootExtOpt = conceptNodes.stream()
         .filter(item -> item.getNodeId().equals(ND_ROOT_EXTENSION)).findFirst();
     if (rootExtOpt.isEmpty()) {
-      throw new RuntimeException(String.format(
-          "Conceptual model: Expecting to find root extension in conceptual model! Missing important nodeId=%s",
-          ND_ROOT_EXTENSION));
+      throw new RuntimeException(String.format("Conceptual model: Expecting to find root extension "
+          + "in conceptual model! Missing important nodeId=%s", ND_ROOT_EXTENSION));
     }
 
     final ConceptTreeNode rootExtension = rootExtOpt.get();
@@ -103,9 +107,9 @@ public class ConceptualModel {
     final ConceptTreeNode root = this.treeRootNode;
     toDotRec(fieldsAndNodes, sb, root, includeFields);
 
-    final StringBuilder sbDot = new StringBuilder();
+    final StringBuilder sbDot = new StringBuilder(1024);
     final String noticeSubType = this.getNoticeSubType();
-    final String title = "conceptual-" + noticeSubType;
+    final String title = "conceptual_" + noticeSubType; // - is not supported.
     GraphvizDotTool.appendDiGraph(sb.toString(), sbDot, title,
         "Conceptual model of " + noticeSubType, false, true);
 
@@ -150,9 +154,10 @@ public class ConceptualModel {
       final String color =
           nodeIsRepeatable ? GraphvizDotTool.COLOR_GREEN : GraphvizDotTool.COLOR_BLACK;
 
+      final String childId = childNode.getIdUnique() + "_" + childNode.getNodeId();
       GraphvizDotTool.appendEdge("", color,
 
-          cnIdUnique, childNode.getIdUnique(), // concept node -> concept node
+          cnIdUnique, childId, // concept node -> concept node
 
           sb);
 

@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.UUID;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
@@ -46,7 +47,15 @@ public class PhysicalModel {
 
   private static final Logger logger = LoggerFactory.getLogger(PhysicalModel.class);
 
+  private static final String CBC_CUSTOMIZATION_ID = "cbc:CustomizationID";
+  private static final String CBC_ID = "cbc:ID"; // Notice id, related to BT-701-notice.
   private static final String XMLNS = "xmlns";
+
+  /**
+   * The same prefix is used in the fields.json but technically nothing ensures this will remain
+   * like that.
+   */
+  public static final String EFORMS_SDK_PREFIX = "eforms-sdk-";
 
   /**
    * A special case that we have to solve. HARDCODED. TODO
@@ -76,17 +85,21 @@ public class PhysicalModel {
 
   private final FieldsAndNodes fieldsAndNodes;
   private final XPath xpathInst;
+  private final Optional<Path> mainXsdPathOpt;
 
   /**
    * @param document W3C DOM document
    * @param xpathInst Used for xpath evaluation
    * @param fieldsAndNodes Holds SDK field and node metadata
+   * @param mainXsdPathOpt Path to the main XSD file to use, may be empty if the feature is not
+   *        supported in an older SDK
    */
   public PhysicalModel(final Document document, final XPath xpathInst,
-      final FieldsAndNodes fieldsAndNodes) {
+      final FieldsAndNodes fieldsAndNodes, final Optional<Path> mainXsdPathOpt) {
     this.domDocument = document;
     this.fieldsAndNodes = fieldsAndNodes;
     this.xpathInst = xpathInst;
+    this.mainXsdPathOpt = mainXsdPathOpt;
   }
 
   public Document getDomDocument() {
@@ -95,6 +108,27 @@ public class PhysicalModel {
 
   public FieldsAndNodes getFieldsAndNodes() {
     return fieldsAndNodes;
+  }
+
+  public Optional<Path> getMainXsdPathOpt() {
+    return mainXsdPathOpt;
+  }
+
+  public UUID getNoticeId() {
+    final String tagName = CBC_ID;
+    // Get the direct child as we know it is directly under the root.
+    final Element child = XmlUtils.getDirectChild(this.domDocument.getDocumentElement(), tagName);
+    Validate.notNull(child, "The physical model notice id cannot be found by tagName=%s", tagName);
+    final String text = child.getTextContent();
+    Validate.notBlank(text, "The physical model notice id is blank via tagName=%s", tagName);
+    return UUID.fromString(text);
+  }
+
+  public SdkVersion getSdkVersion() {
+    final Node jsonNode = this.domDocument.getElementsByTagName(CBC_CUSTOMIZATION_ID).item(0);
+    Validate.notNull(jsonNode, "The physical model SDK version cannot be found!");
+    final String text = jsonNode.getTextContent();
+    return new SdkVersion(text.substring(EFORMS_SDK_PREFIX.length()));
   }
 
   /**
@@ -122,6 +156,11 @@ public class PhysicalModel {
    */
   public String toXmlText(final boolean indented) {
     return EditorXmlUtils.asText(domDocument, indented);
+  }
+
+  @Override
+  public String toString() {
+    return toXmlText(true);
   }
 
   /**
@@ -188,9 +227,16 @@ public class PhysicalModel {
         buildFields, depth, onlyIfPriority, xpathInst);
 
     // Reorder the physical model.
-    reorderPhysicalModel(safeDocBuilder, xmlDocRoot, xpathInst, docTypeInfo, sdkRootFolder);
+    final NoticeXmlTagSorter sorter =
+        new NoticeXmlTagSorter(safeDocBuilder, xpathInst, docTypeInfo, sdkRootFolder);
+    sorter.sortXml(xmlDocRoot);
 
-    return new PhysicalModel(xmlDoc, xpathInst, fieldsAndNodes);
+    final Optional<Path> mainXsdPathOpt = sorter.getMainXsdPathOpt();
+    if (mainXsdPathOpt.isPresent()) {
+      Validate.isTrue(mainXsdPathOpt.get().toFile().exists(), "File does not exist: mainXsdPath=%s",
+          mainXsdPathOpt);
+    }
+    return new PhysicalModel(xmlDoc, xpathInst, fieldsAndNodes, mainXsdPathOpt);
   }
 
   /**
@@ -293,9 +339,11 @@ public class PhysicalModel {
           xmlNodeElem);
       final PhysicalXpathPart px = handleXpathPart(xpathPart);
       final Optional<String> schemeNameOpt = px.getSchemeNameOpt();
-      String xpathExpr = px.getXpathExpr();
+      final String xpathExpr = px.getXpathExpr();
       final String tag = px.getTagOrAttribute();
       if (debug) {
+        // System out is used here because it is more readable than the logger lines.
+        // This is not a replacement for logger.debug(...)
         System.out.println(depthStr + " tag=" + tag);
         System.out.println(depthStr + " xmlTag=" + xmlNodeElem.getTagName());
       }
@@ -337,7 +385,10 @@ public class PhysicalModel {
       previousElem.appendChild(partElem); // SIDE-EFFECT! Adding item to the tree.
 
       if (schemeNameOpt.isPresent()) {
-        partElem.setAttribute(XML_ATTR_SCHEME_NAME, schemeNameOpt.get()); // SIDE-EFFECT!
+        final String schemeName = schemeNameOpt.get();
+        final String msg = String.format("%s=%s", XML_ATTR_SCHEME_NAME, schemeName);
+        System.out.println(depthStr + " " + msg);
+        partElem.setAttribute(XML_ATTR_SCHEME_NAME, schemeName); // SIDE-EFFECT!
       }
       previousElem = partElem;
 
@@ -558,7 +609,7 @@ public class PhysicalModel {
       final JsonNode codelistValue =
           FieldsAndNodes.getFieldPropertyValue(fieldMeta, FIELD_CODE_LIST);
       String codelistName = JsonUtils.getTextStrict(codelistValue, "id", "fieldId=" + fieldId);
-      if (ConceptualModel.OPP_105_BUSINESS.equals(fieldId)) {
+      if (ConceptualModel.FIELD_SECTOR_OF_ACTIVITY.equals(fieldId)) {
         // TODO sector, temporary hardcoded fix here, this information should be provided in the
         // SDK. Maybe via a special key/value.
         codelistName = "sector";
@@ -588,18 +639,6 @@ public class PhysicalModel {
 
     final JsonNode documentTypeInfo = documentInfoByType.get(documentType);
     return new DocumentTypeInfo(documentTypeInfo, concept.getSdkVersion());
-  }
-
-  /**
-   * Changes the order of the elements to the schema sequence order. The XML DOM model is modified
-   * as a side effect.
-   */
-  private static void reorderPhysicalModel(final DocumentBuilder safeDocBuilder,
-      final Element noticeRootElem, final XPath xpathInst, final DocumentTypeInfo docTypeInfo,
-      final Path sdkRootFolder) throws SAXException, IOException {
-    final NoticeXmlTagSorter sorter =
-        new NoticeXmlTagSorter(safeDocBuilder, xpathInst, docTypeInfo, sdkRootFolder);
-    sorter.sortXml(noticeRootElem);
   }
 
   /**
@@ -668,44 +707,46 @@ public class PhysicalModel {
 
   @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
       value = "UCPM_USE_CHARACTER_PARAMETERIZED_METHOD",
-      justification = "OK here, used in other places a string")
+      justification = "OK here, used in other places as a string")
   private static PhysicalXpathPart handleXpathPart(final String partParam) {
     Validate.notBlank(partParam, "partParam is blank");
 
-    // NOTE: ideally we would want to fully avoid using xpath.
-    String tagOrAttr = partParam;
-
     final Optional<String> schemeNameOpt;
+
+    // NOTE: ideally we would want to fully avoid using xpath.
+    // NOTE: in the future the SDK will provide the schemeName separately for convenience!
+    String tagOrAttr = partParam;
+    if (tagOrAttr.contains("@schemeName='")) {
+      // Normalize the string before we start parsing it.
+      tagOrAttr = tagOrAttr.replace("@schemeName='", "@schemeName = '");
+    }
 
     if (tagOrAttr.contains("[not(@schemeName = 'EU')]")) {
       // HARDCODED
       // TODO This is a TEMPORARY FIX until we have a proper solution inside of the SDK. National is
       // only indirectly described by saying not EU, but the text itself is not given.
+
+      // Example:
+      // "xpathAbsolute" : "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName =
+      // 'EU']",
+
       tagOrAttr =
           tagOrAttr.replace("[not(@schemeName = 'EU')]", "[@schemeName = '" + NATIONAL + "']");
     }
 
     if (tagOrAttr.contains("[@schemeName = '")) {
-      // TODO investigate
-      // efx-toolkit-java/XPathAttributeLocator.java at develop · OP-TED/efx-toolkit-java
-      // (github.com)
-      // Example:
-      // "xpathAbsolute" : "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName =
-      // 'EU']",
-
-      // Example: Here we want to extract EU text.
       final int indexOfSchemeName = tagOrAttr.indexOf("[@schemeName = '");
       String schemeName = tagOrAttr.substring(indexOfSchemeName + "[@schemeName = '".length());
       // Remove the ']
       schemeName = schemeName.substring(0, schemeName.length() - "']".length());
-      Validate.notBlank(schemeName);
+      Validate.notBlank(schemeName, "schemeName is blank for %s", tagOrAttr);
       tagOrAttr = tagOrAttr.substring(0, indexOfSchemeName);
       schemeNameOpt = Optional.of(schemeName);
     } else {
       schemeNameOpt = Optional.empty();
     }
 
-    // We want to remove the predicate from the tag.
+    // We want to remove the predicate as we only want the name.
     if (tagOrAttr.contains("[")) {
       // TEMPORARY FIX.
       // Ignore predicate with negation as it is not useful for XML generation.

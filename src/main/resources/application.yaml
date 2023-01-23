@@ -14,10 +14,24 @@ server:
     # Number of selector threads to use.
     # selectors:
 
+
 eforms:
   sdk:
     # Path to eForms SDK
     path: eforms-sdks
 
     # Comma-separated list of the supported major versions of eForms SDK
-    versions: 1.0,1.1,1.2,1.3,1.4,1.5
+    versions: 1.0,1.1,1.2,1.3,1.4,1.5 #,1.6
+
+
+proxy:
+  ### Security: use a command line parameter for security related data
+  ### Example -Dproxy.url=ENVIRONMENT_VARIABLE_VALUE_HERE
+  # url: http://user:pass@hostname:port
+
+client:
+  cvs:
+    url: "https://cvs.ted.europa.eu"
+    ### Security: use a command line parameter for security related data
+    ### Example -Dclient.cvs.apiKey=ENVIRONMENT_VARIABLE_VALUE_HERE
+    apiKey: "YOUR_API_KEY"

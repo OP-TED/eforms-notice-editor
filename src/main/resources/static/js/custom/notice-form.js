@@ -217,11 +217,11 @@ export class GroupElement extends FormElement {
     header.appendChild(label);
     
     if (this.content._repeatable && !this.content.hidden) {
-      header.appendChild(this.createAddInstanceButton())
+      header.appendChild(this.createAddInstanceButton());
     }
 
     if (this.content._repeatable && !this.content.hidden && this.content.editorCount > 1) {
-      header.appendChild(this.createRemoveInstanceButton())
+      header.appendChild(this.createRemoveInstanceButton());
     }
 
     return header;
@@ -343,11 +343,11 @@ export class InputFieldElement extends FormElement {
     header.appendChild(label);
     
     if (this.content._repeatable && !this.content.hidden) {
-      header.appendChild(this.createRepeatButton())
+      header.appendChild(this.createRepeatButton());
     }
 
     if (this.content._repeatable && !this.content.hidden && this.content.editorCount > 1) {
-      header.appendChild(this.createRemoveButton())
+      header.appendChild(this.createRemoveButton());
     }
 
     return header;
@@ -429,6 +429,12 @@ export class TextBoxInputElement extends InputFieldElement {
   createBody() {
     const input = document.createElement("input");
     input.setAttribute("type", "text");
+    
+    const presetValue = this.content.presetValue;
+    if (presetValue) {
+      input.value = presetValue;
+    }
+    
     return input;
   }
 
@@ -452,6 +458,12 @@ export class CheckBoxInputElement extends InputFieldElement {
   createBody() {
     const input = document.createElement("input");
     input.setAttribute("type", "checkbox");
+    
+    const presetValue = this.content.presetValue;
+    if (presetValue && presetValue === key) {
+      input.setAttribute("checked", "checked");
+    }
+    
     return input;
   }
 
@@ -484,11 +496,16 @@ export class RadioInputElement extends InputFieldElement {
     radioButtonElement.setAttribute("type", "radio");
     radioButtonElement.setAttribute("value", key);
     radioButtonElement.setAttribute("name", this.fieldId);
-    radioButtonElement.setAttribute("id", `${this.uniqueIdentifier}-${key}`)
+    radioButtonElement.setAttribute("id", `${this.uniqueIdentifier}-${key}`);
     
     const labelElement = document.createElement("label");
     labelElement.textContent = label;
-    labelElement.appendChild(radioButtonElement)
+    labelElement.appendChild(radioButtonElement);
+    
+    const presetValue = this.content.presetValue;
+    if (presetValue && presetValue === key) {
+      radioButtonElement.setAttribute("checked", "checked");
+    }
 
     return labelElement;
   }
@@ -516,6 +533,11 @@ export class ComboBoxInputElement extends InputFieldElement {
 
     for (const item of map) {
       this.bodyElement.appendChild(DomUtil.createOption(item[0], item[1]));
+    }
+    
+    const presetValue = this.content.presetValue;
+    if (presetValue) {
+      this.select(presetValue);
     }
 
     this.bodyElement.tomselect?.sync();
@@ -546,6 +568,12 @@ export class TextAreaInputElement extends InputFieldElement {
   createBody() {
     const bodyElement = document.createElement("textarea");
     bodyElement.setAttribute("rows", "2");
+    
+    const presetValue = this.content.presetValue;
+    if (presetValue) {
+      bodyElement.value = presetValue;
+    }
+    
     return bodyElement;
   }
 

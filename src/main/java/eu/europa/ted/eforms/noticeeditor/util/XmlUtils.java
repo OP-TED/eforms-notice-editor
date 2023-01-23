@@ -166,4 +166,19 @@ public class XmlUtils {
     return elemList;
   }
 
+  public static String getTextNodeContentOneLine(final Node node) {
+    return getTextNodeContent(node).strip().replaceAll("\r\n\t", "");
+  }
+
+  public static String getTextNodeContent(final Node node) {
+    final NodeList list = node.getChildNodes();
+    final StringBuilder sb = new StringBuilder(64);
+    for (int i = 0; i < list.getLength(); ++i) {
+      final Node child = list.item(i);
+      if (Node.TEXT_NODE == child.getNodeType()) {
+        sb.append(child.getTextContent());
+      }
+    }
+    return sb.toString();
+  }
 }

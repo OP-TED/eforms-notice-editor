@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -47,6 +48,15 @@ public class VisualModel {
 
   static final String VIS_VALUE = "value";
   static final String VIS_TYPE = "visType"; // Called visType to avoid confusion with HTML type attr
+
+  @Override
+  public String toString() {
+    try {
+      return JsonUtils.getStandardJacksonObjectMapper().writeValueAsString(visRoot);
+    } catch (JsonProcessingException ex) {
+      throw new RuntimeException(ex);
+    }
+  }
 
   private static final String VIS_TYPE_FIELD = "field";
   private static final String VIS_TYPE_NON_FIELD = "non-field";
@@ -122,7 +132,9 @@ public class VisualModel {
     // Put some primary info at the top level.
     visRoot.put(VIS_SDK_VERSION, fakeSdkForTest);
     visRoot.put(VIS_NOTICE_SUB_TYPE, noticeSubTypeForTest);
-    visRoot.put(VIS_NOTICE_UUID, UUID.randomUUID().toString());
+
+    final String noticeUuid = UUID.randomUUID().toString();
+    visRoot.put(VIS_NOTICE_UUID, noticeUuid);
 
     final ArrayNode visRootChildren = visRoot.putArray(VIS_CHILDREN);
 
@@ -135,6 +147,18 @@ public class VisualModel {
       visRootChildren.add(visSdkVersion);
       putFieldDef(visSdkVersion, ConceptualModel.FIELD_ID_SDK_VERSION);
       visSdkVersion.put(VIS_VALUE, fakeSdkForTest);
+
+      final ObjectNode metadata = mapper.createObjectNode();
+      visRootChildren.add(metadata);
+      putGroupDef(metadata);
+      metadata.put(VIS_CONTENT_ID, "notice-metadata");
+      final ArrayNode metadataChildren = metadata.putArray(VIS_CHILDREN);
+
+      // Notice sub type.
+      final ObjectNode visNoticeSubType = mapper.createObjectNode();
+      metadataChildren.add(visNoticeSubType);
+      putFieldDef(visNoticeSubType, ConceptualModel.FIELD_NOTICE_ID);
+      visNoticeSubType.put(VIS_VALUE, noticeUuid);
     }
 
     // Root extension.
@@ -444,13 +468,13 @@ public class VisualModel {
    */
   private String toDot(final FieldsAndNodes fieldsAndNodes, final boolean includeFields) {
 
-    final StringBuilder sb = new StringBuilder();
+    final StringBuilder sb = new StringBuilder(1024);
     final JsonNode root = this.visRoot;
     toDotRec(fieldsAndNodes, sb, root, includeFields);
 
     final StringBuilder sbDot = new StringBuilder();
     final String noticeSubType = this.getNoticeSubType();
-    final String title = noticeSubType;
+    final String title = "visual_" + noticeSubType; // - is not supported.
     GraphvizDotTool.appendDiGraph(sb.toString(), sbDot, title, "Visual model of " + noticeSubType,
         false, true);
 
@@ -483,9 +507,11 @@ public class VisualModel {
         final String color =
             nodeIsRepeatable ? GraphvizDotTool.COLOR_GREEN : GraphvizDotTool.COLOR_BLACK;
 
+        final String idUniqueChild =
+            getContentId(child) + (childNodeIdOpt.isPresent() ? "_" + childNodeIdOpt.get() : "");
         GraphvizDotTool.appendEdge(edgeLabel, color,
 
-            idUnique, VisualModel.getContentId(child), // concept node -> concept node
+            idUnique, idUniqueChild, // concept node -> child concept node
 
             sb);
 
