@@ -120,6 +120,24 @@ body {
   column-gap: 1em;
 }
 
+
+#notice-selector-button {
+  cursor: pointer; 
+  border: 1px solid var(--eui-primary-100); 
+  color: var(--eui-primary-100); 
+  background-color: var(--eui-white); 
+  padding: .2em 1em .3em 1em !important; 
+  border-radius: .25em; 
+  vertical-align: middle;
+}
+
+#notice-selector {
+  width: 0px; 
+  height: 0px; 
+  margin: 0px; 
+  padding: 0px;
+}
+
 /* Toolbar comboboxes are slightly padded to match the style of other controls in the page */
 #toolbar select {
   padding: 3px 3px;
@@ -131,6 +149,7 @@ body {
 #toolbar label {
   padding: 0em;  
   margin-right: .25em;
+  vertical-align: middle;
 }
 
 #loading-indicator {

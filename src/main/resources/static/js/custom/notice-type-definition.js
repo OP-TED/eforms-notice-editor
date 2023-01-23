@@ -1,9 +1,11 @@
 import { Context } from "./context.js";
-import { Constants, I18N } from "./global.js";
+import { Constants } from "./global.js";
+import { I18N } from "./i18n.js";
 import { FormElement } from "./notice-form.js";
 import { SdkServiceClient } from "./service-clients.js";
 import { Validator} from "./validator.js";
 import { MandatoryProperty, ForbiddenProperty, RepeatableProperty, PatternProperty, AssertProperty, CodelistProperty, InChangeNoticeProperty } from "./dynamic-property.js";
+import { NoticeReader } from "./notice-reader.js";
 
 
 /*******************************************************************************
@@ -285,6 +287,12 @@ export class InputField extends NoticeTypeDefinitionElement {
     }
   }
 
+  loadValue() {
+    if (NoticeReader.hasDocument) {
+      this.formElement.value = NoticeReader.getFieldValues(this.fieldId)?.next().value;
+    }
+  }
+
   get field() {
     return SdkServiceClient.fields[this.fieldId];
   }
@@ -350,6 +358,7 @@ export class IdInputField extends InputField {
     }
 
     this.htmlElement.classList.add("notice-content-id");
+    this.loadValue();
   }
 
   get idScheme() {
@@ -399,6 +408,7 @@ export class IdRefInputField extends InputField {
       this.idSchemesAttribute = this.idSchemes.join(',');
       this.populate();
     }
+    this.loadValue();
   }
 
   get idSchemes() {
@@ -452,17 +462,21 @@ export class CodeInputField extends InputField {
 
   async populate(sdkVersion, language) {
 
-    const response = await fetch("sdk/" + sdkVersion + "/codelists/" + this.getCodelist().filename + "/lang/" + language);
-    const json = await response.json();
+    if (typeof this.formElement.populate === 'function') {
+      const response = await fetch("sdk/" + sdkVersion + "/codelists/" + this.getCodelist().filename + "/lang/" + language);
+      const json = await response.json();
 
-    this.formElement.populate(json.codes.map((code) => [code.codeValue, code[language]]), true);
+      this.formElement.populate(json.codes.map((code) => [code.codeValue, code[language]]), true);
+    }
+
+    this.loadValue();
 
     // After the select options have been set, an option can be selected.
     // Special case for some of the metadata fields.
     if (this.getCodelistId() === "notice-subtype") {
       this.formElement.select(Context.noticeSubtype);
     } else if (this.getCodelistId() === "language_eu-official-language" && "BT-702(a)-notice" === content.id) {
-      this.formElement.select(Context.languageAsIso6393);
+      this.formElement.select(I18N.Iso6391ToIso6393Map[Context.language]);
     }
   }
 
@@ -485,6 +499,7 @@ export class DateInputField extends InputField {
     this.container.classList.add("date");
     this.htmlElement.setAttribute("type", "date"); // Nice to have but not required.
 
+    this.loadValue();
   }
 }
 
@@ -497,6 +512,7 @@ export class TimeInputField extends InputField {
     super(content, level);
     this.container.classList.add("time");
     this.htmlElement.setAttribute("type", "time"); // Nice to have but not required.
+    this.loadValue();
   }
 }
 
@@ -508,6 +524,7 @@ export class MeasureInputField extends InputField {
   constructor(content, level = 0) {
     super(content, level);
     this.container.classList.add("measure");
+    this.loadValue();
   }
 }
 
@@ -523,6 +540,7 @@ export class IndicatorInputField extends InputField {
     const whenTrue = I18N.getLabel(`indicator|when-true|${this.content.id}`)
     const whnFalse =  I18N.getLabel(`indicator|when-false|${this.content.id}`)
     this.formElement.populate(new Map([["true", whenTrue], ["false", whnFalse]]));
+    this.loadValue();
   }
 }
 
@@ -543,6 +561,7 @@ export class NumberInputField extends InputField {
     // TODO should we use range / intervals like MinZero [0, NULL] for that?
     //this.htmlElement.setAttribute("min", "0");
     //this.htmlElement.setAttribute("max", ...);
+    this.loadValue();
   }
 }
 
@@ -555,6 +574,7 @@ export class IntegerInputField extends NumberInputField {
     super(content, level);
     this.container.classList.add("integer");
     this.htmlElement.setAttribute("step", "1"); // only integers
+    this.loadValue();
   }
 }
 
@@ -566,6 +586,7 @@ export class AmountInputField extends NumberInputField {
   constructor(content, level = 0) {
     super(content, level);
     this.container.classList.add("amount");
+    this.loadValue();
   }
 }
 
@@ -584,6 +605,7 @@ export class TextInputField extends InputField {
     if (this.field.maxLength) {
       this.htmlElement.setAttribute("maxlength", this.field.maxLength);
     }
+    this.loadValue();
   }
 }
 
@@ -595,6 +617,7 @@ export class TextMultilingualInputField extends TextInputField {
   constructor(content, level = 0) {
     super(content, level);
     this.container.classList.add("text-multilingual");
+    this.loadValue();
   }
 }
 
@@ -606,6 +629,7 @@ export class PhoneInputField extends TextInputField {
   constructor(content, level = 0) {
     super(content, level);
     this.container.classList.add("phone");
+    this.loadValue();
   }
 }
 
@@ -617,6 +641,7 @@ export class EmailInputField extends TextInputField {
   constructor(content, level = 0) {
     super(content, level);
     this.container.classList.add("email");
+    this.loadValue();
   }
 }
 
@@ -628,5 +653,6 @@ export class UrlInputField extends TextInputField {
   constructor(content, level = 0) {
     super(content, level);
     this.container.classList.add("url");
+    this.loadValue();
   }
 }

@@ -1,5 +1,6 @@
 import { Context } from "./context.js";
-import { Constants, DomUtil, I18N } from "./global.js";
+import { Constants, DomUtil } from "./global.js";
+import { I18N } from "./i18n.js";
 import { NoticeTypeDefinitionElement } from "./notice-type-definition.js";
 
 /*******************************************************************************
@@ -411,6 +412,10 @@ export class InputFieldElement extends FormElement {
 
     return button;
   }
+
+  set value(value) {
+    this.bodyElement.value = value;    
+  }
 }
 
 /*******************************************************************************
@@ -426,6 +431,14 @@ export class TextBoxInputElement extends InputFieldElement {
     input.setAttribute("type", "text");
     return input;
   }
+
+  set value(value) {
+    switch (this.bodyElement.getAttribute("type")) {
+      case "date": this.bodyElement.value = value?.substr(0,10) ?? ""; break;
+      case "time": this.bodyElement.value = value?.substr(0,8) ?? ""; break;
+      default: this.bodyElement.value = value ?? ""; 
+    }
+  }
 }
 
 /*******************************************************************************
@@ -440,6 +453,10 @@ export class CheckBoxInputElement extends InputFieldElement {
     const input = document.createElement("input");
     input.setAttribute("type", "checkbox");
     return input;
+  }
+
+  set value(value) {
+    this.bodyElement.checked = value ? true : false;    
   }
 }
 
@@ -475,6 +492,11 @@ export class RadioInputElement extends InputFieldElement {
 
     return labelElement;
   }
+
+  set value(value) {
+    this.bodyElement.querySelectorAll("[type='radio']").forEach( radio => radio.checked = radio.key === value ? true : false);    
+  }
+
 }
 
 /*******************************************************************************
@@ -506,6 +528,11 @@ export class ComboBoxInputElement extends InputFieldElement {
   select(value) {
     this.bodyElement.value = value;
   }
+
+  set value(value) {
+    this.bodyElement.value = value;    
+    this.bodyElement.tomselect?.sync();
+  }
 }
 
 /*******************************************************************************
@@ -520,5 +547,9 @@ export class TextAreaInputElement extends InputFieldElement {
     const bodyElement = document.createElement("textarea");
     bodyElement.setAttribute("rows", "2");
     return bodyElement;
+  }
+
+  set value(value) {
+    this.bodyElement.value = value ?? "";    
   }
 }

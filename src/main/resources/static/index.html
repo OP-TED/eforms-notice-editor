@@ -14,6 +14,7 @@
 	<script src="js/external/tom-select.complete.min.js" defer></script>
 	<script src="js/custom/sync-center.js" type="module" defer></script>
 	<script src="js/custom/editor.js" type="module" defer></script>
+	<script language="XML" id="notice-xml" type="text/xml"></script>
 </head>
 
 <body onload="Editor.loaded()">
@@ -25,8 +26,12 @@
 
 	<ul id="toolbar">
 		<li>
+			<label for="notice-selector" id="notice-selector-button">Open...</label>
+			<input type="file" accept=".xml" id="notice-selector" />
+		</li>
+		<li>
 			<label for="notice-subtype-selector">Select notice subtype:</label>
-			<select id="notice-subtype-selector" onchange="Editor.selectedNoticeSubtypeChanged()">
+			<select id="notice-subtype-selector">
 				<option value=""></option>
 			</select>
 		</li>
@@ -36,7 +41,7 @@
 		</li>
 		<li>
 			<label for="language-selector">Language:</label>
-			<select id="language-selector" onchange="Editor.selectedLanguageChanged()">
+			<select id="language-selector">
 				<option value="en">English</option>
 				<option value="fr">French</option>
 			</select>
