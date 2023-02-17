@@ -4,58 +4,71 @@ This is a demo application which can create and edit notices (basic).
 For creation it reads eForms SDK notice type files (json).
 For edition it reads a notice file (xml) and the corresponding notice type file (json).
 
-## Run server
+## Layout
 
-You need the eForms Core Library: 
+The project is split in three modules:
 
-https://github.com/OP-TED/eforms-core-java
+- editor-core: The main component with server-side code and utilities.
+- editor-ui: The frontend component with static files (HTML/CSS/Javascript/Typescript).
+- editor-app: It packages the application as a Spring Boot standalone application.
 
-`mvn clean install` in the core library project.
+## Workflow
 
-After this also install the editor demo:
+### Installation
 
-`mvn clean install`
-
-This is Jetty based (a bit like Tomcat but self contained, you could easily switch to Tomcat).
-We recommend you avoid running the project via mvn, from the `target` folder, example use:
-
-```
-java -jar notice-editor-demo-0.0.1-SNAPSHOT.jar
-```
-
-In your browser go to: `localhost:8080/` (or whatever the start logs say)
-For the port settings see `application.properties`.
-
-Login credentials and security: Spring Security could be used.
-
-For development you may use:
+Build the editor demo:
 
 ```
-mvn compile exec:java -Dexec.mainClass="eu.europa.ted.eforms.noticeeditor.EformsNoticeEditorApp"
+mvn clean install
 ```
+
+### Execution
+
+1. Start the application as a standalone Spring Boot powered server, running on embedded Jetty (e.g., for 0.0.1-SNAPSHOT):
+
+   ```
+   java -jar editor-app/target/notice-editor-app-0.0.1-SNAPSHOT.jar
+   ```
+
+2. Open a browser at and go to: `localhost:8080/`
+
+   **NOTE**: The port might differ, depending on the configuration under editor-app/src/main/resources/application.yaml (property `"server.port"`).
+
 
 ## Important files
 
-### Back-end
+### editor-app
 
-* Configuration related: application.properties
+* Configuration related: application.yaml
 * Java at server start: EformsNoticeEditorApp.java (runs before the UI is available)
+
+### editor-core
+
 * Java REST API: SdkRestController.java (Handles the XHR API calls)
 * Java business logic: SdkService.java (Business logic once it runs)
 
-### Front-end
-
+### editor-ui
 * Home page HTML: index.html
 * JavaScript: editor.js (dynamic creation of HTML elements, XHR API calls)
 * CSS: editor.css (styling)
 
 ## Running checkstyle
 
-`mvn checkstyle:checkstyle`, see pom.xml for checkstyle xml rules (Google code style subset)
+```
+mvn checkstyle:checkstyle
+```
+
+See pom.xml for checkstyle xml rules (Google code style subset).
 
 ## Running spotbugs
 
-`mvn spotbugs:spotbugs`, see target folder spotbugs.xml (I recommend you format and read it in your IDE)
+```
+mvn spotbugs:spotbugs
+```
+
+See `spotbugs.xml` under the `target` folder.
+
+### Exclusions
 
 Special local exclude example:
 
@@ -65,8 +78,10 @@ Special local exclude example:
 
 Other exclusions: see `spotbugs-exclude.xml`
 
-Visitors and detectors:
+### Visitors and detectors
+
 https://spotbugs-in-kengo-toda.readthedocs.io/en/lqc-list-detectors/detectors.html
+
 For contrib rules see: http://fb-contrib.sourceforge.net/bugdescriptions.html
 
 ## Github discussions
