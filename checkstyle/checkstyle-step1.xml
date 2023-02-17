@@ -7,7 +7,7 @@
 <!-- SUBSET OF RULES FOR NOW !!! -->
 <!-- SUBSET OF RULES FOR NOW !!! -->
 
-<!-- https://raw.githubusercontent.com/checkstyle/checkstyle/master/src/main/resources/google_checks.xml -->
+<!-- https://raw.githubusercontent.com/checkstyle/checkstyle/master/checkstyle/google_checks.xml -->
 <!-- Checkstyle configuration that checks the Google coding conventions from Google Java Style that can 
   be found at https://google.github.io/styleguide/javaguide.html Checkstyle is very configurable. Be sure 
   to read the documentation at http://checkstyle.org (or in your downloaded distribution). To completely 
@@ -16,7 +16,7 @@
 <module name="Checker">
 
   <module name="SuppressionFilter">
-    <property name="file" value="src/main/resources/checkstyle-suppressions.xml" />
+    <property name="file" value="checkstyle/checkstyle-suppressions.xml" />
     <property name="optional" value="false" />
   </module>
 
@@ -44,16 +44,15 @@
     <property name="eachLine" value="true" />
   </module>
 
-  <module name="LineLength">
-    <property name="fileExtensions" value="java" />
-    <property name="max" value="100" />
-    <property name="ignorePattern"
-      value="^package.*|^import.*|a href|href|http://|https://|ftp://" />
-  </module>
-  <module name="SuppressWarningsFilter" />
+  <!-- Probably later, too much for now. -->
+  <!-- <module name="LineLength"> -->
+  <!-- <property name="fileExtensions" value="java" /> -->
+  <!-- <property name="max" value="100" /> -->
+  <!-- <property name="ignorePattern" -->
+  <!-- value="^package.*|^import.*|a href|href|http://|https://|ftp://" /> -->
+  <!-- </module> -->
+
   <module name="TreeWalker">
-    <!-- Make the @SuppressWarnings annotations available to Checkstyle -->
-    <module name="SuppressWarningsHolder" />
     <module name="OuterTypeFilename" />
     <module name="IllegalTokenText">
       <property name="tokens" value="STRING_LITERAL, CHAR_LITERAL" />
@@ -78,11 +77,11 @@
         value="LITERAL_TRY, LITERAL_FINALLY, LITERAL_IF, LITERAL_ELSE, LITERAL_SWITCH" />
     </module>
 
-    <module name="NeedBraces">
-      <property name="tokens"
-        value="LITERAL_DO, LITERAL_ELSE,
-				LITERAL_FOR, LITERAL_IF, LITERAL_WHILE" />
-    </module>
+    <!-- I like it but still overkill for now. -->
+    <!-- <module name="NeedBraces"> -->
+    <!-- <property name="tokens" -->
+    <!-- value="LITERAL_DO, LITERAL_ELSE, LITERAL_FOR, LITERAL_IF, LITERAL_WHILE" /> -->
+    <!-- </module> -->
 
     <module name="LeftCurly">
       <property name="tokens"
@@ -145,7 +144,8 @@
     <module name="FallThrough" />
     <module name="UpperEll" />
 
-    <module name="ModifierOrder" />
+    <!-- Totally overkill for now ! -->
+    <!-- <module name="ModifierOrder" /> -->
 
     <module name="EmptyLineSeparator">
       <property name="tokens"
@@ -232,11 +232,12 @@
       <message key="name.invalidPattern"
         value="Class type name ''{0}'' must match pattern ''{1}''." />
     </module>
-    <module name="RecordComponentName">
-      <property name="format" value="^[a-z]([a-z0-9][a-zA-Z0-9]*)?$" />
-      <message key="name.invalidPattern"
-        value="Record component name ''{0}'' must match pattern ''{1}''." />
-    </module>
+    <!-- <module name="RecordComponentName"> -->
+    <!-- <property name="format" -->
+    <!-- value="^[a-z]([a-z0-9][a-zA-Z0-9]*)?$" /> -->
+    <!-- <message key="name.invalidPattern" -->
+    <!-- value="Record component name ''{0}'' must match pattern ''{1}''." /> -->
+    <!-- </module> -->
     <module name="RecordTypeParameterName">
       <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)" />
       <message key="name.invalidPattern"
@@ -268,7 +269,7 @@
     <module name="Indentation">
       <property name="basicOffset" value="2" />
 
-      <!-- Overkill for now and messes with code blocks. -->
+      <!-- Overkill for now. -->
       <!-- <property name="braceAdjustment" value="2" /> -->
 
       <property name="caseIndent" value="2" />
@@ -277,7 +278,6 @@
       <property name="arrayInitIndent" value="2" />
     </module>
 
-    <!-- Overkill for now. -->
     <!-- <module name="AbbreviationAsWordInName"> -->
     <!-- <property name="ignoreFinal" value="false" /> -->
     <!-- <property name="allowedAbbreviationLength" value="0" /> -->
@@ -287,12 +287,12 @@
     <!-- RECORD_COMPONENT_DEF" /> -->
     <!-- </module> -->
 
-    <module name="NoWhitespaceBeforeCaseDefaultColon" />
+    <!-- <module name="NoWhitespaceBeforeCaseDefaultColon" /> -->
 
-    <!-- Nice but overkill for now. Also detection seems buggy. -->
-    <!-- <module name="OverloadMethodsDeclarationOrder" /> -->
+    <module name="OverloadMethodsDeclarationOrder" />
 
-    <module name="VariableDeclarationUsageDistance" />
+    <!-- Nice but overkill for now. -->
+    <!-- <module name="VariableDeclarationUsageDistance" /> -->
 
     <!-- Nice but overkill for now. -->
     <!-- <module name="CustomImportOrder"> -->
@@ -344,35 +344,30 @@
     </module>
     <module name="NonEmptyAtclauseDescription" />
 
-    <module name="InvalidJavadocPosition" />
-    <module name="JavadocTagContinuationIndentation" />
-
+    <!-- <module name="InvalidJavadocPosition" /> -->
+    <!-- <module name="JavadocTagContinuationIndentation" /> -->
     <!-- <module name="SummaryJavadoc"> -->
     <!-- <property name="forbiddenSummaryFragments" -->
-    <!-- value="^@return the *|^This method returns|^A [{]@code [a-zA-Z0-9]+[}](is a )" /> -->
+    <!-- value="^@return the *|^This method returns |^A [{]@code [a-zA-Z0-9]+[}]( is a )" /> -->
+    <!-- </module> -->
+    <!-- <module name="JavadocParagraph" /> -->
+    <!-- <module name="RequireEmptyLineBeforeBlockTagGroup" /> -->
+    <!-- <module name="AtclauseOrder"> -->
+    <!-- <property name="tagOrder" -->
+    <!-- value="@param, @return, @throws, @deprecated" /> -->
+    <!-- <property name="target" -->
+    <!-- value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF, VARIABLE_DEF" /> -->
     <!-- </module> -->
 
-    <module name="JavadocParagraph" />
-    <module name="RequireEmptyLineBeforeBlockTagGroup" />
-    <module name="AtclauseOrder">
-      <property name="tagOrder" value="@param, @return, @throws, @deprecated" />
-      <property name="target"
-        value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF,
-		METHOD_DEF, CTOR_DEF,
-		VARIABLE_DEF" />
-    </module>
+    <!-- <module name="JavadocMethod"> -->
+    <!-- <property name="accessModifiers" value="public" /> -->
+    <!-- <property name="allowMissingParamTags" value="true" /> -->
+    <!-- <property name="allowMissingReturnTag" value="true" /> -->
+    <!-- <property name="allowedAnnotations" value="Override, Test" /> -->
+    <!-- <property name="tokens" -->
+    <!-- value="METHOD_DEF, CTOR_DEF, ANNOTATION_FIELD_DEF, COMPACT_CTOR_DEF" /> -->
+    <!-- </module> -->
 
-    <module name="JavadocMethod">
-      <property name="accessModifiers" value="public" />
-      <property name="allowMissingParamTags" value="true" />
-      <property name="allowMissingReturnTag" value="true" />
-      <property name="allowedAnnotations" value="Override, Test" />
-      <property name="tokens"
-        value="METHOD_DEF, CTOR_DEF, ANNOTATION_FIELD_DEF, 
-					COMPACT_CTOR_DEF" />
-    </module>
-
-    <!-- Overkill. -->
     <!-- <module name="MissingJavadocMethod"> -->
     <!-- <property name="scope" value="public" /> -->
     <!-- <property name="minLineCount" value="2" /> -->
@@ -395,7 +390,6 @@
         value="Method name ''{0}'' must match pattern ''{1}''." />
     </module>
 
-    <!-- Overkill, better one line that nothing for now. -->
     <!-- <module name="SingleLineJavadoc"/> -->
 
     <module name="EmptyCatchBlock">

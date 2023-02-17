@@ -422,7 +422,7 @@
             </dependency>
           </dependencies>
           <configuration>
-            <configLocation>/src/main/resources/checkstyle-step2.xml
+            <configLocation>/checkstyle/checkstyle-step2.xml
             </configLocation>
             <encoding>UTF-8</encoding>
             <consoleOutput>true</consoleOutput>
