@@ -31,6 +31,7 @@
   </developers>
 
   <modules>
+    <module>editor-core</module>
     <module>editor-app</module>
     <module>editor-ui</module>
   </modules>
@@ -57,6 +58,8 @@
     <version.checkstyle>9.0</version.checkstyle> <!-- NOTE: versions before 8 something got confused by lambdas, luckily 9 solves this. -->
     <version.commons-io>2.11.0</version.commons-io>
     <version.commons-lang3>3.12.0</version.commons-lang3>
+    <version.httpclient>4.5.13</version.httpclient>
+    <version.httpcore>4.4.15</version.httpcore>
     <version.jackson-databind>2.13.4.2</version.jackson-databind>
     <version.jackson>2.13.4</version.jackson>
     <version.jakarta.servlet-api>4.0.4</version.jakarta.servlet-api>
@@ -93,6 +96,11 @@
         <groupId>eu.europa.ted.eforms</groupId>
         <artifactId>eforms-core-java</artifactId>
         <version>${version.eforms-core}</version>
+      </dependency>
+      <dependency>
+        <groupId>eu.europa.ted.eforms</groupId>
+        <artifactId>notice-editor-core</artifactId>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>eu.europa.ted.eforms</groupId>
@@ -213,6 +221,16 @@
         <groupId>jakarta.xml.bind</groupId>
         <artifactId>jakarta.xml.bind-api</artifactId>
         <version>${version.xml.bind-api}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpcore</artifactId>
+        <version>${version.httpcore}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient</artifactId>
+        <version>${version.httpclient}</version>
       </dependency>
       <dependency>
         <groupId>org.yaml</groupId>
