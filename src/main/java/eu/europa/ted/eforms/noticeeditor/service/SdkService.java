@@ -39,7 +39,6 @@ import com.helger.genericode.v10.CodeListDocument;
 import com.helger.genericode.v10.Column;
 import com.helger.genericode.v10.Row;
 import com.helger.genericode.v10.Value;
-import eu.europa.ted.eforms.noticeeditor.EformsNoticeEditorApp;
 import eu.europa.ted.eforms.noticeeditor.domain.Language;
 import eu.europa.ted.eforms.noticeeditor.genericode.CustomGenericodeMarshaller;
 import eu.europa.ted.eforms.noticeeditor.genericode.GenericodeTools;
@@ -203,7 +202,8 @@ public class SdkService {
     }
   }
 
-  public static Map<String, Object> getHomePageInfo(List<SdkVersion> supportedSdks) {
+  public static Map<String, Object> getHomePageInfo(List<SdkVersion> supportedSdks,
+      String appVersion) {
     Validate.notNull(supportedSdks, "Undefined supported SDKs");
 
     final Map<String, Object> map = new LinkedHashMap<>();
@@ -214,7 +214,7 @@ public class SdkService {
 
     // This will be used to display the version of the editor application so that users can include
     // this version when reporting a bug.
-    map.put("appVersion", EformsNoticeEditorApp.APP_VERSION);
+    map.put("appVersion", appVersion);
 
     // Load available sdk versions. They will be listed in the UI.
     map.put("sdkVersions", supportedSdks.stream()//

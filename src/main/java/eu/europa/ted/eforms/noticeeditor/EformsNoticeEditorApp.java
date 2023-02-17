@@ -24,8 +24,6 @@ import eu.europa.ted.eforms.sdk.resource.SdkDownloader;
 public class EformsNoticeEditorApp implements CommandLineRunner {
   private static final Logger logger = LoggerFactory.getLogger(EformsNoticeEditorApp.class);
 
-  public static final String APP_VERSION = "1.0.0";
-
   @Value("${eforms.sdk.path}")
   private String eformsSdkDir;
 

@@ -30,6 +30,9 @@ import eu.europa.ted.eforms.sdk.SdkVersion;
 public class SdkRestController implements AsyncConfigurer {
   private Path eformsSdkDir;
 
+  @Value("${info.app.version:unknown}")
+  private String appVersion;
+
   @Value("${eforms.sdk.versions}")
   private List<SdkVersion> supportedSdks;
 
@@ -50,7 +53,7 @@ public class SdkRestController implements AsyncConfigurer {
    */
   @RequestMapping(value = "/info", method = RequestMethod.GET, produces = SdkService.MIME_TYPE_JSON)
   public Map<String, Object> selectHomeInfo() {
-    return SdkService.getHomePageInfo(supportedSdks);
+    return SdkService.getHomePageInfo(supportedSdks, appVersion);
   }
 
   /**
