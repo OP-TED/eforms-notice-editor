@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="true" scan="true" scanPeriod="30 seconds">
+
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <!-- encoders are assigned the type ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n
+      </pattern>
+    </encoder>
+  </appender>
+
+  <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>logs/eforms-notice-editor-demo.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+      <!-- daily rollover -->
+      <fileNamePattern>logs/rotated/eforms-notice-editor-demo.%d{yyyy-MM-dd}.%i.log.gz
+      </fileNamePattern>
+
+      <!-- keep 30 days' worth of history capped at 3GB total size -->
+      <maxFileSize>10MB</maxFileSize>
+      <maxHistory>30</maxHistory>
+      <totalSizeCap>3GB</totalSizeCap>
+
+    </rollingPolicy>
+
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{35} - %msg%n
+      </pattern>
+    </encoder>
+  </appender>
+
+  <logger name="org.springframework.security" level="DEBUG" />
+  <logger name="org.springframework.web" level="DEBUG" />
+  <logger name="eu.europa.ted" level="DEBUG" />
+  <logger name="eu.cec.digit.eulogin.client" level="DEBUG" />
+
+  <root level="INFO">
+    <appender-ref ref="STDOUT" />
+    <appender-ref ref="ROLLING" />
+  </root>
+</configuration>
