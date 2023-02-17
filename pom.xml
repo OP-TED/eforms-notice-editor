@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>eu.europa.ted.eforms</groupId>
-  <artifactId>notice-editor-demo</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
 
-  <name>eForms notice editor demo</name>
-  <description>Demo project for Spring Boot</description>
-  <packaging>jar</packaging>
+  <groupId>eu.europa.ted.eforms</groupId>
+  <artifactId>notice-editor-parent</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <name>eForms notice editor parent</name>
+  <description>Parent POM for Spring Boot demo project</description>
 
   <url>https://docs.ted.europa.eu/eforms/latest/</url>
 
@@ -29,6 +30,11 @@
     </developer>
   </developers>
 
+  <modules>
+    <module>editor-app</module>
+    <module>editor-ui</module>
+  </modules>
+
   <scm>
     <connection>scm:git:git://github.com/OP-TED/eforms-notice-editor.git</connection>
     <url>https://github.com/OP-TED/eforms-notice-editor.git</url>
@@ -43,12 +49,6 @@
 
     <maven.compiler.source>${java.version}</maven.compiler.source>
     <maven.compiler.target>${java.version}</maven.compiler.target>
-
-    <!-- NodeJS/Yarn -->
-    <working.dir>${basedir}</working.dir>
-    <nodejs.dir>${working.dir}/.node</nodejs.dir>
-    <corepack.exec>${nodejs.dir}/node_modules/.bin/corepack${exec.extension}</corepack.exec>
-    <yarn.exec>${nodejs.dir}/yarn${exec.extension}</yarn.exec>
 
     <!-- Versions - eForms -->
     <version.eforms-core>1.0.1</version.eforms-core>
@@ -93,6 +93,11 @@
         <groupId>eu.europa.ted.eforms</groupId>
         <artifactId>eforms-core-java</artifactId>
         <version>${version.eforms-core}</version>
+      </dependency>
+      <dependency>
+        <groupId>eu.europa.ted.eforms</groupId>
+        <artifactId>notice-editor-ui</artifactId>
+        <version>${project.version}</version>
       </dependency>
 
       <!-- Apache Commons -->
@@ -217,203 +222,7 @@
     </dependencies>
   </dependencyManagement>
 
-  <dependencies>
-    <!-- eForms -->
-    <dependency>
-      <groupId>eu.europa.ted.eforms</groupId>
-      <artifactId>eforms-core-java</artifactId>
-    </dependency>
-
-    <!-- Apache Commons -->
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-lang3</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>commons-io</groupId>
-      <artifactId>commons-io</artifactId>
-    </dependency>
-
-    <!-- Jackson -->
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-annotations</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-    </dependency>
-
-    <!-- Logback -->
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-core</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-
-    <!-- PH -->
-    <dependency>
-      <!-- Helger lib to read codelist genericode (.gc) files. -->
-      <groupId>com.helger</groupId>
-      <artifactId>ph-genericode</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.helger.commons</groupId>
-      <artifactId>ph-commons</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.helger.commons</groupId>
-      <artifactId>ph-jaxb</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.helger.commons</groupId>
-      <artifactId>ph-xml</artifactId>
-    </dependency>
-
-    <!-- SLF4J -->
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-    </dependency>
-
-    <!-- Spring & Spring Boot -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-autoconfigure</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-devtools</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-actuator</artifactId>
-    </dependency>
-    <dependency>
-      <!-- Use Jetty instead of Tomcat. -->
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-jetty</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-thymeleaf</artifactId>
-      <scope>runtime</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>org.springframework.boot</groupId>
-          <artifactId>spring-boot-starter</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-aop</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-beans</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-context</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-expression</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-web</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-webmvc</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-
-    <!-- Other -->
-    <dependency>
-      <groupId>com.google.code.findbugs</groupId>
-      <artifactId>jsr305</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>jakarta.servlet</groupId>
-      <artifactId>jakarta.servlet-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.sun.xml.bind</groupId>
-      <artifactId>jaxb-impl</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>jakarta.xml.bind</groupId>
-      <artifactId>jakarta.xml.bind-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-api</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.yaml</groupId>
-      <artifactId>snakeyaml</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-
-    <dependency>
-      <!-- Used for namespace aware xpath. -->
-      <groupId>net.sf.saxon</groupId>
-      <artifactId>Saxon-HE</artifactId>
-      <version>11.4</version>
-      <exclusions>
-        <!-- To avoid issues with the org.w3c.dom package. -->
-        <exclusion>
-          <groupId>xml-apis</groupId>
-          <artifactId>xml-apis</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-  </dependencies>
-
   <build>
-    <resources>
-      <resource>
-        <directory>${basedir}/src/main/resources</directory>
-        <filtering>true</filtering>
-        <includes>
-          <include>**/application*.yaml</include>
-        </includes>
-      </resource>
-      <resource>
-        <directory>${basedir}/src/main/resources</directory>
-        <filtering>false</filtering>
-        <includes>
-          <include>**/*</include>
-        </includes>
-      </resource>
-    </resources>
-
     <pluginManagement>
       <plugins>
         <plugin>
@@ -456,19 +265,6 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-clean-plugin</artifactId>
           <version>${version.clean.plugin}</version>
-          <configuration>
-            <filesets>
-              <fileset>
-                <directory>${basedir}</directory>
-                <includes>
-                  <include>.node/</include>
-                  <include>.yarn/</include>
-                  <include>.pnp.*</include>
-                </includes>
-                <followSymlinks>false</followSymlinks>
-              </fileset>
-            </filesets>
-          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -667,92 +463,6 @@
           </dependency>
         </dependencies>
       </plugin>
-
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <executions>
-          <!-- Dependencies installation -->
-          <execution>
-            <id>exec-install-corepack</id>
-            <phase>initialize</phase>
-            <configuration>
-              <workingDirectory>${working.dir}</workingDirectory>
-              <executable>npm</executable>
-              <arguments>
-                <argument>install</argument>
-                <argument>--prefix</argument>
-                <argument>.node</argument>
-                <argument>corepack</argument>
-              </arguments>
-            </configuration>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>exec-enable-corepack</id>
-            <phase>initialize</phase>
-            <configuration>
-              <workingDirectory>${working.dir}</workingDirectory>
-              <executable>${corepack.exec}</executable>
-              <arguments>
-                <argument>enable</argument>
-                <argument>--install-directory</argument>
-                <argument>${nodejs.dir}</argument>
-              </arguments>
-            </configuration>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>exec-install-dependencies</id>
-            <phase>initialize</phase>
-            <configuration>
-              <workingDirectory>${working.dir}</workingDirectory>
-              <executable>${yarn.exec}</executable>
-              <arguments>
-                <argument>install</argument>
-                <argument>--immutable</argument>
-              </arguments>
-            </configuration>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>exec-compile-javascript</id>
-            <phase>initialize</phase>
-            <configuration>
-              <workingDirectory>${working.dir}</workingDirectory>
-              <executable>${yarn.exec}</executable>
-              <arguments>
-                <argument>run</argument>
-                <argument>build</argument>
-              </arguments>
-            </configuration>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>repackage</id>
-            <goals>
-              <goal>repackage</goal>
-            </goals>
-            <configuration>
-              <mainClass>${start-class}</mainClass>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
   </build>
 
@@ -809,32 +519,6 @@
           </plugin>
         </plugins>
       </build>
-    </profile>
-
-    <profile>
-      <id>windows-build</id>
-      <activation>
-        <os>
-          <family>Windows</family>
-        </os>
-      </activation>
-
-      <properties>
-        <exec.extension>.cmd</exec.extension>
-      </properties>
-    </profile>
-
-    <profile>
-      <id>linux-build</id>
-      <activation>
-        <os>
-          <family>Linux</family>
-        </os>
-      </activation>
-
-      <properties>
-        <exec.extension />
-      </properties>
     </profile>
   </profiles>
 </project>

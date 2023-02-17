@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>eu.europa.ted.eforms</groupId>
+    <artifactId>notice-editor-parent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>notice-editor-ui</artifactId>
+  <packaging>jar</packaging>
+
+  <name>eForms notice editor UI</name>
+  <description>UI component of Spring Boot demo</description>
+
+  <properties>
+    <!-- NodeJS/Yarn -->
+    <working.dir>${basedir}</working.dir>
+    <nodejs.dir>${working.dir}/.node</nodejs.dir>
+    <corepack.exec>${nodejs.dir}/node_modules/.bin/corepack${exec.extension}</corepack.exec>
+    <yarn.exec>${nodejs.dir}/yarn${exec.extension}</yarn.exec>
+  </properties>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-clean-plugin</artifactId>
+          <configuration>
+            <filesets>
+              <fileset>
+                <directory>${basedir}</directory>
+                <includes>
+                  <include>.node/</include>
+                  <include>.yarn/</include>
+                  <include>.pnp.*</include>
+                </includes>
+                <followSymlinks>false</followSymlinks>
+              </fileset>
+            </filesets>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <executions>
+          <!-- Dependencies installation -->
+          <execution>
+            <id>exec-install-corepack</id>
+            <phase>initialize</phase>
+            <configuration>
+              <workingDirectory>${working.dir}</workingDirectory>
+              <executable>npm</executable>
+              <arguments>
+                <argument>install</argument>
+                <argument>--prefix</argument>
+                <argument>.node</argument>
+                <argument>corepack</argument>
+              </arguments>
+            </configuration>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>exec-enable-corepack</id>
+            <phase>initialize</phase>
+            <configuration>
+              <workingDirectory>${working.dir}</workingDirectory>
+              <executable>${corepack.exec}</executable>
+              <arguments>
+                <argument>enable</argument>
+                <argument>--install-directory</argument>
+                <argument>${nodejs.dir}</argument>
+              </arguments>
+            </configuration>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>exec-install-dependencies</id>
+            <phase>initialize</phase>
+            <configuration>
+              <workingDirectory>${working.dir}</workingDirectory>
+              <executable>${yarn.exec}</executable>
+              <arguments>
+                <argument>install</argument>
+                <argument>--immutable</argument>
+              </arguments>
+            </configuration>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>exec-compile-javascript</id>
+            <phase>initialize</phase>
+            <configuration>
+              <workingDirectory>${working.dir}</workingDirectory>
+              <executable>${yarn.exec}</executable>
+              <arguments>
+                <argument>run</argument>
+                <argument>build</argument>
+              </arguments>
+            </configuration>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>windows-build</id>
+      <activation>
+        <os>
+          <family>Windows</family>
+        </os>
+      </activation>
+
+      <properties>
+        <exec.extension>.cmd</exec.extension>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>linux-build</id>
+      <activation>
+        <os>
+          <family>Linux</family>
+        </os>
+      </activation>
+
+      <properties>
+        <exec.extension />
+      </properties>
+    </profile>
+  </profiles>
+</project>
