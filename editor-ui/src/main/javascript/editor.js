@@ -1,4 +1,4 @@
-import { LanguageSelector, NoticeSubtypeSelector, SdkVersionSelector } from "./context.js";
+import { Context } from "./context.js";
 import { Constants, DomUtil } from "./global.js";
 import { FormElement } from "./notice-form.js";
 import { NoticeTypeDefinitionElement } from "./notice-type-definition.js";
@@ -13,6 +13,8 @@ export default class Editor {
   static instance = new Editor();
 
   constructor() {
+    document.addEventListener(Constants.Events.languageChanged, Editor.selectedLanguageChanged);
+    document.addEventListener(Constants.Events.noticeSubtypeChanged, Editor.selectedNoticeSubtypeChanged);
   }
 
   static get formContainerElement() {
@@ -53,37 +55,18 @@ export default class Editor {
   };
 
   static async selectedNoticeSubtypeChanged() {
-
     Editor.instance.hideDebugOutput();
-
-    const selectedSdkVersion = SdkVersionSelector.selectedSdkVersion;
-    const selectedNoticeSubtype = NoticeSubtypeSelector.selectedNoticeSubtype;
-
-    await SdkServiceClient.fetchFieldsAndCodelists(selectedSdkVersion);
-    await SdkServiceClient.fetchNoticeSubtype(selectedSdkVersion, selectedNoticeSubtype);
-    await SdkServiceClient.fetchTranslations(SdkVersionSelector.selectedSdkVersion, LanguageSelector.selectedLanguage);
-
     Editor.instance.createNoticeForm();
   }
 
   static async selectedLanguageChanged() {
-    Editor.formContainerElement.setAttribute("lang", LanguageSelector.selectedLanguage);
-    document.documentElement.setAttribute('lang', LanguageSelector.selectedLanguage);
-
-    await SdkServiceClient.fetchTranslations(SdkVersionSelector.selectedSdkVersion, LanguageSelector.selectedLanguage);
+    Editor.formContainerElement.setAttribute("lang", Context.language);
+    document.documentElement.setAttribute('lang', Context.language);
     Editor.instance.createNoticeForm();
   }
 
   static async loaded() {
-    // I. Get a list of available SDK versions from the back-end.
-    await SdkServiceClient.fetchVersionInfo();
-
-    // II. Populate the SdkVersionSelector dropdown.
-    // After the SdkVersionSelector is populated its onchange event is raised triggering a "chain reaction":
-    // 1. The NoticeSubtypeSelector picks up the event and  populates itself; then its own onchange event is raised.
-    // 2. Then the Editor picks it up and loads the selected notice subtype. 
-    SdkVersionSelector.populate();
-
+    await Context.init();
     Editor.instance.displayAppVersion(SdkServiceClient.appVersion);
   }
 
@@ -92,8 +75,6 @@ export default class Editor {
     this.hide();
     
     Editor.formContainerElement.innerHTML = ""; // Remove previous form.
-
-    // await SdkServiceClient.fetchTranslations(SdkVersionSelector.selectedSdkVersion, LanguageSelector.selectedLanguage);
 
     // Create an empty form.
 
@@ -129,7 +110,7 @@ export default class Editor {
 
     this.show();
 
-    console.log("Loaded editor notice type: " + NoticeSubtypeSelector.selectedNoticeSubtype);
+    console.log("Loaded editor notice type: " + Context.noticeSubtype);
   }
   
   displayAppVersion(version) {
