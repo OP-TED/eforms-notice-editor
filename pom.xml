@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>eu.europa.ted.eforms</groupId>
   <artifactId>notice-editor-demo</artifactId>
@@ -50,26 +48,26 @@
     <version.eforms-core>1.0.1</version.eforms-core>
 
     <!-- Versions - Third-party libraries -->
-    <version.xml.bind-api>2.3.3</version.xml.bind-api>
     <version.checkstyle>9.0</version.checkstyle> <!-- NOTE: versions before 8 something got confused by lambdas, luckily 9 solves this. -->
     <version.commons-io>2.11.0</version.commons-io>
     <version.commons-lang3>3.12.0</version.commons-lang3>
-    <version.jackson>2.13.4</version.jackson>
     <version.jackson-databind>2.13.4.2</version.jackson-databind>
+    <version.jackson>2.13.4</version.jackson>
     <version.jakarta.servlet-api>4.0.4</version.jakarta.servlet-api>
     <version.jaxb-impl>2.3.3</version.jaxb-impl>
     <version.jsr305>3.0.2</version.jsr305>
     <version.junit-jupiter-api>5.8.2</version.junit-jupiter-api>
     <version.logback>1.2.11</version.logback>
-    <version.ph-genericode>6.2.0</version.ph-genericode>
     <version.ph-commons>10.0.0</version.ph-commons>
+    <version.ph-genericode>6.2.0</version.ph-genericode>
     <version.sl4fj>1.7.36</version.sl4fj>
     <version.snakeyaml>1.29</version.snakeyaml>
     <version.spotbugs>4.4.1</version.spotbugs>
+    <version.xml.bind-api>2.3.3</version.xml.bind-api>
 
     <!-- Versions - Plugins -->
-    <version.checkstyle.plugin>3.1.2</version.checkstyle.plugin>
     <version.build-helper.plugin>3.3.0</version.build-helper.plugin>
+    <version.checkstyle.plugin>3.1.2</version.checkstyle.plugin>
     <version.gpg.plugin>1.5</version.gpg.plugin>
     <version.install.plugin>2.5.2</version.install.plugin>
     <version.javadoc.plugin>3.4.0</version.javadoc.plugin>
@@ -212,12 +210,6 @@
   </dependencyManagement>
 
   <dependencies>
-
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-actuator</artifactId>
-    </dependency>
-
     <!-- eForms -->
     <dependency>
       <groupId>eu.europa.ted.eforms</groupId>
@@ -288,12 +280,16 @@
     <!-- Spring & Spring Boot -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-autoconfigure</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-devtools</artifactId>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-autoconfigure</artifactId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
     <dependency>
       <!-- Use Jetty instead of Tomcat. -->
@@ -390,7 +386,6 @@
         </exclusion>
       </exclusions>
     </dependency>
-
   </dependencies>
 
   <build>
@@ -413,60 +408,6 @@
 
     <pluginManagement>
       <plugins>
-        <plugin>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <version>${version.surefire.plugin}</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-failsafe-plugin</artifactId>
-          <version>${version.surefire.plugin}</version>
-          <executions>
-            <execution>
-              <goals>
-                <goal>integration-test</goal>
-                <goal>verify</goal>
-              </goals>
-            </execution>
-          </executions>
-          <configuration>
-            <includes>
-              <include>**/*IT.java</include>
-              <include>**/*It.java</include>
-            </includes>
-            <systemPropertyVariables>
-              <spring.datasource.url>${datasource.url}</spring.datasource.url>
-              <spring.datasource.username>${datasource.username}</spring.datasource.username>
-              <spring.datasource.password>${datasource.password}</spring.datasource.password>
-            </systemPropertyVariables>
-          </configuration>
-        </plugin>
-
-        <plugin>
-          <artifactId>maven-install-plugin</artifactId>
-          <version>${version.install.plugin}</version>
-          <configuration>
-            <createChecksum>true</createChecksum>
-          </configuration>
-        </plugin>
-
-        <plugin>
-          <groupId>org.springframework.boot</groupId>
-          <artifactId>spring-boot-maven-plugin</artifactId>
-          <version>${version.spring-boot}</version>
-        </plugin>
-
-        <plugin>
-          <groupId>com.github.spotbugs</groupId>
-          <artifactId>spotbugs-maven-plugin</artifactId>
-          <version>${version.spotbugs.plugin}</version>
-        </plugin>
-        <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>build-helper-maven-plugin</artifactId>
-          <version>${version.build-helper.plugin}</version>
-        </plugin>
-
         <plugin>
           <!-- https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-checkstyle-plugin -->
           <groupId>org.apache.maven.plugins</groupId>
@@ -500,8 +441,22 @@
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-javadoc-plugin</artifactId>
-          <version>${version.javadoc.plugin}</version>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>${version.surefire.plugin}</version>
+          <executions>
+            <execution>
+              <goals>
+                <goal>integration-test</goal>
+                <goal>verify</goal>
+              </goals>
+            </execution>
+          </executions>
+          <configuration>
+            <includes>
+              <include>**/*IT.java</include>
+              <include>**/*It.java</include>
+            </includes>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -510,28 +465,46 @@
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-install-plugin</artifactId>
+          <version>${version.install.plugin}</version>
+          <configuration>
+            <createChecksum>true</createChecksum>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>${version.javadoc.plugin}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-source-plugin</artifactId>
           <version>${version.source.plugin}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${version.surefire.plugin}</version>
+        </plugin>
+        <plugin>
+          <groupId>com.github.spotbugs</groupId>
+          <artifactId>spotbugs-maven-plugin</artifactId>
+          <version>${version.spotbugs.plugin}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>build-helper-maven-plugin</artifactId>
+          <version>${version.build-helper.plugin}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-maven-plugin</artifactId>
+          <version>${version.spring-boot}</version>
         </plugin>
       </plugins>
     </pluginManagement>
 
     <plugins>
-      <plugin>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>repackage</id>
-            <goals>
-              <goal>repackage</goal>
-            </goals>
-            <configuration>
-              <mainClass>${start-class}</mainClass>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
       <plugin>
         <!-- https://mvnrepository.com/artifact/com.github.spotbugs/spotbugs-maven-plugin -->
         <!-- mvn spotbugs:spotbugs -->
@@ -662,6 +635,22 @@
             <version>${version.spotbugs}</version>
           </dependency>
         </dependencies>
+      </plugin>
+
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>repackage</id>
+            <goals>
+              <goal>repackage</goal>
+            </goals>
+            <configuration>
+              <mainClass>${start-class}</mainClass>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
