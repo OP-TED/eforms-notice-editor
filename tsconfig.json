@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "module": "es2022",
+    "target": "es2022",
+    "lib": [
+      "es2022",
+      "dom",
+      "dom.iterable"
+    ],
+    "outDir": "./target/classes/static/js/custom",
+
+    "allowJs": true,
+    "checkJs": false,
+
+    "allowUnreachableCode": true,
+    "allowUnusedLabels": true,
+    "esModuleInterop": true,
+    "exactOptionalPropertyTypes": false,
+    "forceConsistentCasingInFileNames": false,
+    "importsNotUsedAsValues": "error",
+    "noFallthroughCasesInSwitch": false,
+    "noImplicitOverride": false,
+    "noImplicitReturns": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "noUncheckedIndexedAccess": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "skipLibCheck": true,
+    "strict": false
+  },
+  "include": [
+    "./src/main/javascript/**/*",
+    "./src/test/javascript/**/*"
+  ],
+  "$schema": "https://json.schemastore.org/tsconfig"
+}

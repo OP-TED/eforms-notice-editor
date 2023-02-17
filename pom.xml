@@ -44,6 +44,12 @@
     <maven.compiler.source>${java.version}</maven.compiler.source>
     <maven.compiler.target>${java.version}</maven.compiler.target>
 
+    <!-- NodeJS/Yarn -->
+    <working.dir>${basedir}</working.dir>
+    <nodejs.dir>${working.dir}/.node</nodejs.dir>
+    <corepack.exec>${nodejs.dir}/node_modules/.bin/corepack${exec.extension}</corepack.exec>
+    <yarn.exec>${nodejs.dir}/yarn${exec.extension}</yarn.exec>
+
     <!-- Versions - eForms -->
     <version.eforms-core>1.0.1</version.eforms-core>
 
@@ -68,6 +74,8 @@
     <!-- Versions - Plugins -->
     <version.build-helper.plugin>3.3.0</version.build-helper.plugin>
     <version.checkstyle.plugin>3.1.2</version.checkstyle.plugin>
+    <version.clean.plugin>3.2.0</version.clean.plugin>
+    <version.exec.plugin>3.1.0</version.exec.plugin>
     <version.gpg.plugin>1.5</version.gpg.plugin>
     <version.install.plugin>2.5.2</version.install.plugin>
     <version.javadoc.plugin>3.4.0</version.javadoc.plugin>
@@ -409,6 +417,11 @@
     <pluginManagement>
       <plugins>
         <plugin>
+          <groupId>com.github.spotbugs</groupId>
+          <artifactId>spotbugs-maven-plugin</artifactId>
+          <version>${version.spotbugs.plugin}</version>
+        </plugin>
+        <plugin>
           <!-- https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-checkstyle-plugin -->
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
@@ -438,6 +451,24 @@
               </goals>
             </execution>
           </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-clean-plugin</artifactId>
+          <version>${version.clean.plugin}</version>
+          <configuration>
+            <filesets>
+              <fileset>
+                <directory>${basedir}</directory>
+                <includes>
+                  <include>.node/</include>
+                  <include>.yarn/</include>
+                  <include>.pnp.*</include>
+                </includes>
+                <followSymlinks>false</followSymlinks>
+              </fileset>
+            </filesets>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -487,14 +518,14 @@
           <version>${version.surefire.plugin}</version>
         </plugin>
         <plugin>
-          <groupId>com.github.spotbugs</groupId>
-          <artifactId>spotbugs-maven-plugin</artifactId>
-          <version>${version.spotbugs.plugin}</version>
-        </plugin>
-        <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
           <version>${version.build-helper.plugin}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>exec-maven-plugin</artifactId>
+          <version>${version.exec.plugin}</version>
         </plugin>
         <plugin>
           <groupId>org.springframework.boot</groupId>
@@ -638,6 +669,76 @@
       </plugin>
 
       <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <executions>
+          <!-- Dependencies installation -->
+          <execution>
+            <id>exec-install-corepack</id>
+            <phase>initialize</phase>
+            <configuration>
+              <workingDirectory>${working.dir}</workingDirectory>
+              <executable>npm</executable>
+              <arguments>
+                <argument>install</argument>
+                <argument>--prefix</argument>
+                <argument>.node</argument>
+                <argument>corepack</argument>
+              </arguments>
+            </configuration>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>exec-enable-corepack</id>
+            <phase>initialize</phase>
+            <configuration>
+              <workingDirectory>${working.dir}</workingDirectory>
+              <executable>${corepack.exec}</executable>
+              <arguments>
+                <argument>enable</argument>
+                <argument>--install-directory</argument>
+                <argument>${nodejs.dir}</argument>
+              </arguments>
+            </configuration>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>exec-install-dependencies</id>
+            <phase>initialize</phase>
+            <configuration>
+              <workingDirectory>${working.dir}</workingDirectory>
+              <executable>${yarn.exec}</executable>
+              <arguments>
+                <argument>install</argument>
+                <argument>--immutable</argument>
+              </arguments>
+            </configuration>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>exec-compile-javascript</id>
+            <phase>initialize</phase>
+            <configuration>
+              <workingDirectory>${working.dir}</workingDirectory>
+              <executable>${yarn.exec}</executable>
+              <arguments>
+                <argument>run</argument>
+                <argument>build</argument>
+              </arguments>
+            </configuration>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
         <executions>
@@ -708,6 +809,32 @@
           </plugin>
         </plugins>
       </build>
+    </profile>
+
+    <profile>
+      <id>windows-build</id>
+      <activation>
+        <os>
+          <family>Windows</family>
+        </os>
+      </activation>
+
+      <properties>
+        <exec.extension>.cmd</exec.extension>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>linux-build</id>
+      <activation>
+        <os>
+          <family>Linux</family>
+        </os>
+      </activation>
+
+      <properties>
+        <exec.extension />
+      </properties>
     </profile>
   </profiles>
 </project>
