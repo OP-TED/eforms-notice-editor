@@ -1,11 +1,12 @@
 import { Context } from "./context.js";
 import { Constants } from "./global.js";
 import { I18N } from "./i18n.js";
-import { FormElement } from "./notice-form.js";
+import { UIComponent, Repeater } from "./notice-form.js";
 import { SdkServiceClient } from "./service-clients.js";
 import { Validator} from "./validator.js";
-import { MandatoryProperty, ForbiddenProperty, RepeatableProperty, PatternProperty, AssertProperty, CodelistProperty, InChangeNoticeProperty } from "./dynamic-property.js";
+import { MandatoryProperty, ForbiddenProperty, RepeatableProperty, PatternProperty, AssertProperty, CodelistProperty, InChangeNoticeProperty, MaxLengthProperty } from "./dynamic-property.js";
 import { NoticeReader } from "./notice-reader.js";
+import { NTDContentProxy } from "./data-types.js";
 
 
 /*******************************************************************************
@@ -13,33 +14,49 @@ import { NoticeReader } from "./notice-reader.js";
  * NTD elements are either display-groups or input-fields.
  * 
  * The general idea is that NTD data come from the backend through the [@link ServiceClient} class.
- * These data are then turned into NoticeTypeDefinitionElements through the {@link NoticeTypeDefinitionElement.create} 
+ * These data are then turned into NoticeTypeDefinitionElements through the {@link NTDComponent.create} 
  * factory method, which instantiates the appropriate NoticeTypeDefinitionElement subclass depending the contentType of the element.
  * 
  * The NoticeTypeDefinitionElement, creates and adds as child to itself, the actual UI that corresponds to the NTD element, 
- * by instantiating the appropriate {@link FormElement}. The NoticeTypeDefinitionElement extends DocumentFragment so that it can be 
+ * by instantiating the appropriate {@link UIComponent}. The NoticeTypeDefinitionElement extends DocumentFragment so that it can be 
  * added to the DOM directly.
  */
-export class NoticeTypeDefinitionElement extends DocumentFragment {
+export class NTDComponent extends DocumentFragment {
 
   /**
    * Factory method.
+   * 
+   * @param {import("./data-types.js").SDK.NTDContent} content 
+   * @param {import("./data-types.js").ProxiedNTDContent} parent 
+   * @returns 
    */
-  static create(content, level = 0) {
+  static create(content, parent = null) {
     switch (content?.contentType?.toLowerCase()) {
-      case Constants.ContentType.GROUP: return DisplayGroup.create(content, level);
-      case Constants.ContentType.FIELD: return InputField.create(content, level);
-      case Constants.ContentType.METADATA_CONTAINER: return new RootLevelGroup(content, level); // Used for the root-level "metadata" and "contents" sections.
-      case Constants.ContentType.DATA_CONTAINER: return new RootLevelGroup(content, level); // Used for the root-level "metadata" and "contents" sections.
+      case Constants.ContentType.GROUP: return DisplayGroup.create(content, parent);
+      case Constants.ContentType.FIELD: return InputField.create(content, parent);
+      case Constants.ContentType.METADATA_CONTAINER: return new RootLevelGroup(content, parent); // Used for the root-level "metadata" and "contents" sections.
+      case Constants.ContentType.DATA_CONTAINER: return new RootLevelGroup(content, parent); // Used for the root-level "metadata" and "contents" sections.
       default: throw new Error("Unsupported contentType for NTD element: " + content?.contentType);
     }
   }
 
-  constructor(content, level = 0, tag = "div") {
+  /**
+   * 
+   * @param {import("./data-types.js").SDK.NTDContent} content - Content object as read from <subtype>,json.
+   * @param {import("./data-types.js").ProxiedNTDContent} parent - Parent content from <subtype>.json already wrapped in a proxy.
+   */
+  constructor(content, parent = null) {
     super();
 
-    this.formElement = FormElement.create(content, level);
-    this.appendChild(this.formElement);
+    this.formElement = UIComponent.create(NTDContentProxy.create(content, parent), (parent?.editorLevel ?? 0) + 1);
+
+    if (this.isRepeatable && !this.content.readOnly && !this.content.hidden && !Repeater.exists(this.content.qualifiedId)) {
+      this.repeater = new Repeater(this.content);
+      this.repeater.bodyElement.appendChild(this.formElement);
+      this.appendChild(this.repeater);
+    } else {
+      this.appendChild(this.formElement);
+    }
 
     this.contentIdAttribute = this.content.id;
     this.instanceCountAttribute = this.content.editorCount;
@@ -55,15 +72,16 @@ export class NoticeTypeDefinitionElement extends DocumentFragment {
     }
 
     if (this.content.content) {
-      // Load sub items.
-      for (const contentSub of this.content.content) {
-        // Recursion on sub content.
-        const vme = NoticeTypeDefinitionElement.create(contentSub, this.level + 1);
-        this.htmlElement.appendChild(vme);
+      // Load child  content
+      for (const childContent of this.content.content) {
+        this.htmlElement.appendChild(NTDComponent.create(childContent, this.content));
       }
     }
   }
 
+  /**
+   * @returns {import("./data-types.js").ProxiedNTDContent}
+   */
   get content() {
     return this.formElement.content;
   }
@@ -115,6 +133,23 @@ export class NoticeTypeDefinitionElement extends DocumentFragment {
   get level() {
     return this.content.editorLevel;
   }
+
+  /** @type {RepeatableProperty} */
+    #repeatableProperty;
+
+  /** @type {RepeatableProperty} */
+  get repeatableProperty() {
+      if (this.field?.repeatable && !this.#repeatableProperty) {
+        this.#repeatableProperty = new RepeatableProperty(this.field.repeatable);
+        Validator.register(this.#repeatableProperty, this.htmlElement);
+      }
+      return this.#repeatableProperty; 
+    }
+
+    /** @type {boolean} */
+    get isRepeatable() {
+      return this.repeatableProperty?.value ?? false;
+    }
 }
 
 /*******************************************************************************
@@ -122,31 +157,35 @@ export class NoticeTypeDefinitionElement extends DocumentFragment {
  * - Notice-metadata section,
  * - Notice-data section (a.k.a. the top level "contents" object in notice-type-definition JSON file).
  */
-export class RootLevelGroup extends NoticeTypeDefinitionElement {
-  constructor(content, level = 0) {
-    super(content, level, "div");
+export class RootLevelGroup extends NTDComponent {
+  constructor(content, parent = null) {
+    super(content, parent);
     this.contentTypeAttribute = content.contentType;
+  }
+
+  get isRepeatable() {
+    return false;
   }
 }
 
 /*******************************************************************************
  * Represents display-group elements of the visual model. 
  */
-export class DisplayGroup extends NoticeTypeDefinitionElement {
+export class DisplayGroup extends NTDComponent {
 
   /**
    * Factory method
    */
-  static create(content, level = 0) {
+  static create(content, parent = null) {
     switch (content?.displayType?.toLowerCase()) {
-      case "section": return new FormSection(content, level);
-      case "group": return new DisplayGroup(content, level);
+      case "section": return new FormSection(content, parent);
+      case "group": return new DisplayGroup(content, parent);
       default: throw new Error("Unsupported display-type for visual model element: " + content?.displayType);
     }
   }
 
-  constructor(content, level = 0, tag = "div") {
-    super(content, level, tag);
+  constructor(content, parent = null) {
+    super(content, parent);
     this.container.classList.add("display-group");
 
     this.contentTypeAttribute = Constants.ContentType.GROUP;
@@ -159,8 +198,12 @@ export class DisplayGroup extends NoticeTypeDefinitionElement {
       this.container.classList.add("collapsed");
     }
 
-    if (this.content._repeatable) {
+    if (this.isRepeatable) {
       this.container.classList.add("repeatable");
+    }
+
+    if (this.content._identifierFieldId) {
+      this.htmlElement.setAttribute(Constants.Attributes.ID_FIELD_ATTRIBUTE, this.content._identifierFieldId);
     }
   }
 
@@ -179,15 +222,18 @@ export class DisplayGroup extends NoticeTypeDefinitionElement {
   get nodeId() {
     return this.content?.nodeId;
   }
+
+  get isRepeatable() {
+    return this.content?.isRepeatable;
+  }
 }
 
 /*******************************************************************************
- * Display-group elements of the visual model that are marked as "sections".
+ * Display-group elements of the visual model which are marked as "sections".
  */
 export class FormSection extends DisplayGroup {
-  constructor(content, level = 0) {
-    super(content, level, "div");
-
+  constructor(content, parent = null) {
+    super(content, parent);
     this.container.classList.replace("display-group", "section");
   }
 }
@@ -195,85 +241,79 @@ export class FormSection extends DisplayGroup {
 /*******************************************************************************
  * Represents input-field elements of the visual model.
  * 
- * Input-fields are linked with fields in the conceptual model and are used to
- * and hold the input-controls where the user enters notice data. 
+ * Input-fields are linked with fields in the conceptual model and 
+ * hold the HTML input elements where the user enters notice data. 
  */
-export class InputField extends NoticeTypeDefinitionElement {
+export class InputField extends NTDComponent {
 
   /**
    * Factory method.
    */
-  static create(content, level = 0) {
+  static create(content, parent = null) {
     switch (SdkServiceClient.fields[content?.id]?.type) {
-      case 'amount': return new AmountInputField(content, level);
-      case 'code': return new CodeInputField(content, level);
-      case 'date': return new DateInputField(content, level);
-      case 'email': return new EmailInputField(content, level);
-      case 'id': return new IdInputField(content, level);
-      case 'id-ref': return new IdRefInputField(content, level);
-      case 'indicator': return new IndicatorInputField(content, level);
-      case 'integer': return new IntegerInputField(content, level);
-      case 'measure': return new MeasureInputField(content, level);
-      case 'number': return new NumberInputField(content, level);
-      case 'phone': return new PhoneInputField(content, level);
-      case 'text': return new TextInputField(content, level);
-      case 'text-multilingual': return new TextMultilingualInputField(content, level);
-      case 'time': return new TimeInputField(content, level);
-      case 'url': return new UrlInputField(content, level);
+      case 'amount': return new AmountInputField(content, parent);
+      case 'code': return new CodeInputField(content, parent);
+      case 'date': return new DateInputField(content, parent);
+      case 'email': return new EmailInputField(content, parent);
+      case 'id': return new IdInputField(content, parent);
+      case 'id-ref': return new IdRefInputField(content, parent);
+      case 'indicator': return new IndicatorInputField(content, parent);
+      case 'integer': return new IntegerInputField(content, parent);
+      case 'measure': return new MeasureInputField(content, parent);
+      case 'number': return new NumberInputField(content, parent);
+      case 'phone': return new PhoneInputField(content, parent);
+      case 'text': return new TextInputField(content, parent);
+      case 'text-multilingual': return new TextMultilingualInputField(content, parent);
+      case 'time': return new TimeInputField(content, parent);
+      case 'url': return new UrlInputField(content, parent);
       default: throw new Error("Unknown field type: " + SdkServiceClient.fields[content?.id]?.type);
     }
   }
 
-  constructor(content, level = 0) {
-    super(content, level, "div");
+  constructor(content, parent = null) {
+    super(content, parent);
 
+    //#region Setup CSS
     this.container.classList.add("input-field");
 
-    this.contentTypeAttribute = Constants.ContentType.FIELD;
-
-    this.fieldId = content.id;
-
-    if (this.field?.mandatory) {
-      this.mandatoryProperty = new MandatoryProperty(this.htmlElement, this.field.mandatory);
-      Validator.register(this.mandatoryProperty);
-    }
-    if (this.field?.repeatable) {
-      this.repeatableProperty = new RepeatableProperty(this.htmlElement, this.field.repeatable);
-      Validator.register(this.repeatableProperty);
-    }
-    if (this.field?.pattern) {
-      this.patternProperty = new PatternProperty(this.htmlElement, this.field.pattern);
-      Validator.register(this.patternProperty);
-    }
-    if (this.field?.assert) {
-      this.assertProperty = new AssertProperty(this.htmlElement, this.field.assert);
-      Validator.register(this.assertProperty);
-    }
-    if (this.field?.forbidden) {
-      this.forbiddenProperty = new ForbiddenProperty(this.htmlElement, this.field.forbidden);
-      Validator.register(this.forbiddenProperty);
-    }
-    if (this.field?.inChangeNotice) {
-      this.inChangeNoticeProperty = new InChangeNoticeProperty(this.htmlElement, this.field.inChangeNotice);
-      Validator.register(this.inChangeNoticeProperty);
-    }
-    if (this.field?.codelist) {
-      this.codelistProperty = new CodelistProperty(this.htmlElement, this.field.codelist);
-      Validator.register(this.codelistProperty);
-    }
-
     if (this.isRepeatable) {
-      // Allow to add / remove fields.
       this.container.classList.add("repeatable");
-
-      if (!content._repeatable) {
-        console.error("fields.json repeatable mismatch on: " + this.field.id);
-      }
     }
+    //#endregion Setup CSS
+
+    //#region Setup HTML Element Attributes
+    this.contentTypeAttribute = Constants.ContentType.FIELD;
 
     if (this.valueSource) {
       this.valueSourceAttribute = this.valueSource;
     }
+    //#endregion Setup HTML Element Attributes
+    
+    //#region Setup Live-Validation
+    if (this.field?.mandatory) {
+      Validator.register(this.mandatoryProperty, this.htmlElement);
+    }
+    if (this.field?.repeatable) {
+      Validator.register(this.repeatableProperty, this.htmlElement);
+    }
+    if (this.field?.pattern) {
+      Validator.register(this.patternProperty, this.htmlElement);
+    }
+    if (this.field?.assert) {
+      Validator.register(this.assertProperty, this.htmlElement);
+    }
+    if (this.field?.forbidden) {
+      Validator.register(this.forbiddenProperty, this.htmlElement);
+    }
+    if (this.field?.inChangeNotice) {
+      Validator.register(this.inChangeNoticeProperty, this.htmlElement);
+    }
+    if (this.field?.codelist) {
+      Validator.register(this.codelistProperty, this.htmlElement);
+    }
+    //#endregion Setup Live-Validation
+
+
 
     if (this.hasPrivacy) {
       console.debug(this.field.id + ", field privacy code=" + this.field.privacy.code);
@@ -293,37 +333,129 @@ export class InputField extends NoticeTypeDefinitionElement {
     }
   }
 
+  get fieldId() {
+    return this.content.id;
+  }
+
   get field() {
     return SdkServiceClient.fields[this.fieldId];
   }
 
+  //#region Dynamic Properties
+
+  /** @type {MandatoryProperty} */
+  #mandatoryProperty;
+
+  /** @type {MandatoryProperty} */
+  get mandatoryProperty() {
+    if (this.field?.mandatory && !this.#mandatoryProperty) {
+      this.#mandatoryProperty = new MandatoryProperty(this.field.mandatory);
+    }
+    return this.#mandatoryProperty;
+  }
+
+  /** @type {boolean} */
   get isMandatory() {
     return this.mandatoryProperty?.value ?? false;
   }
 
+  /** @type {ForbiddenProperty} */
+  #forbiddenProperty;
+
+  /** @type {ForbiddenProperty} */
+  get forbiddenProperty() {
+    if (this.field?.forbidden && !this.#forbiddenProperty) {
+      this.#forbiddenProperty = new ForbiddenProperty(this.field.forbidden);
+    }
+    return this.#forbiddenProperty;
+  }
+
+  /** @type {boolean} */
   get isForbidden() {
     return this.forbiddenProperty?.value ?? false;
   }
 
-  get isRepeatable() {
-    return this.repeatableProperty?.value ?? false;
+  /** @type {AssertProperty} */
+  #assertProperty;
+
+  /** @type {AssertProperty} */
+  get assertProperty() {
+    if (this.field?.assert && !this.#assertProperty) {
+      this.#assertProperty = new AssertProperty(this.field.assert);
+    }
+    return this.#assertProperty;
   }
 
+  /** {boolean} */
   get assert() {
     return this.assertProperty?.value ?? true;
   }
 
+  /** @type {PatternProperty} */
+  #patternProperty;
+
+  /** @type {PatternProperty} */
+  get patternProperty() {
+    if (this.field?.pattern && !this.#patternProperty) {
+      this.#patternProperty = new PatternProperty(this.field.pattern);
+    }
+    return this.#patternProperty;
+  }
+
+  /**
+   * Gets the pattern associated with the input-field as a {@link RegExp}.
+   * If no pattern is provided for the field it returns a RegExp that matches any string. 
+   * This property is not really used. Instead, the {@link patternProperty} is registered 
+   * with {@link Validator} which takes care of validation directly.
+   * 
+   * @type {RegExp} 
+   * */
   get pattern() {
-    return this.patternProperty?.value ?? undefined;
+    return new RegExp(this.patternProperty?.value ?? ".*");
+  }
+
+  /** 
+   * This property is not used for validation. It is provided only as a concept here.
+   * The {@link Validator} takes care of validation instead.
+   * 
+   * @type {boolean} 
+   * */
+  get matchesPattern() {
+    return this.pattern?.test(this.htmlElement?.value ?? "") ?? true;
+  }
+
+  /** @type {CodelistProperty} */
+  #codelistProperty;
+
+  /** @type {CodelistProperty} */
+  get codelistProperty() {
+    if (this.field?.codelist && !this.#codelistProperty) {
+      this.#codelistProperty = new CodelistProperty(this.field.codelist);
+    }
+    return this.#codelistProperty;
   }
 
   get codelist() {
     return this.codelistProperty?.value ?? undefined;
   }
 
+  /** @type {InChangeNoticeProperty} */
+  #inChangeNoticeProperty;
+
+  /** @type {InChangeNoticeProperty} */
+  get inChangeNoticeProperty() {
+    if (this.field?.inChangeNotice && !this.#inChangeNoticeProperty) {
+      this.#inChangeNoticeProperty = new InChangeNoticeProperty(this.field.inChangeNotice);
+      Validator.register(this.#inChangeNoticeProperty, this.htmlElement);
+    }
+    return this.#inChangeNoticeProperty;
+  }
+
   get inChangeNotice() {
     return this.inChangeNoticeProperty?.value ?? undefined;
   }
+
+  //#endregion Dynamic Properties
 
   get valueSource() {
     return this.content?.valueSource;
@@ -347,14 +479,14 @@ export class InputField extends NoticeTypeDefinitionElement {
  */
 export class IdInputField extends InputField {
 
-  constructor(content, level = 0) {
-    super(content, level);
+  constructor(content, parent = null) {
+    super(content, parent);
     this.container.classList.add("id");
 
     if (this.#hasIdScheme) {
       this.htmlElement.setAttribute(Constants.DATA_EDITOR_ID_SCHEME, this.idScheme);
 
-      this.htmlElement.value = this.#generateId();
+      this.htmlElement.value = this.content.generateId();
     }
 
     this.htmlElement.classList.add("notice-content-id");
@@ -376,10 +508,6 @@ export class IdInputField extends InputField {
   set idSchemeAttribute(idScheme) {
     this.htmlElement.setAttribute(Constants.Attributes.ID_SCHEME_ATTRIBUTE, idScheme);
   }
-
-  #generateId() {
-    return this.idScheme + "-" + this.content.editorCount.toString().padStart(4, "0");
-  }
 }
 
 /*******************************************************************************
@@ -387,8 +515,8 @@ export class IdInputField extends InputField {
  */
 export class IdRefInputField extends InputField {
 
-  constructor(content, level = 0) {
-    super(content, level);
+  constructor(content, parent = null) {
+    super(content, parent);
     this.container.classList.add("id-ref");
 
     const idSchemes = content._idSchemes;
@@ -446,8 +574,8 @@ export class IdRefInputField extends InputField {
  */
 export class CodeInputField extends InputField {
 
-  constructor(content, level = 0) {
-    super(content, level);
+  constructor(content, parent = null) {
+    super(content, parent);
     this.container.classList.add("code");
 
     if (this.getCodelist().type === "hierarchical") {
@@ -493,8 +621,8 @@ export class CodeInputField extends InputField {
  */
 export class DateInputField extends InputField {
 
-  constructor(content, level = 0) {
-    super(content, level);
+  constructor(content, parent = null) {
+    super(content, parent);
     this.container.classList.add("date");
     this.htmlElement.setAttribute("type", "date"); // Nice to have but not required.
 
@@ -507,8 +635,8 @@ export class DateInputField extends InputField {
  */
 export class TimeInputField extends InputField {
 
-  constructor(content, level = 0) {
-    super(content, level);
+  constructor(content, parent = null) {
+    super(content, parent);
     this.container.classList.add("time");
     this.htmlElement.setAttribute("type", "time"); // Nice to have but not required.
     this.loadValue();
@@ -520,8 +648,8 @@ export class TimeInputField extends InputField {
  */
 export class MeasureInputField extends InputField {
 
-  constructor(content, level = 0) {
-    super(content, level);
+  constructor(content, parent = null) {
+    super(content, parent);
     this.container.classList.add("measure");
     this.loadValue();
   }
@@ -532,8 +660,8 @@ export class MeasureInputField extends InputField {
  */
 export class IndicatorInputField extends InputField {
 
-  constructor(content, level = 0) {
-    super(content, level);
+  constructor(content, parent = null) {
+    super(content, parent);
     this.container.classList.add("indicator");
 
     const whenTrue = I18N.getLabel(`indicator|when-true|${this.content.id}`);
@@ -548,8 +676,8 @@ export class IndicatorInputField extends InputField {
  */
 export class NumberInputField extends InputField {
 
-  constructor(content, level = 0) {
-    super(content, level);
+  constructor(content, parent = null) {
+    super(content, parent);
     this.container.classList.add("number");
 
     // Nice to have but not required.
@@ -569,8 +697,8 @@ export class NumberInputField extends InputField {
  */
 export class IntegerInputField extends NumberInputField {
 
-  constructor(content, level = 0) {
-    super(content, level);
+  constructor(content, parent = null) {
+    super(content, parent);
     this.container.classList.add("integer");
     this.htmlElement.setAttribute("step", "1"); // only integers
     this.loadValue();
@@ -582,8 +710,8 @@ export class IntegerInputField extends NumberInputField {
  */
 export class AmountInputField extends NumberInputField {
 
-  constructor(content, level = 0) {
-    super(content, level);
+  constructor(content, parent = null) {
+    super(content, parent);
     this.container.classList.add("amount");
     this.loadValue();
   }
@@ -594,17 +722,25 @@ export class AmountInputField extends NumberInputField {
  */
 export class TextInputField extends InputField {
 
-  constructor(content, level = 0) {
-    super(content, level);
+  constructor(content, parent = null) {
+    super(content, parent);
     this.container.classList.add("text");
 
     // Let the browser know in which language the text is, for example for spell checkers orscreen readers.
     this.htmlElement.setAttribute("lang", Context.language);
 
     if (this.field.maxLength) {
-      this.htmlElement.setAttribute("maxlength", this.field.maxLength);
+      Validator.register(this.maxLengthProperty, this.htmlElement);
     }
     this.loadValue();
+  }
+
+  /** @type {number} */
+  #maxLengthProperty;
+
+  /** @type {number} */
+  get maxLengthProperty() {
+    return this.#maxLengthProperty ??= new MaxLengthProperty(this.field.maxLength);
   }
 }
 
@@ -613,8 +749,8 @@ export class TextInputField extends InputField {
  */
 export class TextMultilingualInputField extends TextInputField {
 
-  constructor(content, level = 0) {
-    super(content, level);
+  constructor(content, parent = null) {
+    super(content, parent);
     this.container.classList.add("text-multilingual");
     this.loadValue();
   }
@@ -625,8 +761,8 @@ export class TextMultilingualInputField extends TextInputField {
  */
 export class PhoneInputField extends TextInputField {
 
-  constructor(content, level = 0) {
-    super(content, level);
+  constructor(content, parent = null) {
+    super(content, parent);
     this.container.classList.add("phone");
     this.loadValue();
   }
@@ -637,8 +773,8 @@ export class PhoneInputField extends TextInputField {
  */
 export class EmailInputField extends TextInputField {
 
-  constructor(content, level = 0) {
-    super(content, level);
+  constructor(content, parent = null) {
+    super(content, parent);
     this.container.classList.add("email");
     this.loadValue();
   }
@@ -649,8 +785,8 @@ export class EmailInputField extends TextInputField {
  */
 export class UrlInputField extends TextInputField {
 
-  constructor(content, level = 0) {
-    super(content, level);
+  constructor(content, parent = null) {
+    super(content, parent);
     this.container.classList.add("url");
     this.loadValue();
   }

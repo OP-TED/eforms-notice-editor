@@ -258,7 +258,20 @@ button {
   border-radius: var(--small-radius);
 }
 
-.input-field.container.repeatable {
+.repeater {
+  border: 1px solid var(--eui-primary-100);
+  border-radius: .5em;
+  padding: 1em;
+}
+
+.repeater .repeatable.container {
+  border: dashed 2px var(--eui-primary-25);
+  border-radius: var(--large-radius);
+  padding: .25em;
+  margin: .5em 0em;
+}
+
+.repeatable.input-field.container {
   border: dashed 2px var(--eui-grey-20);
   border-radius: var(--large-radius);
   padding: .25em;
@@ -432,6 +445,14 @@ h6 { font-size: 1.0em; }
 .section.container > .body > .input-field.container {
   grid-column-start: 1;
   grid-column-end: 3;
+}
+
+.repeater.container {
+  grid-column-start: 1;
+  grid-column-end: 3;
+  padding: .5em;
+  border: 1px solid var(--group-border); 
+  border-radius: var(--large-radius);
 }
 
 /*
