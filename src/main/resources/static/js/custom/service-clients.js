@@ -7,13 +7,24 @@
  */
 export class SdkServiceClient {
 
+    /** @type {string} */
     static appVersion = undefined;
+    
     static availableSdkVersions = undefined;
     static availableNoticeSubtypes = undefined;
+
+    /** @type {string} */
     static sdkVersion = undefined;
+
+    /** @type {string} */
     static ublVersion = undefined;
+
+    /** @type { Map<string, import("./data-types").SDK.Field>} */
     static fields = undefined;
+
+    /** @type {Map<string, import("./data-types").SDK.Node>} */
     static nodes = undefined;
+    
     static codelists = undefined;
     static translations = undefined;
     static noticeTypeDefinition = undefined;

@@ -10,7 +10,6 @@
  */
 
 import { Constants } from "./global.js";
-import { NoticeReader } from "./notice-reader.js";
 import { SdkServiceClient } from "./service-clients.js";
 
 /*******************************************************************************
@@ -65,8 +64,6 @@ export class SdkVersionSelector {
 
     Context.raiseSdkVersionChanged(this.element.value);
   }
-
-
 }
 
 /*******************************************************************************

@@ -1,7 +1,7 @@
 import { Context } from "./context.js";
-import { Constants, DomUtil } from "./global.js";
-import { FormElement } from "./notice-form.js";
-import { NoticeTypeDefinitionElement } from "./notice-type-definition.js";
+import { Constants, Identifiers } from "./global.js";
+import { UIComponent } from "./notice-form.js";
+import { NTDComponent } from "./notice-type-definition.js";
 import { SdkServiceClient, XmlServiceClient } from "./service-clients.js";
 import { VisualModel } from "./visual-model.js";
 
@@ -80,7 +80,7 @@ export default class Editor {
 
     // BUILD METADATA SECTION.
     Editor.formContainerElement.appendChild(
-      NoticeTypeDefinitionElement.create({
+      NTDComponent.create({
         id: "notice-metadata",
         contentType: Constants.ContentType.METADATA_CONTAINER,
         content: SdkServiceClient.noticeTypeDefinition.metadata,
@@ -88,20 +88,20 @@ export default class Editor {
       }));
 
     // Set UBL version in the form.
-    FormElement.getElementByContentId(Constants.StandardIdentifiers.UBL_VERSION_FIELD).value = SdkServiceClient.ublVersion;
+    UIComponent.getElementByContentId(Constants.StandardIdentifiers.UBL_VERSION_FIELD).value = SdkServiceClient.ublVersion;
 
     // Set SDK version in the form.
-    FormElement.getElementByContentId(Constants.StandardIdentifiers.SDK_VERSION_FIELD).value = SdkServiceClient.sdkVersion;
+    UIComponent.getElementByContentId(Constants.StandardIdentifiers.SDK_VERSION_FIELD).value = SdkServiceClient.sdkVersion;
 
     // Set the version id
-    FormElement.getElementByContentId(Constants.StandardIdentifiers.NOTICE_VERSION_FIELD).value = "01";
+    UIComponent.getElementByContentId(Constants.StandardIdentifiers.NOTICE_VERSION_FIELD).value = "01";
 
     // Set the notice id.
-    FormElement.getElementByContentId(Constants.StandardIdentifiers.NOTICE_UUID_FIELD).value = DomUtil.generateRandomUuidV4();
+    UIComponent.getElementByContentId(Constants.StandardIdentifiers.NOTICE_UUID_FIELD).value = Identifiers.generateRandomUuidV4();
 
     // BUILD NON-METADATA SECTION.
     Editor.formContainerElement.appendChild(
-      NoticeTypeDefinitionElement.create({
+      NTDComponent.create({
         id: "notice-data",
         contentType: Constants.ContentType.DATA_CONTAINER,
         content: SdkServiceClient.noticeTypeDefinition.content,

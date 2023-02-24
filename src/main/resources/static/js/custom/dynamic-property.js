@@ -1,33 +1,56 @@
 import { Context } from "./context.js";
 import { I18N } from "./i18n.js";
-import { InputFieldElement } from "./notice-form.js";
 
 
 /**
- * @typedef {InputFieldElement}
- * @type {(HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement|HTMLFieldSetElement)}
+ * An abstraction for a property that can be validated.
+ * Validatable properties are commonly dynamic properties.
+ * But what if you want to validate a property that is not dynamic?
+ * That's the purpose that this class serves.
+ *  
  */
+export class Validatable {
+
+    /**
+     * The HTMLElement's event to which an event listener should be attached
+     * to perform validation. 
+     * 
+     * Note: It would be more natural to attach this property to the HTMLElement
+     * rather than the ValidationProperty. However, in an effort to contain all 
+     * validation related configuration in one specification, we decided to include this
+     * property here instead. If this was implemented with TypeScript where interfaces could be
+     * used safely bind different validation components or if this implementation was based
+     * on Web Components rather that composed HTML elements, then we would prefer to attach this
+     * information to an HTML element instead. 
+     * 
+     *  @type {string} 
+     */
+    validateOnEventName = "change";
+
+    /**
+     * This method is called to prepare the given HTMLElement for validation. 
+     * The method is not expected to return the validation result.
+     * The validation result will be determined by checking the {@link HTMLInputElement.validity} 
+     * property after an intermediate call to the {@link HTMLInputElement.checkValidity} method.  
+     * 
+     * @param {HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement} htmlElement. 
+     */
+    checkValidity(htmlElement) {
+        throw new Error("You must override the 'Validatable.checkValidity' method in your subclass.")
+    }
+
+    /** @type {string} */
+    get validationMessage() {
+        throw new Error("You must override the 'Validatable.validationMessage' property getter in your subclass.")
+    }
+}
 
 
 /**
- * A constraint of a dynamic property as read from fields.json.
- * 
- * @typedef ConstraintJsonObject
- * @type {object}
- * @property {any} value
- * @property {string} severity
- * @property {string[]} noticeTypes
- * @property {string} condition
- * @property {string} message
- */
-
-/**
- * 
+ * Constraints are used by  dynamic properties ({@link DynamicProperty}) to determine 
+ * their value under specific conditions.
  */
 export class Constraint {
-
-    /** @type {InputFieldElement} */
-    htmlElement;
 
     /** @type {string[]} */
     noticeSubtypes;
@@ -45,16 +68,18 @@ export class Constraint {
     message;
 
     /**
-     * @param {InputFieldElement} htmlElement 
-     * @param {ConstraintJsonObject} jsonObject 
+     * @param {import("./data-types.js").SDK.DynamicPropertyConstraint} jsonObject 
      */
-    constructor(htmlElement, jsonObject) {
-        this.htmlElement = htmlElement;
+    constructor(jsonObject) {
         this.noticeSubtypes = new Set(jsonObject?.noticeTypes ?? []);
-        this.condition = jsonObject.condition;
-        this.value = jsonObject.value;
-        this.severity = jsonObject.severity;
-        this.message = jsonObject.message;
+        this.condition = jsonObject?.condition;
+        this.value = jsonObject?.value;
+        this.severity = jsonObject?.severity;
+        this.message = jsonObject?.message;
+    }
+
+    get hasValue() {
+        return this.value !== undefined;
     }
 
     /**
@@ -65,7 +90,7 @@ export class Constraint {
      */
     isApplicableForNoticeSubtype(noticeSubtype) {
         return this.noticeSubtypes.size < 1 || this.noticeSubtypes.has(noticeSubtype);
-    }
+    } 
 
     /**
      * Gets a boolean value indicating whether or not the constraint has a condition expression.
@@ -121,24 +146,23 @@ export class Constraint {
      * Does not check applicability of the constraint. 
      * Applicability should be checked separately by calling {@link isApplicable} before calling this method.
      * 
-     * Subclasses override this method to
+     * Subclasses must override this method
      */
-    checkValidity() {
+    checkValidity(htmlElement) {
     }
 }
 
 export class MandatoryConstraint extends Constraint {
 
     /**
-     * @param {InputFieldElement} htmlElement 
-     * @param {ConstraintJsonObject} jsonObject 
+     * @param {import("./data-types.js").SDK.DynamicPropertyConstraint} jsonObject 
      */
-    constructor(htmlElement, jsonObject) {
-        super(htmlElement, jsonObject);
+    constructor(jsonObject) {
+        super(jsonObject);
     }
 
-    checkValidity() {
-        this.htmlElement.required = this.evaluate(); // Evaluates to true if the input-field is mandatory
+    checkValidity(htmlElement) {
+        htmlElement.required = this.evaluate(); // Evaluates to true if the input-field is mandatory
     }
 }
 
@@ -148,15 +172,14 @@ export class MandatoryConstraint extends Constraint {
 export class ForbiddenConstraint extends Constraint {
 
     /**
-     * @param {InputFieldElement} htmlElement 
-     * @param {ConstraintJsonObject} jsonObject 
+     * @param {import("./data-types.js").SDK.DynamicPropertyConstraint} jsonObject 
      */
-    constructor(htmlElement, constraint) {
-        super(htmlElement, constraint);
+    constructor(constraint) {
+        super(constraint);
     }
 
-    checkValidity() {
-        this.htmlElement.setCustomValidity(this.evaluate() && this.htmlElement.value !== "" ? this.validationMessage : "");
+    checkValidity(htmlElement) {
+        htmlElement.setCustomValidity(this.evaluate() && htmlElement.value !== "" ? this.validationMessage : "");
     }
 
     get validationMessage() {
@@ -167,63 +190,58 @@ export class ForbiddenConstraint extends Constraint {
 export class RepeatableConstraint extends Constraint {
 
     /**
-     * @param {InputFieldElement} htmlElement 
-     * @param {ConstraintJsonObject} jsonObject 
+     * @param {import("./data-types.js").SDK.DynamicPropertyConstraint} jsonObject 
      */
-    constructor(htmlElement, jsonObject) {
-        super(htmlElement, jsonObject);
+    constructor(jsonObject) {
+        super(jsonObject);
     }
 }
 
 export class InChangeNoticeConstraint extends Constraint {
 
     /**
-     * @param {InputFieldElement} htmlElement 
-     * @param {ConstraintJsonObject} jsonObject 
+     * @param {import("./data-types.js").SDK.DynamicPropertyConstraint} jsonObject 
      */
-    constructor(htmlElement, constraint) {
-        super(htmlElement, constraint);
+    constructor(constraint) {
+        super(constraint);
     }
 }
 
 export class CodelistConstraint extends Constraint {
 
     /**
-     * @param {InputFieldElement} htmlElement 
-     * @param {ConstraintJsonObject} jsonObject 
+     * @param {import("./data-types.js").SDK.DynamicPropertyConstraint} jsonObject 
      */
-    constructor(htmlElement, jsonObject) {
-        super(htmlElement, jsonObject);
+    constructor(jsonObject) {
+        super(jsonObject);
     }
 }
 
 export class PatternConstraint extends Constraint {
 
     /**
-     * @param {InputFieldElement} htmlElement 
-     * @param {ConstraintJsonObject} jsonObject 
+     * @param {import("./data-types.js").SDK.DynamicPropertyConstraint} jsonObject 
      */
-    constructor(htmlElement, constraint) {
-        super(htmlElement, constraint);
+    constructor(constraint) {
+        super(constraint);
     }
 
-    checkValidity() {
-        this.htmlElement.setAttribute("pattern", this.evaluate());
+    checkValidity(htmlElement) {
+        htmlElement.setAttribute("pattern", this.evaluate());
     }
 }
 
 export class AssertConstraint extends Constraint {
 
     /**
-     * @param {InputFieldElement} htmlElement 
-     * @param {ConstraintJsonObject} jsonObject 
+     * @param {import("./data-types.js").SDK.DynamicPropertyConstraint} jsonObject 
      */
-    constructor(htmlElement, jsonObject) {
-        super(htmlElement, jsonObject);
+    constructor(jsonObject) {
+        super(jsonObject);
     }
 
-    checkValidity() {
-        this.htmlElement.setCustomValidity( this.evaluate ? "" : this.message);
+    checkValidity(htmlElement) {
+        htmlElement.setCustomValidity( this.evaluate ? "" : this.message);
     }
 
     evaluate() {
@@ -231,24 +249,10 @@ export class AssertConstraint extends Constraint {
     }
 }
 
-
-/**
- * A dynamic property as read from fields.json.
- * 
- * @typedef DynamicPropertyJsonObject
- * @type {object}
- * @property {any} value 
- * @property {string} severity
- * @property {ConstraintJsonObject[]} constraints
- */
-
 /**
  * 
  */
-export class DynamicProperty {
-
-    /** @type {(HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement|HTMLFieldSetElement)} */
-    htmlElement;
+export class DynamicProperty extends Validatable {
 
     /** @type {Constraint} */
     defaultConstraint;
@@ -256,41 +260,43 @@ export class DynamicProperty {
     /** @type {Constraint[]} */
     conditionalConstraints;
 
-    /** @type {string} */
-    validateOnEventName = "change";
-
     /**
      * 
-     * @param {InputFieldElement} htmlElement 
-     * @param {DynamicPropertyJsonObject} jsonObject - An object containing the dynamic property as read from fields.json. 
+     * @param {import("./data-types.js").SDK.DynamicProperty} jsonObject - An object containing the dynamic property as read from fields.json. 
      */
-    constructor(htmlElement, jsonObject) {
-        this.htmlElement = htmlElement;
-        this.defaultConstraint = jsonObject ? this.createConstraint(this.htmlElement, jsonObject) : undefined;
+    constructor(jsonObject) {
+        super();
+        this.defaultConstraint = jsonObject ? this.createConstraint(jsonObject) : undefined;
         this.conditionalConstraints = [];
-        for (const constraint of jsonObject.constraints ?? []) {
-            this.conditionalConstraints.push(this.createConstraint(this.htmlElement, constraint));
+        for (const constraint of jsonObject?.constraints ?? []) {
+            this.conditionalConstraints.push(this.createConstraint(constraint));
         }
     }
 
-    createConstraint(htmlElement, jsonObject) {
-        return new Constraint(htmlElement, jsonObject);
+    /** 
+     * @param {import("./data-types.js").SDK.DynamicPropertyConstraint} jsonObject 
+     */
+    createConstraint(jsonObject) {
+        return new Constraint(jsonObject);
     }
 
+    /** @type {Constraint} */
     get applicableConstraint() {
         return this.conditionalConstraints.find(constraint => constraint.isApplicable) ?? this.defaultConstraint;
     }
 
-    checkValidity() {
-        this.applicableConstraint.checkValidity();
+    /** @param {HTMLElement} htmlElement */
+    checkValidity(htmlElement) {
+        this.applicableConstraint?.checkValidity(htmlElement);
     }
 
     get value() {
-        return this.applicableConstraint.evaluate();
+        return this.applicableConstraint?.evaluate();
     }
 
+    /** @type {string} */
     get validationMessage() {
-        return this.applicableConstraint.validationMessage;
+        return this.applicableConstraint?.validationMessage;
     }
 }
 
@@ -300,20 +306,18 @@ export class DynamicProperty {
 export class MandatoryProperty extends DynamicProperty {
 
     /**
-     * @param {InputFieldElement} htmlElement 
-     * @param {DynamicPropertyJsonObject} jsonObject 
+     * @param {import("./data-types.js").SDK.DynamicProperty} jsonObject 
      */
-    constructor(htmlElement, jsonObject) {
-        super(htmlElement, jsonObject);
+    constructor(jsonObject) {
+        super(jsonObject);
     }
 
     /**
-     * @param {InputFieldElement} htmlElement 
-     * @param {DynamicPropertyJsonObject} jsonObject 
+     * @param {import("./data-types.js").SDK.DynamicPropertyConstraint} jsonObject 
      * @returns {MandatoryConstraint}
      */
-    createConstraint(htmlElement, jsonObject) {
-        return new MandatoryConstraint(htmlElement, jsonObject);
+    createConstraint(jsonObject) {
+        return new MandatoryConstraint(jsonObject);
     }
 }
 
@@ -323,20 +327,18 @@ export class MandatoryProperty extends DynamicProperty {
 export class ForbiddenProperty extends DynamicProperty {
 
     /**
-     * @param {InputFieldElement} htmlElement 
-     * @param {DynamicPropertyJsonObject} jsonObject 
+     * @param {import("./data-types.js").SDK.DynamicProperty} jsonObject 
      */
-    constructor(htmlElement, jsonObject) {
-        super(htmlElement, jsonObject);
+    constructor(jsonObject) {
+        super(jsonObject);
     }
 
     /**
-     * @param {InputFieldElement} htmlElement 
-     * @param {DynamicPropertyJsonObject} jsonObject 
+     * @param {import("./data-types.js").SDK.DynamicPropertyConstraint} jsonObject 
      * @returns {ForbiddenConstraint}
      */
-    createConstraint(htmlElement, jsonObject) {
-        return new ForbiddenConstraint(htmlElement, jsonObject);
+    createConstraint(jsonObject) {
+        return new ForbiddenConstraint(jsonObject);
     }
 }
 
@@ -346,20 +348,18 @@ export class ForbiddenProperty extends DynamicProperty {
 export class RepeatableProperty extends DynamicProperty {
 
     /**
-     * @param {InputFieldElement} htmlElement 
-     * @param {DynamicPropertyJsonObject} jsonObject 
+     * @param {import("./data-types.js").SDK.DynamicProperty} jsonObject 
      */
-    constructor(htmlElement, jsonObject) {
-        super(htmlElement, jsonObject);
+    constructor(jsonObject) {
+        super(jsonObject);
     }
 
     /**
-     * @param {InputFieldElement} htmlElement 
-     * @param {DynamicPropertyJsonObject} jsonObject 
+     * @param {import("./data-types.js").SDK.DynamicPropertyConstraint} jsonObject 
      * @returns {RepeatableConstraint}
      */
-    createConstraint(htmlElement, jsonObject) {
-        return new RepeatableConstraint(htmlElement, jsonObject);
+    createConstraint(jsonObject) {
+        return new RepeatableConstraint(jsonObject);
     }
 }
 
@@ -369,20 +369,18 @@ export class RepeatableProperty extends DynamicProperty {
 export class AssertProperty extends DynamicProperty {
 
     /**
-     * @param {InputFieldElement} htmlElement 
-     * @param {DynamicPropertyJsonObject} jsonObject 
+     * @param {import("./data-types.js").SDK.DynamicProperty} jsonObject 
      */
-    constructor(htmlElement, jsonObject) {
-        super(htmlElement, jsonObject);
+    constructor(jsonObject) {
+        super(jsonObject);
     }
 
     /**
-     * @param {InputFieldElement} htmlElement 
-     * @param {DynamicPropertyJsonObject} jsonObject 
+     * @param {import("./data-types.js").SDK.DynamicPropertyConstraint} jsonObject 
      * @returns {AssertConstraint}
      */
-    createConstraint(htmlElement, jsonObject) {
-        return new AssertConstraint(htmlElement, jsonObject);
+    createConstraint(jsonObject) {
+        return new AssertConstraint(jsonObject);
     }
 }
 
@@ -392,20 +390,18 @@ export class AssertProperty extends DynamicProperty {
 export class PatternProperty extends DynamicProperty {
 
     /**
-     * @param {InputFieldElement} htmlElement 
-     * @param {DynamicPropertyJsonObject} jsonObject 
+     * @param {import("./data-types.js").SDK.DynamicProperty} jsonObject 
      */
-    constructor(htmlElement, jsonObject) {
-        super(htmlElement, jsonObject);
+    constructor(jsonObject) {
+        super(jsonObject);
     }
 
     /**
-     * @param {InputFieldElement} htmlElement 
-     * @param {DynamicPropertyJsonObject} jsonObject 
+     * @param {import("./data-types.js").SDK.DynamicPropertyConstraint} jsonObject 
      * @returns {PatternConstraint}
      */
-    createConstraint(htmlElement, jsonObject) {
-        return new PatternConstraint(htmlElement, jsonObject);
+    createConstraint(jsonObject) {
+        return new PatternConstraint(jsonObject);
     }
 }
 
@@ -415,20 +411,18 @@ export class PatternProperty extends DynamicProperty {
 export class CodelistProperty extends DynamicProperty {
 
     /**
-     * @param {InputFieldElement} htmlElement 
-     * @param {DynamicPropertyJsonObject} jsonObject 
+     * @param {import("./data-types.js").SDK.DynamicProperty} jsonObject 
      */
-    constructor(htmlElement, jsonObject) {
-        super(htmlElement, jsonObject);
+    constructor(jsonObject) {
+        super(jsonObject);
     }
 
     /**
-     * @param {InputFieldElement} htmlElement 
-     * @param {DynamicPropertyJsonObject} jsonObject 
+     * @param {import("./data-types.js").SDK.DynamicPropertyConstraint} jsonObject 
      * @returns {CodelistConstraint}
      */
-    createConstraint(htmlElement, jsonObject) {
-        return new CodelistConstraint(htmlElement, jsonObject);
+    createConstraint(jsonObject) {
+        return new CodelistConstraint(jsonObject);
     }
 }
 
@@ -438,19 +432,65 @@ export class CodelistProperty extends DynamicProperty {
 export class InChangeNoticeProperty extends DynamicProperty {
 
     /**
-     * @param {InputFieldElement} htmlElement 
-     * @param {DynamicPropertyJsonObject} jsonObject 
+     * @param {import("./data-types.js").SDK.DynamicProperty} jsonObject 
      */
-    constructor(htmlElement, jsonObject) {
-        super(htmlElement, jsonObject);
+    constructor(jsonObject) {
+        super(jsonObject);
     }
 
     /**
-     * @param {InputFieldElement} htmlElement 
-     * @param {DynamicPropertyJsonObject} jsonObject 
+     * @param {import("./data-types.js").SDK.DynamicPropertyConstraint} jsonObject 
      * @returns {InChangeNoticeConstraint}
      */
-    createConstraint(htmlElement, jsonObject) {
-        return new InChangeNoticeConstraint(htmlElement, jsonObject);
+    createConstraint(jsonObject) {
+        return new InChangeNoticeConstraint(jsonObject);
+    }
+
+    /** @type {import("./data-types.js").SDK.InChangeNoticeBehaviour} */
+    get value() {
+        return super.value;
+    }
+
+    /** @type {boolean} */
+    get canAdd() {
+        return this.value.canAdd;
+    }
+
+    /** @type {boolean} */
+    get canRemove() {
+        return this.value.canRemove;
+    }
+
+    /** @type {boolean} */
+    get canModify() {
+        return this.value.canModify;
+    }
+}
+
+/**
+ * 
+ */
+export class MaxLengthProperty extends Validatable {
+
+    /**
+     * @param {number} maxLength 
+     */
+    constructor(maxLength) {
+        super();
+
+        /** @type {number} */
+        this.maxLength = isNaN(maxLength) ? undefined : maxLength;
+    }
+
+    /**
+     * 
+     * @param {HTMLInputElement} htmlElement 
+     */
+    checkValidity(htmlElement) {
+        if (this.maxLength !== undefined) {
+            htmlElement.maxLength = this.maxLength;
+        } else {
+            htmlElement.removeAttribute("maxLength");
+        }
     }
 }
