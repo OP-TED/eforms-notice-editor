@@ -56,7 +56,7 @@ export class UIComponent extends DocumentFragment {
     /** @type {import("./data-types.js").ProxiedNTDContent} */
     this.content = content;
     this.content.editorLevel = level;
-    this.content.editorCount = (this.content.editorCount ?? 0) + 1;
+    this.content.editorCount = this.content.countInstances() + 1;
 
     this.containerElement = this.createContainer();
     this.containerElement.classList.add("container");

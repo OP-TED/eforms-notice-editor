@@ -6,7 +6,7 @@
  */
 
 import { RepeatableProperty } from "./dynamic-property.js";
-import { Identifiers } from "./global.js";
+import { Constants, Identifiers } from "./global.js";
 import { SdkServiceClient } from "./service-clients.js";
 
 /**
@@ -117,6 +117,7 @@ import { SdkServiceClient } from "./service-clients.js";
  * @property {string} instanceId
  * @property {ProxiedNTDContent} identifiedGroup
  * @property {Function} generateId
+ * @property {Function} countInstances
  * 
  * Adds some functionality to an {@link SDK.NTDContent} object by wrapping it in 
  * a {@link Proxy} using {@link NTDContentProxy} as a handler.
@@ -162,6 +163,7 @@ export class NTDContentProxy {
                 return target.parent?.findIdentifiedGroup(identifierFieldId) ?? null;
             };
             case "generateId": return function () { return Identifiers.formatSchemedIdentifier(target._idScheme, receiver.identifiedGroup?.editorCount); };
+            case "countInstances": return function() { return document.querySelectorAll(`[${Constants.Attributes.CONTENT_ID_ATTRIBUTE} = "${target.id}"]`).length; };
             case "fieldId": return receiver.isField ? target.id : undefined;
             case "field": return receiver.isField ? SdkServiceClient.fields[target.id] : undefined;
             case "hasRepeatableProperty": return target._repeatable !== undefined;
