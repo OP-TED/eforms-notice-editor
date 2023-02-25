@@ -52,7 +52,7 @@ export class NoticeReader {
      * @param {string} xmlString 
      */
     #parse(xmlString) {
-        this.document = this.parser.parseFromString(xmlString, "text/xml");
+        this.document = $.parseXML(xmlString);
         this.nsResolver = this.document.createNSResolver(this.document.documentElement);
     }
 
@@ -74,9 +74,8 @@ export class NoticeReader {
     static * getFieldValues(fieldId) {
         var xpath = SdkServiceClient.fields[fieldId].xpathAbsolute;
         try {
-            var results = this.instance.document.evaluate(xpath, this.instance.document, this.instance.nsResolver, XPathResult.ORDERED_NODE_ITERATOR_TYPE);
-            var result;
-            while ((result = results.iterateNext()) != null) {
+            var results = $(this.instance.document).xpath(xpath, ns => this.instance.nsResolver.lookupNamespaceURI(ns));
+            for (var result of results) {
                 yield result.textContent;
             }
         } catch (e) {
