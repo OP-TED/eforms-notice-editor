@@ -212,6 +212,11 @@ export class Context {
     document.dispatchEvent(new CustomEvent(Constants.Events.noticeSubtypeChanged, { detail: { noticeSubtype: noticeSubtype } } ));
   }
 
+  static async raiseLanguageChanged(language) {
+    await SdkServiceClient.fetchTranslations(Context.sdkVersion, Context.language);
+    document.dispatchEvent(new CustomEvent(Constants.Events.languageChanged, { detail: { language: language } } ));
+  }
+
   /**
    * @param {File} file
    */
