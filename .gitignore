@@ -36,12 +36,12 @@ build/
 .vscode/
 
 ### YARN ###
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/sdks
-!.yarn/versions
+**/.yarn/*
+!**/.yarn/patches
+!**/.yarn/plugins
+!**/.yarn/releases
+!**/.yarn/sdks
+!**/.yarn/versions
 
 # Swap the comments on the following lines if you wish to use zero-installs
 # Also don't forget to run `yarn config set enableGlobalCache false`!
