@@ -320,7 +320,7 @@ public class PhysicalModel {
     // element in the xpathRelative.
     final boolean nodeMetaRepeatable = FieldsAndNodes.isNodeRepeatableStatic(nodeMeta);
 
-    final String xpathRel = getTextStrict(nodeMeta, NODE_XPATH_RELATIVE);
+    final String xpathRel = getTextStrict(nodeMeta, NODE_XPATH_RELATIVE); // "xpathRelative"
     Element previousElem = xmlNodeElem;
     Element partElem = null;
 
@@ -461,9 +461,9 @@ public class PhysicalModel {
     // IMPORTANT: !!! The relative xpath of fields can contain intermediary xml elements !!!
     // Example: "cac:PayerParty/cac:PartyIdentification/cbc:ID" contains more than just the field.
     // These intermediary elements are very simple items and have no nodeId.
-    final String xpathRel = getTextStrict(fieldMeta, FIELD_XPATH_RELATIVE);
+    final String xpathRel = getTextStrict(fieldMeta, FIELD_XPATH_RELATIVE); // "xpathRelative"
 
-    // If a field or node is repeatable, the the XML element to repeat is the first XML
+    // If a field or node is repeatable, the XML element to repeat is the first XML
     // element in the xpathRelative.
     final boolean fieldMetaRepeatable = FieldsAndNodes.isFieldRepeatableStatic(fieldMeta);
 
@@ -494,10 +494,15 @@ public class PhysicalModel {
       // XML.
       final boolean isAttribute = tagOrAttr.startsWith("@") && tagOrAttr.length() > 1;
 
-      final Optional<NodeList> foundElementsOpt = !isAttribute && xpathExprOpt.isPresent()
-          ? Optional.of(XmlUtils.evaluateXpathAsNodeList(xpathInst, previousElem,
-              xpathExprOpt.get(), fieldId))
-          : Optional.empty();
+      final Optional<NodeList> foundElementsOpt;
+      if (!isAttribute && xpathExprOpt.isPresent()) {
+        // NOTE: for the relative xpath of fields we do not want to reuse existing elements.
+        // foundElementsOpt = Optional.of(XmlUtils.evaluateXpathAsNodeList(xpathInst, previousElem,
+        // xpathExprOpt.get(), fieldId));
+        foundElementsOpt = Optional.empty();
+      } else {
+        foundElementsOpt = Optional.empty();
+      }
 
       if (foundElementsOpt.isPresent() && foundElementsOpt.get().getLength() > 0) {
         final NodeList foundElements = foundElementsOpt.get();
