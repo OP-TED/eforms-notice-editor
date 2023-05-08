@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -207,8 +206,7 @@ public class PhysicalModel {
 
     // TEDEFO-1426
     // For the moment do as if it was there.
-    final XPath xpathInst =
-        setXmlNamespaces(docTypeInfo, xmlDocRoot, fieldsAndNodes.getSdkVersion());
+    final XPath xpathInst = setXmlNamespaces(docTypeInfo, xmlDocRoot);
 
     // Attempt to put schemeName first.
     // buildPhysicalModelXmlRec(fieldsAndNodes, doc, concept.getRoot(), rootElem, debug,
@@ -277,7 +275,7 @@ public class PhysicalModel {
 
     // FIELDS.
     for (final ConceptTreeField conceptField : conceptElem.getConceptFields()) {
-      buildFields(doc, fieldsAndNodes, conceptField, xpathInst, xmlNodeElem, debug, depth,
+      buildFields(doc, fieldsAndNodes, conceptField, xmlNodeElem, debug, depth,
           onlyIfPriority, buildFields);
     }
 
@@ -435,7 +433,7 @@ public class PhysicalModel {
    * @param buildFields If false it will abort (only exists to simplify the code elsewhere)
    */
   private static void buildFields(final Document doc, final FieldsAndNodes fieldsAndNodes,
-      final ConceptTreeField conceptField, final XPath xpathInst, final Element xmlNodeElem,
+      final ConceptTreeField conceptField, final Element xmlNodeElem,
       final boolean debug, final int depth, final boolean onlyIfPriority,
       final boolean buildFields) {
 
@@ -465,7 +463,7 @@ public class PhysicalModel {
 
     // If a field or node is repeatable, the XML element to repeat is the first XML
     // element in the xpathRelative.
-    final boolean fieldMetaRepeatable = FieldsAndNodes.isFieldRepeatableStatic(fieldMeta);
+    // final boolean fieldMetaRepeatable = FieldsAndNodes.isFieldRepeatableStatic(fieldMeta);
 
     Element previousElem = xmlNodeElem;
     Element partElem = null;
@@ -483,8 +481,11 @@ public class PhysicalModel {
 
       final PhysicalXpathPart px = handleXpathPart(partXpath);
       final Optional<String> schemeNameOpt = px.getSchemeNameOpt();
-      final Optional<String> xpathExprOpt =
-          fieldMetaRepeatable ? Optional.empty() : Optional.of(px.getXpathExpr());
+
+      // Unless we want to check if the element already exists we will not need xpath.
+      // final Optional<String> xpathExprOpt =
+      // fieldMetaRepeatable ? Optional.empty() : Optional.of(px.getXpathExpr());
+
       final String tagOrAttr = px.getTagOrAttribute();
 
       // In this case the field is an attribute of a field in the XML, technically this makes a
@@ -494,16 +495,8 @@ public class PhysicalModel {
       // XML.
       final boolean isAttribute = tagOrAttr.startsWith("@") && tagOrAttr.length() > 1;
 
-      final Optional<NodeList> foundElementsOpt;
-      if (!isAttribute && xpathExprOpt.isPresent()) {
-        // NOTE: for the relative xpath of fields we do not want to reuse existing elements.
-        // foundElementsOpt = Optional.of(XmlUtils.evaluateXpathAsNodeList(xpathInst, previousElem,
-        // xpathExprOpt.get(), fieldId));
-        foundElementsOpt = Optional.empty();
-      } else {
-        foundElementsOpt = Optional.empty();
-      }
-
+      // NOTE: for the field relative xpath we want to build the all the elements (no reuse).
+      final Optional<NodeList> foundElementsOpt = Optional.empty();
       if (foundElementsOpt.isPresent() && foundElementsOpt.get().getLength() > 0) {
         final NodeList foundElements = foundElementsOpt.get();
         assert foundElements.getLength() == 1 : "foundElements length != 1";
@@ -659,7 +652,7 @@ public class PhysicalModel {
    * @return XPath instance with prefix to namespace awareness
    */
   public static XPath setXmlNamespaces(final DocumentTypeInfo docTypeInfo,
-      final Element rootElement, final SdkVersion sdkVersion) {
+      final Element rootElement) {
     Validate.notNull(rootElement);
 
     final String namespaceUriRoot = docTypeInfo.getNamespaceUri();
@@ -670,23 +663,10 @@ public class PhysicalModel {
     //
     rootElement.setAttribute(XMLNS, namespaceUriRoot);
 
-    final Map<String, String> map;
-    if (sdkVersion.compareTo(DocumentTypeInfo.TEDEFO_1743_SINCE_SDK_VERSION) >= 0) {
-      // Since SDK 1.6.0 the SDK provides this information (TEDEFO-1744).
-      // If these namespaces evolve they could start to differ by SDK version.
-      // This is why they have been moved to the SDK metadata.
-      map = docTypeInfo.buildAdditionalNamespaceUriByPrefix();
-    } else {
-      // Pre SDK 1.6.0 logic:
-      map = new LinkedHashMap<>();
-      map.put("xsi", XMLConstants.W3C_XML_SCHEMA_NS_URI);
-      map.put("cbc", "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2");
-      map.put("cac", "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2");
-      map.put("efext", "http://data.europa.eu/p27/eforms-ubl-extensions/1");
-      map.put("efac", "http://data.europa.eu/p27/eforms-ubl-extension-aggregate-components/1");
-      map.put("efbc", "http://data.europa.eu/p27/eforms-ubl-extension-basic-components/1");
-      map.put("ext", "urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2");
-    }
+    // Since SDK 1.6.0 the SDK provides this information (TEDEFO-1744).
+    // If these namespaces evolve they could start to differ by SDK version.
+    // This is why they have been moved to the SDK metadata.
+    final Map<String, String> map = docTypeInfo.buildAdditionalNamespaceUriByPrefix();
 
     final String xmlnsUri = XMLConstants.XMLNS_ATTRIBUTE_NS_URI;
     for (final Entry<String, String> entry : map.entrySet()) {
