@@ -481,11 +481,6 @@ public class PhysicalModel {
 
       final PhysicalXpathPart px = handleXpathPart(partXpath);
       final Optional<String> schemeNameOpt = px.getSchemeNameOpt();
-
-      // Unless we want to check if the element already exists we will not need xpath.
-      // final Optional<String> xpathExprOpt =
-      // fieldMetaRepeatable ? Optional.empty() : Optional.of(px.getXpathExpr());
-
       final String tagOrAttr = px.getTagOrAttribute();
 
       // In this case the field is an attribute of a field in the XML, technically this makes a
@@ -496,46 +491,22 @@ public class PhysicalModel {
       final boolean isAttribute = tagOrAttr.startsWith("@") && tagOrAttr.length() > 1;
 
       // NOTE: for the field relative xpath we want to build the all the elements (no reuse).
-      final Optional<NodeList> foundElementsOpt = Optional.empty();
-      if (foundElementsOpt.isPresent() && foundElementsOpt.get().getLength() > 0) {
-        final NodeList foundElements = foundElementsOpt.get();
-        assert foundElements.getLength() == 1 : "foundElements length != 1";
-
-        // One or more pre-existing XML items were found. Try to reuse.
-        final Node xmlNode;
-        if (foundElements.getLength() > 1) {
-          xmlNode = foundElements.item(0); // Which? 0, 1, ...???
-          logger.warn("  FOUND MULTIPLE ELEMENTS for: {}", fieldId);
-        } else {
-          xmlNode = foundElements.item(0);
-        }
-
-        // Node is a w3c dom node, nothing to do with SDK node.
-        if (Node.ELEMENT_NODE == xmlNode.getNodeType()) {
-          // An existing element was found, reuse it.
-          partElem = (Element) xmlNode;
-        } else {
-          throw new RuntimeException(String.format("NodeType=%s not an Element", xmlNode));
-        }
-
+      if (isAttribute) {
+        // Set attribute on previous element.
+        // Example:
+        // @listName or @currencyID
+        // In the case we cannot create a new XML element.
+        // We have to add this attribute to the previous element.
+        logger.debug(depthStr + " Creating attribute=" + tagOrAttr);
+        previousElem.setAttribute(tagOrAttr.substring(1), value); // SIDE-EFFECT!
+        // partElem = ... NO we do not want to reassign the partElem. This ensures that after we
+        // exit the loop the partElem still points to the last XML element.
+        // We also cannot set an attribute on an attribute!
       } else {
-        if (isAttribute) {
-          // Set attribute on previous element.
-          // Example:
-          // @listName or @currencyID
-          // In the case we cannot create a new XML element.
-          // We have to add this attribute to the previous element.
-          logger.debug(depthStr + " Creating attribute=" + tagOrAttr);
-          previousElem.setAttribute(tagOrAttr.substring(1), value); // SIDE-EFFECT!
-          // partElem = ... NO we do not want to reassign the partElem. This ensures that after we
-          // exit the loop the partElem still points to the last XML element.
-          // We also cannot set an attribute on an attribute!
-        } else {
-          // Create an XML element.
-          logger.debug(depthStr + " Creating tag=" + tagOrAttr);
-          partElem = createElemXml(doc, tagOrAttr);
-          partElem.setAttribute(attrTemp, attrTemp);
-        }
+        // Create an XML element.
+        logger.debug(depthStr + " Creating tag=" + tagOrAttr);
+        partElem = createElemXml(doc, tagOrAttr);
+        partElem.setAttribute(attrTemp, attrTemp);
       }
 
       // This check is to avoid a problem with attributes.
