@@ -226,9 +226,14 @@ public class PhysicalModel {
     buildPhysicalModelRec(xmlDoc, fieldsAndNodes, conceptualModelTreeRootNode, xmlDocRoot, debug,
         buildFields, depth, onlyIfPriority, xpathInst);
 
+
     // Reorder the physical model.
+    // The location of the XSDs is given in the SDK and could vary by SDK version.
+    final SdkVersion sdkVersion = fieldsAndNodes.getSdkVersion();
+    final Path pathToSpecificSdk = sdkRootFolder.resolve(sdkVersion.toStringWithoutPatch());
     final NoticeXmlTagSorter sorter =
-        new NoticeXmlTagSorter(safeDocBuilder, xpathInst, docTypeInfo, sdkRootFolder);
+        new NoticeXmlTagSorter(safeDocBuilder, xpathInst, docTypeInfo,
+            pathToSpecificSdk);
     sorter.sortXml(xmlDocRoot);
 
     final Optional<Path> mainXsdPathOpt = sorter.getMainXsdPathOpt();
@@ -661,7 +666,7 @@ public class PhysicalModel {
     rootElement.setAttribute(XMLNS, namespaceUriRoot);
 
     final Map<String, String> map;
-    if (sdkVersion.compareTo(new SdkVersion("1.6")) >= 0) {
+    if (sdkVersion.compareTo(DocumentTypeInfo.TEDEFO_1743_SINCE_SDK_VERSION) >= 0) {
       // Since SDK 1.6.0 the SDK provides this information (TEDEFO-1744).
       // If these namespaces evolve they could start to differ by SDK version.
       // This is why they have been moved to the SDK metadata.

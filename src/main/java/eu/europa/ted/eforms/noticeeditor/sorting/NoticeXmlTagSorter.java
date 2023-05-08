@@ -47,7 +47,7 @@ public class NoticeXmlTagSorter {
 
   private final DocumentBuilder docBuilder;
   private final DocumentTypeInfo docTypeInfo;
-  private final Path sdkRootFolder;
+  private final Path sdkFolder;
   private final Map<String, DocumentTypeNamespace> xsdMetaByPrefix;
   private final XPath xpathInst;
 
@@ -62,14 +62,14 @@ public class NoticeXmlTagSorter {
    * @param docBuilder The document builder is passed as it can be reused
    * @param xpathInst Reusable xpath preconfigured instance
    * @param docTypeInfo SDK document type info
-   * @param sdkRootFolder The root folder of the downloaded SDK(s)
+   * @param sdkFolder The folder of the downloaded SDK
    */
   public NoticeXmlTagSorter(final DocumentBuilder docBuilder, final XPath xpathInst,
-      final DocumentTypeInfo docTypeInfo, final Path sdkRootFolder) {
+      final DocumentTypeInfo docTypeInfo, final Path sdkFolder) {
 
     Validate.notNull(docBuilder);
     Validate.notNull(xpathInst);
-    Validate.notNull(sdkRootFolder);
+    Validate.notNull(sdkFolder);
     Validate.notNull(docTypeInfo);
 
     this.docBuilder = docBuilder;
@@ -77,7 +77,7 @@ public class NoticeXmlTagSorter {
     // SDK specific.
     this.docTypeInfo = docTypeInfo;
     this.xpathInst = xpathInst;
-    this.sdkRootFolder = sdkRootFolder;
+    this.sdkFolder = sdkFolder;
     this.xsdRootByPrefixCache = new HashMap<>();
     this.xsdMetaByPrefix = docTypeInfo.buildAdditionalNamespacesByPrefix();
   }
@@ -176,7 +176,7 @@ public class NoticeXmlTagSorter {
       logger.info("Sorting not supported for version={}", getSorterSdkVersion());
       return Optional.empty();
     }
-    return Optional.of(sdkRootFolder.resolve(sdkXsdPathOpt.get()));
+    return Optional.of(sdkFolder.resolve(sdkXsdPathOpt.get()));
   }
 
   private SdkVersion getSorterSdkVersion() {
@@ -410,7 +410,7 @@ public class NoticeXmlTagSorter {
 
     // Parse the XSD XML and return the root element of the XML.
     final String xsdLocation = dtn.getSchemaLocation();
-    final Path xsdPath = sdkRootFolder.resolve(Path.of(xsdLocation));
+    final Path xsdPath = sdkFolder.resolve(Path.of(xsdLocation));
     final Document xsdDoc = buildDoc(xsdPath);
     final Element rootElem = xsdDoc.getDocumentElement();
     this.xsdRootByPrefixCache.put(namespacePrefix, rootElem); // Cache it.
