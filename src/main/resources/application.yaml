@@ -18,7 +18,7 @@ server:
 eforms:
   sdk:
     # Path to eForms SDK
-    path: eforms-sdks
+    path: eforms-sdk
 
     # Comma-separated list of the supported major versions of eForms SDK
     versions: 1.6

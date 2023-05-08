@@ -182,7 +182,8 @@ public class PhysicalModel {
   public static PhysicalModel buildPhysicalModel(final ConceptualModel conceptModel,
       final FieldsAndNodes fieldsAndNodes, final Map<String, JsonNode> noticeInfoBySubtype,
       final Map<String, JsonNode> documentInfoByType, final boolean debug,
-      final boolean buildFields, final Path sdkRootFolder)
+      final boolean buildFields,
+      final Path sdkRootFolder)
       throws ParserConfigurationException, SAXException, IOException {
 
     logger.info("Attempting to build physical model.");
@@ -230,8 +231,7 @@ public class PhysicalModel {
     final SdkVersion sdkVersion = fieldsAndNodes.getSdkVersion();
     final Path pathToSpecificSdk = sdkRootFolder.resolve(sdkVersion.toStringWithoutPatch());
     final NoticeXmlTagSorter sorter =
-        new NoticeXmlTagSorter(safeDocBuilder, xpathInst, docTypeInfo,
-            pathToSpecificSdk);
+        new NoticeXmlTagSorter(safeDocBuilder, xpathInst, docTypeInfo, pathToSpecificSdk);
     sorter.sortXml(xmlDocRoot);
 
     final Optional<Path> mainXsdPathOpt = sorter.getMainXsdPathOpt();

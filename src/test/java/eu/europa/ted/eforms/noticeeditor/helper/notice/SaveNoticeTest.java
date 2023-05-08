@@ -14,7 +14,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
-import eu.europa.ted.eforms.sdk.SdkConstants;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
@@ -64,7 +63,6 @@ public abstract class SaveNoticeTest {
   static final String TYPE_URL = "url";
   static final String TYPE_CODE = "code";
   static final String TYPE_ID = "id";
-
 
   static final void contains(final String xml, final String text) {
     assertTrue(xml.contains(text), text);
@@ -167,7 +165,8 @@ public abstract class SaveNoticeTest {
   }
 
   protected PhysicalModel setupPhysicalModel(final ObjectMapper mapper, final String noticeSubType,
-      final String documentType, final VisualModel visModel, final SdkVersion sdkVersion)
+      final String documentType, final VisualModel visModel, final Path sdkRootFolder,
+      final SdkVersion sdkVersion)
       throws ParserConfigurationException, IOException, SAXException {
 
     //
@@ -214,9 +213,9 @@ public abstract class SaveNoticeTest {
     final boolean debug = true; // Adds field ids in the XML, making it easier to test the output.
     final boolean buildFields = true;
 
-    final Path sdkRootFolder = SdkConstants.DEFAULT_SDK_ROOT;
     final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptualModel,
-        fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields, sdkRootFolder);
+        fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields,
+        sdkRootFolder);
 
     return physicalModel;
   }
