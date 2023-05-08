@@ -11,17 +11,21 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.xml.sax.SAXException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import eu.europa.ted.eforms.noticeeditor.service.SdkService;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
  * Save notice to XML, based on a dummy X02. This test parts of X02 as this notice sub type is
  * somewhat simple. This tests field repeatability. This DOES NOT test group repeatability.
  */
+@SpringBootTest
 public class SaveNoticeX02DummyTest extends SaveNoticeTest {
 
   private static final Logger logger = LoggerFactory.getLogger(SaveNoticeX02DummyTest.class);
@@ -44,6 +48,9 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
 
   private static final String VALUE_HEALTH = "health";
   private static final String VALUE_EDUCATION = "education";
+
+  @Autowired
+  protected SdkService sdkService;
 
   /**
    * Setup dummy test notice form data.
@@ -293,15 +300,17 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     // also to demonstrate how the entire thing works but based on something much smaller and more
     // controllable.
 
-    // A dummy 1.5.0, not real 1.5.0
-    final SdkVersion sdkVersion = new SdkVersion("1.5.0");
+    // A dummy 1.6.0, not real 1.6.0
+    final SdkVersion sdkVersion = new SdkVersion("1.6.0");
     final String prefixedSdkVersion = FieldsAndNodes.EFORMS_SDK_PREFIX + sdkVersion.toString();
-    final String noticeSubType = "X02"; // A dummy X02, not the real X02 of 1.5.0
+    final String noticeSubType = "X02"; // A dummy X02, not the real X02 of 1.6.0
 
     final VisualModel visualModel = setupVisualModel(mapper, sdkVersion, noticeSubType);
 
     final PhysicalModel physicalModel =
-        setupPhysicalModel(mapper, noticeSubType, NOTICE_DOCUMENT_TYPE, visualModel, sdkVersion);
+        setupPhysicalModel(mapper, noticeSubType, NOTICE_DOCUMENT_TYPE, visualModel,
+            sdkService.getSdkRootFolder(),
+            sdkVersion);
 
     // As this dummy test example has some metadata, ensure those getters work:
     assertEquals(sdkVersion, physicalModel.getSdkVersion());

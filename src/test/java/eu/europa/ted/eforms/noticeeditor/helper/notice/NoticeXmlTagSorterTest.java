@@ -59,8 +59,9 @@ public class NoticeXmlTagSorterTest {
     final Document docUnsorted1 = DummySdk.getDummyX02NoticeUnsorted(builder, sdkVersion);
 
     // SORT.
+    final Path pathToSpecificSdk = DummySdk.buildDummySdkPath(sdkVersion);
     final NoticeXmlTagSorter sorter = new NoticeXmlTagSorter(builder, xpathInst, docTypeInfo,
-        DummySdk.buildDummySdkPath(sdkVersion));
+        pathToSpecificSdk);
 
     sortAndCompare(docUnsorted1, docReference, sorter);
   }
