@@ -182,8 +182,7 @@ public class XmlWriteService {
     Validate.notNull(visualRoot);
     Validate.notNull(noticeUuid);
 
-    final JsonNode fieldsJson = sdkService.readSdkFieldsJson(sdkVersion);
-    final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldsJson, sdkVersion);
+    final FieldsAndNodes fieldsAndNodes = readFieldsAndNodes(sdkVersion);
     final VisualModel visualModel = new VisualModel(visualRoot);
 
     if (debug) {
@@ -215,6 +214,12 @@ public class XmlWriteService {
     final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptModel,
         fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields, sdkRootFolder);
     return physicalModel;
+  }
+
+  public FieldsAndNodes readFieldsAndNodes(final SdkVersion sdkVersion) {
+    final JsonNode fieldsJson = sdkService.readSdkFieldsJson(sdkVersion);
+    final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldsJson, sdkVersion);
+    return fieldsAndNodes;
   }
 
   public static Map<String, JsonNode> parseDocumentTypes(final JsonNode noticeTypesJson) {

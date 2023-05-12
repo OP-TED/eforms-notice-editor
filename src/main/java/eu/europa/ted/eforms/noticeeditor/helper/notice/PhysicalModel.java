@@ -231,7 +231,8 @@ public class PhysicalModel {
     final SdkVersion sdkVersion = fieldsAndNodes.getSdkVersion();
     final Path pathToSpecificSdk = sdkRootFolder.resolve(sdkVersion.toStringWithoutPatch());
     final NoticeXmlTagSorter sorter =
-        new NoticeXmlTagSorter(safeDocBuilder, xpathInst, docTypeInfo, pathToSpecificSdk);
+        new NoticeXmlTagSorter(safeDocBuilder, xpathInst, docTypeInfo, pathToSpecificSdk,
+            fieldsAndNodes);
     sorter.sortXml(xmlDocRoot);
 
     final Optional<Path> mainXsdPathOpt = sorter.getMainXsdPathOpt();

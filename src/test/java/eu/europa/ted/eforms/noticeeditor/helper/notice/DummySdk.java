@@ -38,7 +38,6 @@ public class DummySdk {
     return docTypeInfo;
   }
 
-
   public static Document getDummyX02NoticeReference(final DocumentBuilder builder,
       final SdkVersion sdkVersion) throws SAXException, IOException {
     final File file = resolveToFileX02Reference(sdkVersion);

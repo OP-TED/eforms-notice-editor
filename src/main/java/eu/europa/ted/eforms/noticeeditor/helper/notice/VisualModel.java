@@ -49,6 +49,16 @@ public class VisualModel {
   static final String VIS_VALUE = "value";
   static final String VIS_TYPE = "visType"; // Called visType to avoid confusion with HTML type attr
 
+  private static final String VIS_TYPE_FIELD = "field";
+  private static final String VIS_TYPE_NON_FIELD = "non-field";
+
+  private static final String SUFFIX_GENERATED = "-generated";
+
+  /**
+   * As we use a web UI the data is received as JSON. We work directly on this JSON tree model.
+   */
+  private final JsonNode visRoot;
+
   @Override
   public String toString() {
     try {
@@ -57,18 +67,6 @@ public class VisualModel {
       throw new RuntimeException(ex);
     }
   }
-
-  private static final String VIS_TYPE_FIELD = "field";
-  private static final String VIS_TYPE_NON_FIELD = "non-field";
-
-  static final String NODE_PARENT_ID = "parentId";
-
-  private static final String SUFFIX_GENERATED = "-generated";
-
-  /**
-   * As we use a web UI the data is received as JSON. We work directly on this JSON tree model.
-   */
-  private final JsonNode visRoot;
 
   /**
    * @param visRoot The visual model as JSON, usually set from a user interface.
@@ -220,7 +218,8 @@ public class VisualModel {
     }
 
     final JsonNode nodeMeta = fieldsAndNodes.getNodeById(cn.getNodeId());
-    final String nodeParentId = JsonUtils.getTextStrict(nodeMeta, NODE_PARENT_ID);
+    final String nodeParentId =
+        JsonUtils.getTextStrict(nodeMeta, FieldsAndNodes.NODE_PARENT_NODE_ID);
     if (nodeParentId.equals(closestParentNode.getNodeId())) {
       // The closestParent is the parent, just attach it and stop.
       // -> closestParent -> cn

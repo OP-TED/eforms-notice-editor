@@ -81,8 +81,6 @@ public class SdkService {
   static final String SDK_FIELDS_JSON = "fields.json";
   static final String SDK_CODELISTS_JSON = "codelists.json";
 
-  public static final String ND_ROOT = "ND-Root";
-
   /**
    * The number of seconds in one hour.
    */

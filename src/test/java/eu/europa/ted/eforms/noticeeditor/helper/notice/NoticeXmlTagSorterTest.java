@@ -14,21 +14,27 @@ import org.apache.commons.lang3.Validate;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
 import eu.europa.ted.eforms.noticeeditor.helper.validation.XsdValidator;
+import eu.europa.ted.eforms.noticeeditor.service.XmlWriteService;
 import eu.europa.ted.eforms.noticeeditor.sorting.NoticeXmlTagSorter;
 import eu.europa.ted.eforms.noticeeditor.util.EditorXmlUtils;
 import eu.europa.ted.eforms.noticeeditor.util.XpathUtils;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
+@SpringBootTest
 public class NoticeXmlTagSorterTest {
 
   private static final Logger logger = LoggerFactory.getLogger(NoticeXmlTagSorterTest.class);
 
-  @SuppressWarnings("static-method")
+  @Autowired
+  private XmlWriteService xmlWriteService;
+
   @Test
   public void testXmlSortingAndValidate()
       throws IOException, ParserConfigurationException, SAXException {
@@ -49,11 +55,13 @@ public class NoticeXmlTagSorterTest {
     final DocumentBuilder builder = SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype(true);
 
     // Get document type info from the SDK. It contains information about XML namespaces.
-    final SdkVersion sdkVersion = new SdkVersion("1.6.0");
+    final SdkVersion sdkVersion = new SdkVersion("1.7.0");
     final DocumentTypeInfo docTypeInfo = DummySdk.getDummyBrinDocTypeInfo(sdkVersion);
 
     // The xpath instance namespace aware and reusable.
     final XPath xpathInst = XpathUtils.setupXpathInst(docTypeInfo, Optional.empty());
+
+    final FieldsAndNodes fieldsAndNodes = xmlWriteService.readFieldsAndNodes(sdkVersion);
 
     final Document docReference = DummySdk.getDummyX02NoticeReference(builder, sdkVersion);
     final Document docUnsorted1 = DummySdk.getDummyX02NoticeUnsorted(builder, sdkVersion);
@@ -61,7 +69,7 @@ public class NoticeXmlTagSorterTest {
     // SORT.
     final Path pathToSpecificSdk = DummySdk.buildDummySdkPath(sdkVersion);
     final NoticeXmlTagSorter sorter = new NoticeXmlTagSorter(builder, xpathInst, docTypeInfo,
-        pathToSpecificSdk);
+        pathToSpecificSdk, fieldsAndNodes);
 
     sortAndCompare(docUnsorted1, docReference, sorter);
   }
@@ -76,7 +84,7 @@ public class NoticeXmlTagSorterTest {
 
     // VALIDATE THE REFERENCE.
     final Optional<Path> mainXsdPathOpt = sorter.getMainXsdPathOpt();
-    Validate.isTrue(mainXsdPathOpt.isPresent(), "Expected for SDK 1.6");
+    Validate.isTrue(mainXsdPathOpt.isPresent(), "Expected for SDK 1.7");
     final Path mainXsdPath = mainXsdPathOpt.get();
     final List<SAXParseException> exceptions = XsdValidator.validateXml(textReference, mainXsdPath);
     assertTrue(exceptions.isEmpty());
