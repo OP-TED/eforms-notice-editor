@@ -6,12 +6,10 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import org.apache.commons.lang3.Validate;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.sdk.SdkConstants;
@@ -24,8 +22,9 @@ import eu.europa.ted.eforms.sdk.SdkVersion;
 public class FieldsAndNodes {
 
   public static final String ND_ROOT = "ND-Root";
-  private static final String FIELD_ID_KEY = "id";
-  private static final String NODE_ID_KEY = "id";
+  public static final String FIELD_OR_NODE_ID_KEY = "id";
+  public static final String XPATH_RELATIVE = "xpathRelative";
+  public static final String XPATH_ABSOLUTE = "xpathAbsolute";
 
   public static final String XSD_SEQUENCE_ORDER_KEY = "xsdSequenceOrder"; // Since SDK 1.7
 
@@ -71,7 +70,7 @@ public class FieldsAndNodes {
       final JsonNode nodes = fieldsJsonRoot.get(SdkConstants.FIELDS_JSON_XML_STRUCTURE_KEY);
       final Map<String, JsonNode> nodesMap = new LinkedHashMap<>(256);
       for (final JsonNode node : nodes) {
-        nodesMap.put(node.get(NODE_ID_KEY).asText(), node);
+        nodesMap.put(node.get(FIELD_OR_NODE_ID_KEY).asText(), node);
       }
       this.nodeById = Collections.unmodifiableMap(nodesMap);
     }
@@ -81,7 +80,7 @@ public class FieldsAndNodes {
       final JsonNode fields = fieldsJsonRoot.get(SdkConstants.FIELDS_JSON_FIELDS_KEY);
       final Map<String, JsonNode> fieldsMap = new LinkedHashMap<>(1028);
       for (final JsonNode field : fields) {
-        fieldsMap.put(field.get(FIELD_ID_KEY).asText(), field);
+        fieldsMap.put(field.get(FIELD_OR_NODE_ID_KEY).asText(), field);
       }
       this.fieldById = Collections.unmodifiableMap(fieldsMap);
     }
@@ -115,13 +114,21 @@ public class FieldsAndNodes {
     return jsonNode;
   }
 
+  /**
+   * This can be used when working on common values like id, xpathRelative, ...
+   */
+  public JsonNode getFieldOrNodeById(final String fieldOrNodeId) {
+    return fieldOrNodeId.startsWith("ND-") ? getNodeById(fieldOrNodeId)
+        : getFieldById(fieldOrNodeId);
+  }
+
   public Map<String, List<JsonNode>> buildMapOfFieldOrNodeByParentNodeId() {
 
     final Map<String, List<JsonNode>> fieldOrNodeByParentNodeId = new HashMap<>(512);
 
     // BUILD SPECIAL TREE WHERE THE KEY IS THE PARENT (group by parent).
 
-    System.out.println("NODE BY ID");
+    // NODE BY ID.
     for (final JsonNode node : nodeById.values()) {
       final Optional<String> parentNodeIdOpt = JsonUtils.getTextOpt(node, NODE_PARENT_NODE_ID);
       if (parentNodeIdOpt.isPresent()) {
@@ -131,7 +138,7 @@ public class FieldsAndNodes {
       }
     }
 
-    System.out.println("FIELD BY ID");
+    // FIELD BY ID.
     for (final JsonNode field : fieldById.values()) {
       final Optional<String> parentNodeIdOpt = JsonUtils.getTextOpt(field, FIELD_PARENT_NODE_ID);
       if (parentNodeIdOpt.isPresent()) {
@@ -139,33 +146,6 @@ public class FieldsAndNodes {
         fieldOrNodeByParentNodeId.putIfAbsent(parentNodeId, new ArrayList<>());
         fieldOrNodeByParentNodeId.get(parentNodeId).add(field);
       }
-    }
-
-    // REORDER TREE ITEMS BY ORDER OF TOP LEVEL ELEMENT.
-
-    System.out.println(fieldOrNodeByParentNodeId.get("ND-EuEntity")); //
-
-    // TODO sort list items by sort order at the end
-    for (final Entry<String, List<JsonNode>> entry : fieldOrNodeByParentNodeId.entrySet()) {
-
-      // entry.getKey();
-
-      final List<JsonNode> items = entry.getValue();
-      for (final JsonNode item : items) {
-        final JsonNode arr = item.get(XSD_SEQUENCE_ORDER_KEY);
-        if (arr != null) {
-          final ArrayNode xsdSequenceOrder = (ArrayNode) arr;
-          // System.out.println(xsdSequenceOrder.get(0)); // XML element and position
-        }
-      }
-      // TODO reorder
-      // { "cac:CorporateRegistrationScheme" : 13 }
-      // { "cbc:CompanyID" : 3 }
-      // to
-      // { "cbc:CompanyID" : 3 }
-      // { "cac:CorporateRegistrationScheme" : 13 }
-
-      // ...
     }
 
     return fieldOrNodeByParentNodeId;

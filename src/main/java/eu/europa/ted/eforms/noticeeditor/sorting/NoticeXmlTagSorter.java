@@ -2,6 +2,10 @@ package eu.europa.ted.eforms.noticeeditor.sorting;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.xpath.XPath;
@@ -13,9 +17,11 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.DocumentTypeInfo;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
 import eu.europa.ted.eforms.noticeeditor.service.XmlWriteService;
+import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.noticeeditor.util.XmlUtils;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
@@ -117,51 +123,104 @@ public class NoticeXmlTagSorter {
     // type="BusinessRegistrationInformationNoticeType"/>
     //
 
-    // TODO
-
-    // We need to go from XML to field id or node id to get the "xsdSequenceOrder".
-    // 1. The best would be to mark the fields and nodes using extra attributes.
-    // 2. Find attribute, get field id or node id, get xsdSequenceOrder
-    // 3. Remove all the attributes later (unless debug).
-
-    sortElementRec(xmlRoot);
+    final JsonNode rootNode = this.fieldsAndNodes.getRootNode();
+    sortRecursive(xmlRoot, rootNode);
   }
 
-  public void sortElementRec(final Node xmlElement) {
+  /**
+   * @param xmlElement
+   * @param fieldOrNode Field or node corresponding to the
+   */
+  public void sortRecursive(final Element xmlElement, final JsonNode fieldOrNode) {
+    Validate.notNull(xmlElement);
+    Validate.notNull(fieldOrNode);
 
-    final JsonNode rootNode = this.fieldsAndNodes.getRootNode();
-    fieldsAndNodes.buildMapOfFieldOrNodeByParentNodeId();
+    final String id = JsonUtils.getTextStrict(fieldOrNode, FieldsAndNodes.FIELD_OR_NODE_ID_KEY);
+    final String xpathAbsolute =
+        JsonUtils.getTextStrict(fieldOrNode, FieldsAndNodes.XPATH_ABSOLUTE);
 
-    // Maybe start from ND-ROOT instead, get child nodes, search using xpath ...
-    // Each time you find XML elements, sort
+    final Map<String, List<JsonNode>> fieldOrNodeByParentNodeId =
+        fieldsAndNodes.buildMapOfFieldOrNodeByParentNodeId();
 
-    // TODO cannot get child nodes or fields here
-    // TODO enrich json with child nodes and child fields
-    // childNodes : ["ND-xyz", ...]
-    // childFields : ["BT-abc", ...]
+    // REORDER TREE ITEMS BY ORDER OF TOP LEVEL ELEMENT.
 
-    // "xpathRelative" : "cac:CorporateRegistrationScheme/cac:JurisdictionRegionAddress",
+    // All the fields or nodes found under the same parent.
+    // Example:
+    // id = "ND-BusinessParty" but in the xml it is "cac:BusinessParty"
+    // We want the XML child elements of "cac:BusinessParty" in the correct sequence order.
+    final List<JsonNode> childItems = fieldOrNodeByParentNodeId.get(id);
+    if (childItems == null) {
+      return; // Nothing to sort.
+    }
+    final List<OrderItem> orderItemsForParent = new ArrayList<>(childItems.size());
+    for (final JsonNode childItem : childItems) {
+      final String itemId = JsonUtils.getTextStrict(childItem, FieldsAndNodes.FIELD_OR_NODE_ID_KEY);
+      final JsonNode arr = childItem.get(FieldsAndNodes.XSD_SEQUENCE_ORDER_KEY);
+      if (arr != null) {
+        final ArrayNode xsdSequenceOrder = (ArrayNode) arr;
+        final JsonNode firstItem = xsdSequenceOrder.get(0);
+        final String key = firstItem.fieldNames().next();
+        final int order = firstItem.get(key).asInt();
+        final OrderItem orderItem = new OrderItem(itemId, key, order);
+        orderItemsForParent.add(orderItem);
+      }
+    }
+    // The order items are not ordered yet, they contain the order, and we naturally sort on it.
+    Collections.sort(orderItemsForParent);
 
-    // "xsdSequenceOrder" : [
-    // { "cac:CorporateRegistrationScheme" : 13 },
-    // {"cac:JurisdictionRegionAddress" : 5 }
-    // ],
+    // Find parent elements in the XML.
+    final List<Element> xmlParentElements =
+        XmlUtils.evaluateXpathAsElemList(xpathInst, xmlElement, xpathAbsolute, xpathAbsolute);
+    for (final Element xmlParentElement : xmlParentElements) {
 
-    // TODO recursive from root, find nodes using xpath, ...
-    // this.xpathInst.
+      // Find child elements relative to the parent context.
+      final Element xpathContext = xmlParentElement;
 
-    // final NodeList childNodes = xmlElement.getChildNodes();
-    // for (int i = 0; i < childNodes.getLength(); ++i) {
-    // final Node child = childNodes.item(i);
-    // if (Node.ELEMENT_NODE == child.getNodeType()) {
-    // // System.out.println(child.getNodeName());
-    // sortElementRec(child);
-    // }
-    // // Find xpath relative ??? works for root, what about intermediary nodes found in xpaths
-    // // xpathInst
-    // // Node.ATTRIBUTE_NODE
-    // // Node.COMMENT_NODE
-    // }
+      for (final OrderItem orderItem : orderItemsForParent) {
+        final String xpathExpr = orderItem.getXmlName();
+        final List<Element> elemsFoundByTag =
+            XmlUtils.evaluateXpathAsElemList(xpathInst, xpathContext, xpathExpr, xpathExpr);
+
+        // Reorder XML elements.
+        // Also note that XML attributes have no order.
+        for (final Element childElementsFound : elemsFoundByTag) {
+
+          // PRESERVE POSITION OF COMMENTS OR XML TEXTS NODES (formatting...).
+          // Find comments or text nodes above the element.
+          final List<Node> commentsOrTextsAbove = new ArrayList<>();
+          Node previousSibling = childElementsFound.getPreviousSibling();
+          while (previousSibling != null) {
+            if (previousSibling.getNodeType() == Node.TEXT_NODE) {
+              commentsOrTextsAbove.add(previousSibling);
+            } else if (previousSibling.getNodeType() == Node.COMMENT_NODE) {
+              commentsOrTextsAbove.add(previousSibling);
+            } else {
+              break;
+            }
+            previousSibling = previousSibling.getPreviousSibling();
+          }
+          Collections.reverse(commentsOrTextsAbove); // To keep the order.
+
+          for (final Node commentOrTextAbove : commentsOrTextsAbove) {
+            removeAndAppend(xpathContext, commentOrTextAbove);
+          }
+
+          // This sorts the xml elements by removing them and appending them back.
+          removeAndAppend(xpathContext, childElementsFound);
+        }
+      }
+    }
+
+    // THIS WILL NOT WORK FOR CASES HAVING PREDICATES IF ORDER MATTERS BY PREDICATE ???
+    // "xpathRelative" :
+    // "cac:ContractExecutionRequirement/cbc:ExecutionRequirementCode[@listName='ecatalog-submission']",
+    // "xsdSequenceOrder" : [ { "cac:ContractExecutionRequirement" : 38 }, {
+    // "cbc:ExecutionRequirementCode" : 3 } ],
+
+    // Continue on child items in the field and node hierarchy.
+    for (final JsonNode childItem : childItems) {
+      sortRecursive(xmlElement, childItem);
+    }
   }
 
   /**
