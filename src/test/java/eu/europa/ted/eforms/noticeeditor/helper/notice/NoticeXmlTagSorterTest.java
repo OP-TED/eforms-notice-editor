@@ -51,6 +51,10 @@ public class NoticeXmlTagSorterTest {
     // 7. Then it validates the sorted XML against the appropriate SDK XSD.
     //
 
+    // NOTE: There are some issues with formatting / identation after sorting compared to the
+    // reference. For the moment the test reference data is modified to avoid problems related to
+    // formatting or indentation as the focus is on the order of the elements.
+
     // The configured document builder is reusable.
     final DocumentBuilder builder = SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype(true);
 
@@ -106,7 +110,6 @@ public class NoticeXmlTagSorterTest {
     sorter.sortXml(docUnsorted);
 
     final String textUnsortedAfterSort = EditorXmlUtils.asText(docUnsorted, indentXml);
-
 
     // Ensure it is sorted by comparing to the reference example.
     if (!textReference.equals(textUnsortedAfterSort)) {

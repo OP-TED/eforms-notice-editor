@@ -405,7 +405,8 @@ public class CvsApiClient {
         // Complete XPath location of the element.
         final String diagnostic = diagnosticRef.getAttribute("diagnostic");
 
-        final String nodeId, fieldId;
+        final String nodeId;
+        final String fieldId;
         final int indexOfUnderscore = diagnostic.indexOf("_");
         if (indexOfUnderscore > 0) {
           nodeId = diagnostic.substring(0, indexOfUnderscore);

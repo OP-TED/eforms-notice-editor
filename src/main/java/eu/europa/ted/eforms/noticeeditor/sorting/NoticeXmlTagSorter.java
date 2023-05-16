@@ -38,7 +38,6 @@ public class NoticeXmlTagSorter {
 
   private static final String CBC_CUSTOMIZATION_ID = "cbc:CustomizationID";
 
-  private final DocumentBuilder docBuilder;
   private final DocumentTypeInfo docTypeInfo;
   private final Path sdkFolder;
   private final XPath xpathInst;
@@ -61,8 +60,6 @@ public class NoticeXmlTagSorter {
     Validate.notNull(xpathInst);
     Validate.notNull(docTypeInfo);
     Validate.notNull(sdkFolder);
-
-    this.docBuilder = docBuilder;
 
     // SDK specific.
     this.docTypeInfo = docTypeInfo;
@@ -125,6 +122,7 @@ public class NoticeXmlTagSorter {
 
     final JsonNode rootNode = this.fieldsAndNodes.getRootNode();
     sortRecursive(xmlRoot, rootNode);
+    // NOTE: we do not normalize the document, this can be done later if desired.
   }
 
   /**
@@ -213,7 +211,8 @@ public class NoticeXmlTagSorter {
 
     // THIS WILL NOT WORK FOR CASES HAVING PREDICATES IF ORDER MATTERS BY PREDICATE ???
     // "xpathRelative" :
-    // "cac:ContractExecutionRequirement/cbc:ExecutionRequirementCode[@listName='ecatalog-submission']",
+    // "cac:ContractExecutionRequirement
+    // /cbc:ExecutionRequirementCode[@listName='ecatalog-submission']",
     // "xsdSequenceOrder" : [ { "cac:ContractExecutionRequirement" : 38 }, {
     // "cbc:ExecutionRequirementCode" : 3 } ],
 
@@ -247,9 +246,5 @@ public class NoticeXmlTagSorter {
   private static void removeAndAppend(final Element elemParent, final Node elemToSort) {
     elemParent.removeChild(elemToSort); // Removes child from old location.
     elemParent.appendChild(elemToSort); // Appends child at the new location.
-  }
-
-  private Document buildDoc(final Path xsdPath) throws SAXException, IOException {
-    return docBuilder.parse(xsdPath.toFile());
   }
 }
