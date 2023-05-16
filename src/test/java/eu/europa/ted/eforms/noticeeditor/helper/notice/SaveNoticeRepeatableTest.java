@@ -144,6 +144,7 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_A, node);
+      node.put(KEY_NODE_ID, ND_A);
       node.put(KEY_NODE_PARENT_ID, ND_ROOT);
       node.put(KEY_XPATH_ABS, "/*/a");
       node.put(KEY_XPATH_REL, "a");
@@ -152,6 +153,7 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_B, node);
+      node.put(KEY_NODE_ID, ND_B);
       node.put(KEY_NODE_PARENT_ID, ND_ROOT);
       node.put(KEY_XPATH_ABS, "/*/a/b");
       node.put(KEY_XPATH_REL, "b");
@@ -172,6 +174,7 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     // Add a repeatable field to also cover field repeatability.
     final ObjectNode field = mapper.createObjectNode();
     fieldById.put(BT_FIELD_DUMMY_C_REP, field);
+    field.put(KEY_FIELD_ID, BT_FIELD_DUMMY_C_REP);
     field.put(KEY_PARENT_NODE_ID, ND_B);
     field.put(KEY_XPATH_ABS, "/*/a/b/c");
     field.put(KEY_XPATH_REL, "c");

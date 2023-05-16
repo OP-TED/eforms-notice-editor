@@ -112,6 +112,7 @@ public class SaveNoticeFillingTest extends SaveNoticeTest {
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_X, node);
+      node.put(KEY_NODE_ID, ND_X);
       node.put(KEY_NODE_PARENT_ID, ND_ROOT);
       node.put(KEY_XPATH_ABS, "/*/x");
       node.put(KEY_XPATH_REL, "x");
@@ -120,6 +121,7 @@ public class SaveNoticeFillingTest extends SaveNoticeTest {
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_Y, node);
+      node.put(KEY_NODE_ID, ND_Y);
       node.put(KEY_NODE_PARENT_ID, ND_X);
       node.put(KEY_XPATH_ABS, "/*/x/y");
       node.put(KEY_XPATH_REL, "y");
@@ -140,6 +142,7 @@ public class SaveNoticeFillingTest extends SaveNoticeTest {
     // Add a repeatable field to also cover field repeatability.
     final ObjectNode field = mapper.createObjectNode();
     fieldById.put(BT_FIELD_DUMMY_Z, field);
+    field.put(KEY_FIELD_ID, BT_FIELD_DUMMY_Z);
     field.put(KEY_PARENT_NODE_ID, ND_Y);
     field.put(KEY_XPATH_ABS, "/*/x/y/z");
     field.put(KEY_XPATH_REL, "z");

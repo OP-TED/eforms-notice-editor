@@ -167,6 +167,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_BUSINESS_PARTY, node);
+      node.put(KEY_NODE_ID, ND_BUSINESS_PARTY);
       node.put(KEY_NODE_PARENT_ID, ND_ROOT);
       node.put(KEY_XPATH_ABS, "/*/cac:BusinessParty");
       node.put(KEY_XPATH_REL, "cac:BusinessParty");
@@ -175,6 +176,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_LOCAL_ENTITY, node);
+      node.put(KEY_NODE_ID, ND_LOCAL_ENTITY);
       node.put(KEY_NODE_PARENT_ID, ND_BUSINESS_PARTY);
       node.put(KEY_XPATH_ABS,
           "/*/cac:BusinessParty/cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName = 'EU')]");
@@ -184,6 +186,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_EU_ENTITY, node);
+      node.put(KEY_NODE_ID, ND_EU_ENTITY);
       node.put(KEY_NODE_PARENT_ID, ND_BUSINESS_PARTY);
       node.put(KEY_XPATH_ABS,
           "/*/cac:BusinessParty/cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']");
@@ -193,6 +196,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_OPERATION_TYPE, node);
+      node.put(KEY_NODE_ID, ND_OPERATION_TYPE);
       node.put(KEY_NODE_PARENT_ID, ND_ROOT);
       node.put(KEY_XPATH_ABS, "/*/efac:NoticePurpose");
       node.put(KEY_XPATH_REL, "efac:NoticePurpose");
@@ -212,6 +216,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(BT_505_BUSINESS, field);
+      field.put(KEY_FIELD_ID, BT_505_BUSINESS);
       field.put(KEY_PARENT_NODE_ID, ND_BUSINESS_PARTY);
       field.put(KEY_XPATH_ABS, "/*/cac:BusinessParty/cbc:WebsiteURI");
       field.put(KEY_XPATH_REL, "cbc:WebsiteURI");
@@ -221,6 +226,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(BT_500_BUSINESS, field);
+      field.put(KEY_FIELD_ID, BT_500_BUSINESS);
       field.put(KEY_PARENT_NODE_ID, ND_LOCAL_ENTITY);
       field.put(KEY_XPATH_ABS,
           "/*/cac:BusinessParty/cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName = 'EU')]/cbc:RegistrationName");
@@ -231,6 +237,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(BT_501_BUSINESS_EUROPEAN, field);
+      field.put(KEY_FIELD_ID, BT_501_BUSINESS_EUROPEAN);
       field.put(KEY_PARENT_NODE_ID, ND_EU_ENTITY);
       field.put(KEY_XPATH_ABS,
           "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName = 'EU']/cbc:CompanyID[@schemeName = 'EU']");
@@ -241,6 +248,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(BT_501_BUSINESS_NATIONAL, field);
+      field.put(KEY_FIELD_ID, BT_501_BUSINESS_NATIONAL);
       field.put(KEY_PARENT_NODE_ID, ND_LOCAL_ENTITY);
       field.put(KEY_XPATH_ABS,
           "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[not(@schemeName = 'EU')]/cbc:CompanyID[not(@schemeName = 'EU')]");
@@ -251,6 +259,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(OPP_105_BUSINESS, field);
+      field.put(KEY_FIELD_ID, OPP_105_BUSINESS);
       field.put(KEY_PARENT_NODE_ID, ND_ROOT);
       field.put(KEY_XPATH_ABS, "/*/cac:BusinessCapability/cbc:CapabilityTypeCode");
       field.put(KEY_XPATH_REL, "cac:BusinessCapability/cbc:CapabilityTypeCode");
@@ -261,6 +270,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(OPP_100_BUSINESS, field);
+      field.put(KEY_FIELD_ID, OPP_100_BUSINESS);
       field.put(KEY_PARENT_NODE_ID, ND_OPERATION_TYPE);
       field.put(KEY_XPATH_ABS, "/*/efac:NoticePurpose/cbc:PurposeCode");
       field.put(KEY_XPATH_REL, "cbc:PurposeCode");
@@ -271,6 +281,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(OPP_113_BUSINESS_EUROPEAN, field);
+      field.put(KEY_FIELD_ID, OPP_113_BUSINESS_EUROPEAN);
       field.put(KEY_PARENT_NODE_ID, ND_EU_ENTITY);
       field.put(KEY_XPATH_ABS,
           "/*/cac:BusinessParty/cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']/cbc:RegistrationDate");

@@ -128,7 +128,7 @@ public class NoticeXmlTagSorter {
   }
 
   /**
-   * @param xmlElement
+   * @param xmlElement The XML element to sort
    * @param fieldOrNode Field or node corresponding to the
    */
   public void sortRecursive(final Element xmlElement, final JsonNode fieldOrNode) {

@@ -50,10 +50,12 @@ public abstract class SaveNoticeTest {
 
   static final String KEY_PARENT_NODE_ID = "parentNodeId";
   static final String KEY_NODE_PARENT_ID = "parentId";
+  static final String KEY_NODE_ID = "id";
 
   static final String KEY_XPATH_REL = "xpathRelative";
   static final String KEY_XPATH_ABS = "xpathAbsolute";
 
+  static final String KEY_FIELD_ID = "id";
   static final String KEY_FIELD_REPEATABLE = "repeatable";
   static final String KEY_NODE_REPEATABLE = "repeatable";
   static final String KEY_VALUE = FieldsAndNodes.VALUE;
@@ -95,6 +97,7 @@ public abstract class SaveNoticeTest {
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_ROOT, node);
+      node.put(KEY_NODE_ID, ND_ROOT);
       node.put(KEY_XPATH_ABS, "/*");
       node.put(KEY_XPATH_REL, "/*");
       SaveNoticeTest.fieldPutRepeatable(node, false);
@@ -102,6 +105,7 @@ public abstract class SaveNoticeTest {
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_ROOT_EXTENSION, node);
+      node.put(KEY_NODE_ID, ND_ROOT_EXTENSION);
       node.put(KEY_NODE_PARENT_ID, ND_ROOT);
       node.put(KEY_XPATH_ABS,
           "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension");
@@ -124,6 +128,7 @@ public abstract class SaveNoticeTest {
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(ConceptualModel.FIELD_ID_SDK_VERSION, field);
+      field.put(KEY_FIELD_ID, ConceptualModel.FIELD_ID_SDK_VERSION);
       field.put(KEY_PARENT_NODE_ID, ND_ROOT);
       field.put(KEY_XPATH_ABS, "/*/cbc:CustomizationID");
       field.put(KEY_XPATH_REL, "cbc:CustomizationID");
@@ -133,6 +138,7 @@ public abstract class SaveNoticeTest {
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE, field);
+      field.put(KEY_FIELD_ID, ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE);
       field.put(KEY_PARENT_NODE_ID, ND_ROOT_EXTENSION);
       field.put(KEY_XPATH_ABS,
           "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension/efac:NoticeSubType/cbc:SubTypeCode");
@@ -144,6 +150,7 @@ public abstract class SaveNoticeTest {
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(ConceptualModel.FIELD_NOTICE_ID, field);
+      field.put(KEY_FIELD_ID, ConceptualModel.FIELD_NOTICE_ID);
       field.put(KEY_PARENT_NODE_ID, ND_ROOT);
       field.put(KEY_XPATH_ABS, "/*/cbc:ID[@schemeName='notice-id']");
       field.put(KEY_XPATH_REL, "cbc:ID[@schemeName='notice-id']");

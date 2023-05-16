@@ -69,7 +69,7 @@ public class JsonUtils {
   public static String getTextStrict(final JsonNode json, final String key) {
     final JsonNode jsonElem = checkKeyAndElemNotNull(json, key);
     final String text = jsonElem.asText(null);
-    Validate.notBlank(text, "Text is blank for key=%s", key);
+    Validate.notBlank(text, "Text is blank for key=%s, json=%s", key, json);
     return text;
   }
 
@@ -96,15 +96,15 @@ public class JsonUtils {
   }
 
   private static JsonNode checkKeyAndElemNotNull(final JsonNode json, final String key) {
-    Validate.notNull(json, "Elem is null for key=%s", key);
+    Validate.notNull(json, "Elem is null for key=%s, json=%s", key, json);
 
     final JsonNode jsonElem = json.get(key);
-    Validate.notNull(jsonElem, "Not found for key=%s", key);
+    Validate.notNull(jsonElem, "Not found for key=%s, json=%s", key, json);
     return jsonElem;
   }
 
   public static Optional<String> getTextOpt(final JsonNode json, final String key) {
-    Validate.notNull(json, "Elem is null for key=%s", key);
+    Validate.notNull(json, "Elem is null for key=%s, json=%s", key, json);
     final JsonNode jsonElem = json.get(key);
     if (jsonElem == null) {
       return Optional.empty();
