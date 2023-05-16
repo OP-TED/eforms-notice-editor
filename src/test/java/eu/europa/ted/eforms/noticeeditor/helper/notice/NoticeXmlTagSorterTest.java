@@ -55,7 +55,7 @@ public class NoticeXmlTagSorterTest {
     final DocumentBuilder builder = SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype(true);
 
     // Get document type info from the SDK. It contains information about XML namespaces.
-    final SdkVersion sdkVersion = new SdkVersion("1.7.0");
+    final SdkVersion sdkVersion = new SdkVersion("1.8.0");
     final DocumentTypeInfo docTypeInfo = DummySdk.getDummyBrinDocTypeInfo(sdkVersion);
 
     // The xpath instance namespace aware and reusable.
@@ -84,7 +84,7 @@ public class NoticeXmlTagSorterTest {
 
     // VALIDATE THE REFERENCE.
     final Optional<Path> mainXsdPathOpt = sorter.getMainXsdPathOpt();
-    Validate.isTrue(mainXsdPathOpt.isPresent(), "Expected for SDK 1.7");
+    Validate.isTrue(mainXsdPathOpt.isPresent(), "Expected for SDK 1.8");
     final Path mainXsdPath = mainXsdPathOpt.get();
     final List<SAXParseException> exceptions = XsdValidator.validateXml(textReference, mainXsdPath);
     assertTrue(exceptions.isEmpty());
@@ -107,8 +107,11 @@ public class NoticeXmlTagSorterTest {
 
     final String textUnsortedAfterSort = EditorXmlUtils.asText(docUnsorted, indentXml);
 
+
     // Ensure it is sorted by comparing to the reference example.
     if (!textReference.equals(textUnsortedAfterSort)) {
+      logger.info("Reference length: {}", textReference.length());
+      logger.info("Output    length: {}", textUnsortedAfterSort.length());
       // Show diff for debugging convenience.
       logger.info(textUnsortedAfterSort);
       logger.info("");

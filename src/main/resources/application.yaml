@@ -21,7 +21,7 @@ eforms:
     path: eforms-sdk
 
     # Comma-separated list of the supported major versions of eForms SDK
-    versions: 1.6
+    versions: 1.6, 1.7
 
 
 proxy:
