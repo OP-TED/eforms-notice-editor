@@ -121,31 +121,31 @@ public class NoticeXmlTagSorter {
     //
 
     final JsonNode rootNode = this.fieldsAndNodes.getRootNode();
-    sortRecursive(xmlRoot, rootNode);
+
+    final Map<String, List<JsonNode>> fieldOrNodeByParentNodeId =
+        fieldsAndNodes.buildMapOfFieldOrNodeByParentNodeId();
+
+    sortRecursive(xmlRoot, rootNode, fieldOrNodeByParentNodeId);
     // NOTE: we do not normalize the document, this can be done later if desired.
   }
 
   /**
-   * @param xmlElement The XML element to sort
-   * @param fieldOrNode Field or node corresponding to the
+   * @param xmlRootElem The XML root element to sort (physical model)
+   * @param fieldOrNode Field or node (conceptual model), initially the root node
    */
-  public void sortRecursive(final Element xmlElement, final JsonNode fieldOrNode) {
-    Validate.notNull(xmlElement);
+  public void sortRecursive(final Element xmlRootElem, final JsonNode fieldOrNode,
+      final Map<String, List<JsonNode>> fieldOrNodeByParentNodeId) {
+    Validate.notNull(xmlRootElem);
     Validate.notNull(fieldOrNode);
 
     final String id = JsonUtils.getTextStrict(fieldOrNode, FieldsAndNodes.FIELD_OR_NODE_ID_KEY);
     final String xpathAbsolute =
         JsonUtils.getTextStrict(fieldOrNode, FieldsAndNodes.XPATH_ABSOLUTE);
 
-    final Map<String, List<JsonNode>> fieldOrNodeByParentNodeId =
-        fieldsAndNodes.buildMapOfFieldOrNodeByParentNodeId();
-
-    // REORDER TREE ITEMS BY ORDER OF TOP LEVEL ELEMENT.
-
     // All the fields or nodes found under the same parent.
     // Example:
-    // id = "ND-BusinessParty" but in the xml it is "cac:BusinessParty"
-    // We want the XML child elements of "cac:BusinessParty" in the correct sequence order.
+    // id = "ND-BusinessParty" but in the XML it is "cac:BusinessParty"
+    // We want the XML child elements of "cac:BusinessParty" in the correct xsd sequence order.
     final List<JsonNode> childItems = fieldOrNodeByParentNodeId.get(id);
     if (childItems == null) {
       return; // Nothing to sort.
@@ -154,6 +154,7 @@ public class NoticeXmlTagSorter {
     for (final JsonNode childItem : childItems) {
       final String itemId = JsonUtils.getTextStrict(childItem, FieldsAndNodes.FIELD_OR_NODE_ID_KEY);
       final JsonNode arr = childItem.get(FieldsAndNodes.XSD_SEQUENCE_ORDER_KEY);
+      // The sort order is missing for the root node, it can also be missing in older SDK versions.
       if (arr != null) {
         final ArrayNode xsdSequenceOrder = (ArrayNode) arr;
         final JsonNode firstItem = xsdSequenceOrder.get(0);
@@ -161,32 +162,55 @@ public class NoticeXmlTagSorter {
         final int order = firstItem.get(key).asInt();
         final OrderItem orderItem = new OrderItem(itemId, key, order);
         orderItemsForParent.add(orderItem);
+      } else {
+        logger.info("parentId={}, itemId={} has no {}", id, itemId,
+            FieldsAndNodes.XSD_SEQUENCE_ORDER_KEY);
+        // throw new RuntimeException(
+        // String.format("%s is not supported in used SDK version! fieldOrNodeId=%s",
+        // FieldsAndNodes.XSD_SEQUENCE_ORDER_KEY, id));
       }
     }
     // The order items are not ordered yet, they contain the order, and we naturally sort on it.
     Collections.sort(orderItemsForParent);
 
+    //
     // Find parent elements in the XML.
+    //
     final List<Element> xmlParentElements =
-        XmlUtils.evaluateXpathAsElemList(xpathInst, xmlElement, xpathAbsolute, xpathAbsolute);
+        XmlUtils.evaluateXpathAsElemList(xpathInst, xmlRootElem, xpathAbsolute, xpathAbsolute);
+
     for (final Element xmlParentElement : xmlParentElements) {
 
       // Find child elements relative to the parent context.
       final Element xpathContext = xmlParentElement;
 
       for (final OrderItem orderItem : orderItemsForParent) {
+
+        // THIS WILL NOT WORK FOR CASES HAVING PREDICATES IF ORDER MATTERS BY PREDICATE ???
+        // cac:Attachment[../cbc:DocumentType/text()='restricted-document']
+        // /cac:ExternalReference
+        // /cbc:URI",
+        //
+        // "xsdSequenceOrder" : [
+        // { "cac:Attachment" : 16 },
+        // { "cac:ExternalReference" : 4 },
+        // { "cbc:URI" : 2 }
+        // ]
+        // We still need to parse the relative xpath
         final String xpathExpr = orderItem.getXmlName();
-        final List<Element> elemsFoundByTag =
+
+
+        final List<Element> foundChildElements =
             XmlUtils.evaluateXpathAsElemList(xpathInst, xpathContext, xpathExpr, xpathExpr);
 
         // Reorder XML elements.
         // Also note that XML attributes have no order.
-        for (final Element childElementsFound : elemsFoundByTag) {
+        for (final Element foundChildElement : foundChildElements) {
 
           // PRESERVE POSITION OF COMMENTS OR XML TEXTS NODES (formatting...).
           // Find comments or text nodes above the element.
           final List<Node> commentsOrTextsAbove = new ArrayList<>();
-          Node previousSibling = childElementsFound.getPreviousSibling();
+          Node previousSibling = foundChildElement.getPreviousSibling();
           while (previousSibling != null) {
             if (previousSibling.getNodeType() == Node.TEXT_NODE) {
               commentsOrTextsAbove.add(previousSibling);
@@ -204,21 +228,14 @@ public class NoticeXmlTagSorter {
           }
 
           // This sorts the xml elements by removing them and appending them back.
-          removeAndAppend(xpathContext, childElementsFound);
+          removeAndAppend(xpathContext, foundChildElement);
         }
       }
     }
 
-    // THIS WILL NOT WORK FOR CASES HAVING PREDICATES IF ORDER MATTERS BY PREDICATE ???
-    // "xpathRelative" :
-    // "cac:ContractExecutionRequirement
-    // /cbc:ExecutionRequirementCode[@listName='ecatalog-submission']",
-    // "xsdSequenceOrder" : [ { "cac:ContractExecutionRequirement" : 38 }, {
-    // "cbc:ExecutionRequirementCode" : 3 } ],
-
     // Continue on child items in the field and node hierarchy.
     for (final JsonNode childItem : childItems) {
-      sortRecursive(xmlElement, childItem);
+      sortRecursive(xmlRootElem, childItem, fieldOrNodeByParentNodeId);
     }
   }
 
