@@ -24,6 +24,8 @@ import eu.europa.ted.eforms.noticeeditor.helper.validation.XsdValidator;
 import eu.europa.ted.eforms.noticeeditor.service.XmlWriteService;
 import eu.europa.ted.eforms.noticeeditor.sorting.NoticeXmlTagSorter;
 import eu.europa.ted.eforms.noticeeditor.util.EditorXmlUtils;
+import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
+import eu.europa.ted.eforms.noticeeditor.util.XmlUtils;
 import eu.europa.ted.eforms.noticeeditor.util.XpathUtils;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
@@ -32,11 +34,16 @@ public class NoticeXmlTagSorterTest {
 
   private static final Logger logger = LoggerFactory.getLogger(NoticeXmlTagSorterTest.class);
 
+  /**
+   * NOTE: just changing this is not enough, the dummy examples must also be adapted in some cases.
+   */
+  private static final SdkVersion SDK_VERSION = new SdkVersion("1.8.0");
+
   @Autowired
   private XmlWriteService xmlWriteService;
 
   @Test
-  public void testXmlSortingAndValidate()
+  public void testXmlSortingAndValidateSmallXml()
       throws IOException, ParserConfigurationException, SAXException {
 
     //
@@ -59,7 +66,7 @@ public class NoticeXmlTagSorterTest {
     final DocumentBuilder builder = SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype(true);
 
     // Get document type info from the SDK. It contains information about XML namespaces.
-    final SdkVersion sdkVersion = new SdkVersion("1.8.0");
+    final SdkVersion sdkVersion = SDK_VERSION;
     final DocumentTypeInfo docTypeInfo = DummySdk.getDummyBrinDocTypeInfo(sdkVersion);
 
     // The xpath instance namespace aware and reusable.
@@ -75,11 +82,100 @@ public class NoticeXmlTagSorterTest {
     final NoticeXmlTagSorter sorter = new NoticeXmlTagSorter(builder, xpathInst, docTypeInfo,
         pathToSpecificSdk, fieldsAndNodes);
 
-    sortAndCompare(docUnsorted1, docReference, sorter);
+    sortAndCompare(docUnsorted1, docReference, sorter, true);
+  }
+
+  @Test
+  public void testXmlSortingAndValidateLargeXml()
+      throws IOException, ParserConfigurationException, SAXException {
+
+    // The configured document builder is reusable.
+    final DocumentBuilder builder = SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype(true);
+
+    // Get document type info from the SDK. It contains information about XML namespaces.
+    final SdkVersion sdkVersion = SDK_VERSION;
+    final DocumentTypeInfo docTypeInfo = DummySdk.getDummyBrinDocTypeInfo(sdkVersion);
+
+    // The xpath instance namespace aware and reusable.
+    final XPath xpathInst = XpathUtils.setupXpathInst(docTypeInfo, Optional.empty());
+
+    final FieldsAndNodes fieldsAndNodes = xmlWriteService.readFieldsAndNodes(sdkVersion);
+
+    final Document docReference = DummySdk.getDummyCan24MaximalReference(builder, sdkVersion);
+    XmlUtils.removeXmlComments(xpathInst, docReference);
+
+    // Get it again, we will sort it and compare to the reference later.
+    final Document docUnsorted1 = DummySdk.getDummyCan24MaximalReference(builder, sdkVersion);
+    XmlUtils.removeXmlComments(xpathInst, docUnsorted1);
+
+    // We get this:
+    // <efac:SubcontractingTerm>
+    // <efbc:TermAmount currencyID="EUR">99999999.99</efbc:TermAmount>
+    // <efbc:TermDescription languageID="ENG">Subcontracting Description ---</efbc:TermDescription>
+    // <efbc:TermPercent>30</efbc:TermPercent>
+    // <efbc:PercentageKnownIndicator>true</efbc:PercentageKnownIndicator>
+    // <efbc:ValueKnownIndicator>true</efbc:ValueKnownIndicator>
+    // <efbc:TermCode listName="applicability">yes</efbc:TermCode>
+    // </efac:SubcontractingTerm>
+
+    // But we want:
+    // <efac:SubcontractingTerm>
+    // <efbc:TermAmount currencyID="EUR">99999999.99</efbc:TermAmount>
+    // <efbc:TermDescription languageID="ENG">Subcontracting Description ---</efbc:TermDescription>
+    // <efbc:TermPercent>30</efbc:TermPercent>
+    // <efbc:TermCode listName="applicability">yes</efbc:TermCode>
+    // <efbc:PercentageKnownIndicator>true</efbc:PercentageKnownIndicator>
+    // <efbc:ValueKnownIndicator>true</efbc:ValueKnownIndicator>
+    // </efac:SubcontractingTerm>
+
+    // CAUSE could be same kind of node, but one has a predicate: (also see BT-773-Tender)
+    // {
+    // "id" : "ND-SubcontractedActivity",
+    // "parentId" : "ND-LotTender",
+    // "xpathAbsolute" :
+    // "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension/efac:NoticeResult/efac:LotTender/efac:SubcontractingTerm",
+    // "xpathRelative" : "efac:SubcontractingTerm",
+    // "xsdSequenceOrder" : [ { "efac:SubcontractingTerm" : 12 } ],
+    // "repeatable" : false
+    // }, {
+    // "id" : "ND-SubcontractedContract",
+    // "parentId" : "ND-LotTender",
+    // "xpathAbsolute" :
+    // "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension/efac:NoticeResult/efac:LotTender/efac:SubcontractingTerm[efbc:TermCode/@listName='applicability']",
+    // "xpathRelative" : "efac:SubcontractingTerm[efbc:TermCode/@listName='applicability']",
+    // "xsdSequenceOrder" : [ { "efac:SubcontractingTerm" : 12 } ],
+    // "repeatable" : false
+    // }
+
+    // 17:52:05.617 [main] DEBUG e.e.t.e.n.sorting.NoticeXmlTagSorter -
+    // orderItemsForParent=[OrderItem [fieldOrNodeId=BT-773-Tender, xmlName=efbc:TermCode, order=5]]
+    // Order is correct but
+
+    // final JsonNode node = fieldsAndNodes.getNodeById("ND-LotsGroupAwardingTerms");
+    // Validate.notNull(node);
+    // final String xpathAbsolute = JsonUtils.getTextStrict(node, FieldsAndNodes.XPATH_ABSOLUTE);
+    // final List<Element> items =
+    // XmlUtils.evaluateXpathAsElemList(xpathInst, docUnsorted1, xpathAbsolute, xpathAbsolute);
+    // Validate.notEmpty(items);
+    // final Node parent = items.get(0).getParentNode();
+    // Validate.notNull(parent);
+    // final NodeList childNodes = parent.getChildNodes();
+    // for (Element element : items) {
+    // System.out.println(element.getTagName());
+    // }
+    // TODO shuffle some order.
+    // parent.appendChild(parent)
+
+    // SORT.
+    final Path pathToSpecificSdk = DummySdk.buildDummySdkPath(sdkVersion);
+    final NoticeXmlTagSorter sorter = new NoticeXmlTagSorter(builder, xpathInst, docTypeInfo,
+        pathToSpecificSdk, fieldsAndNodes);
+
+    sortAndCompare(docUnsorted1, docReference, sorter, false);
   }
 
   private static void sortAndCompare(final Document docUnsorted, final Document docReference,
-      final NoticeXmlTagSorter sorter) throws SAXException, IOException {
+      final NoticeXmlTagSorter sorter, final boolean validate) throws SAXException, IOException {
 
     // Indentation is not required technically speaking but it is much nicer in case of problems.
     final boolean indentXml = true;
@@ -90,17 +186,23 @@ public class NoticeXmlTagSorterTest {
     final Optional<Path> mainXsdPathOpt = sorter.getMainXsdPathOpt();
     Validate.isTrue(mainXsdPathOpt.isPresent(), "Expected for SDK 1.8");
     final Path mainXsdPath = mainXsdPathOpt.get();
-    final List<SAXParseException> exceptions = XsdValidator.validateXml(textReference, mainXsdPath);
-    assertTrue(exceptions.isEmpty());
+
+    if (validate) {
+      final List<SAXParseException> exceptions =
+          XsdValidator.validateXml(textReference, mainXsdPath);
+      assertTrue(exceptions.isEmpty());
+    }
 
     final String textBeforeSorting = EditorXmlUtils.asText(docUnsorted, indentXml);
-    try {
-      // Ensure it would fail if it was not sorted.
-      final List<SAXParseException> exceptions2 =
-          XsdValidator.validateXml(textBeforeSorting, mainXsdPath);
-      assertTrue(!exceptions2.isEmpty());
-    } catch (@SuppressWarnings("unused") Exception ex) {
-      //
+    if (validate) {
+      try {
+        // Ensure it would fail if it was not sorted.
+        final List<SAXParseException> exceptions2 =
+            XsdValidator.validateXml(textBeforeSorting, mainXsdPath);
+        assertTrue(!exceptions2.isEmpty());
+      } catch (@SuppressWarnings("unused") Exception ex) {
+        //
+      }
     }
 
     // Sort it.
@@ -117,18 +219,25 @@ public class NoticeXmlTagSorterTest {
       logger.info("Output    length: {}", textUnsortedAfterSort.length());
       // Show diff for debugging convenience.
       logger.info(textUnsortedAfterSort);
+
       logger.info("");
       logger.info("DIFFERENCE: ");
       // logger.info(StringUtils.difference(textUnsortedAfterSort, textPreSorted));
       logger.info(StringUtils.difference(textReference, textUnsortedAfterSort));
+
+      // Write both files to target as this allows to quickly diff them (in the IDE for example).
+      JavaTools.writeTextFile(Path.of("target", "dummy-1-reference.xml"), textReference);
+      JavaTools.writeTextFile(Path.of("target", "dummy-2-after-sort.xml"), textUnsortedAfterSort);
     }
     assertEquals(textReference, textUnsortedAfterSort);
 
     // VALIDATE after sorting.
-    final List<SAXParseException> exceptions3 =
-        XsdValidator.validateXml(textUnsortedAfterSort, mainXsdPath);
-    assertTrue(exceptions3.isEmpty());
-    logger.info("Validated notice XML using XSD.");
+    if (validate) {
+      final List<SAXParseException> exceptions3 =
+          XsdValidator.validateXml(textUnsortedAfterSort, mainXsdPath);
+      assertTrue(exceptions3.isEmpty());
+      logger.info("Validated notice XML using XSD.");
+    }
   }
 
 }

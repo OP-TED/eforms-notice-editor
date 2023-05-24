@@ -152,7 +152,10 @@ public class NoticeXmlTagSorter {
     }
     final List<OrderItem> orderItemsForParent = new ArrayList<>(childItems.size());
     for (final JsonNode childItem : childItems) {
-      final String itemId = JsonUtils.getTextStrict(childItem, FieldsAndNodes.FIELD_OR_NODE_ID_KEY);
+
+      final String fieldOrNodeId =
+          JsonUtils.getTextStrict(childItem, FieldsAndNodes.FIELD_OR_NODE_ID_KEY);
+
       final JsonNode arr = childItem.get(FieldsAndNodes.XSD_SEQUENCE_ORDER_KEY);
       // The sort order is missing for the root node, it can also be missing in older SDK versions.
       if (arr != null) {
@@ -160,10 +163,10 @@ public class NoticeXmlTagSorter {
         final JsonNode firstItem = xsdSequenceOrder.get(0);
         final String key = firstItem.fieldNames().next();
         final int order = firstItem.get(key).asInt();
-        final OrderItem orderItem = new OrderItem(itemId, key, order);
+        final OrderItem orderItem = new OrderItem(fieldOrNodeId, key, order);
         orderItemsForParent.add(orderItem);
       } else {
-        logger.info("parentId={}, itemId={} has no {}", id, itemId,
+        logger.info("parentId={}, itemId={} has no {}", id, fieldOrNodeId,
             FieldsAndNodes.XSD_SEQUENCE_ORDER_KEY);
         // throw new RuntimeException(
         // String.format("%s is not supported in used SDK version! fieldOrNodeId=%s",
@@ -172,6 +175,7 @@ public class NoticeXmlTagSorter {
     }
     // The order items are not ordered yet, they contain the order, and we naturally sort on it.
     Collections.sort(orderItemsForParent);
+    logger.debug("orderItemsForParent=" + orderItemsForParent);
 
     //
     // Find parent elements in the XML.
@@ -199,6 +203,9 @@ public class NoticeXmlTagSorter {
         // We still need to parse the relative xpath
         final String xpathExpr = orderItem.getXmlName();
 
+        // TODO split xpath relative of children "/abc[xyz]"
+        // order only provides "abc"
+        // map index to order
 
         final List<Element> foundChildElements =
             XmlUtils.evaluateXpathAsElemList(xpathInst, xpathContext, xpathExpr, xpathExpr);

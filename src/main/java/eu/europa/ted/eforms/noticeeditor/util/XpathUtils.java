@@ -80,4 +80,33 @@ public class XpathUtils {
     }
   }
 
+  /**
+   * @param xpath A valid xpath string but it should not start with / except if it is just the root
+   *        "/*", example "efbc:ParameterCode[@listName='number-threshold']"
+   * @return The xpath string split by slash but with predicates ignored
+   */
+  public static String[] getXpathPartsWithoutPredicates(final String xpath) {
+    Validate.notBlank(xpath, "xpath is blank");
+    if ("/*".equals(xpath)) {
+      return new String[] {"/*"};
+    }
+    Validate.isTrue(!xpath.startsWith("/"));
+    final StringBuilder sb = new StringBuilder(xpath.length());
+    int stacked = 0;
+    for (int i = 0; i < xpath.length(); i++) {
+      final char ch = xpath.charAt(i);
+      if (ch == '[') {
+        stacked++;
+      }
+      if (stacked == 0) {
+        sb.append(ch);
+      }
+      if (ch == ']') {
+        stacked--;
+        Validate.isTrue(stacked >= 0, "stacked is < 0 for %s", xpath);
+      }
+    }
+    return sb.toString().split("/");
+  }
 }
+
