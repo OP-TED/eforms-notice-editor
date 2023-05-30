@@ -4,20 +4,60 @@ This is a demo application which can create and edit notices (basic).
 For creation it reads eForms SDK notice type files (json).
 For edition it reads a notice file (xml) and the corresponding notice type file (json).
 
+## Building
+
+The following are required to build the application:
+
+* Java 11 or higher
+* Apache Maven 3.8 or later (other versions probably work, but they have not been tested)
+
+In order to be able to use snapshot versions of dependencies, the following should be added to the "profiles" section of the Maven configuration file "settings.xml" (normally under ${HOME}/.m2):
+
+```
+<profile>
+  <id>repositories</id>
+  <activation>
+    <activeByDefault>true</activeByDefault>
+  </activation>
+  <repositories>
+    <repository>
+      <id>ossrh</id>
+      <name>OSSRH Snapshots</name>
+      <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
+</profile>
+```
+
+See "settings.xml.sample".
+
+To build the application, open a terminal window and navigate to the root folder of this project. Then, execute the following command:
+
+```
+mvn clean install
+```
+
+This command will compile the source code, run the tests, and package the application into a JAR file. The JAR file will be located in the target folder.
+
+If you need to force an update of any snapshots, you can add the -U flag to the command:
+
+```
+mvn clean install -U
+```
+
+This will force Maven to update any snapshots that are used as dependencies in the project.
+
 ## Run server
 
-You need the eForms Core Library: 
+This application is Jetty based (a bit like Tomcat but self contained, you could easily switch to Tomcat).
 
-https://github.com/OP-TED/eforms-core-java
-
-`mvn clean install` in the core library project.
-
-After this also install the editor demo:
-
-`mvn clean install`
-
-This is Jetty based (a bit like Tomcat but self contained, you could easily switch to Tomcat).
-We recommend you avoid running the project via mvn, from the `target` folder, example use:
+Start the server by executing the following:
 
 ```
 java -jar notice-editor-demo-0.0.1-SNAPSHOT.jar
