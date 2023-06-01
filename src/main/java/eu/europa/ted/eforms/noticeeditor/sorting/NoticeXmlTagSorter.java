@@ -3,9 +3,12 @@ package eu.europa.ted.eforms.noticeeditor.sorting;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.xpath.XPath;
@@ -23,6 +26,7 @@ import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
 import eu.europa.ted.eforms.noticeeditor.service.XmlWriteService;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.noticeeditor.util.XmlUtils;
+import eu.europa.ted.eforms.noticeeditor.util.XpathUtils;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
@@ -109,29 +113,96 @@ public class NoticeXmlTagSorter {
         xmlRoot.getTagName());
     logger.info("XML uri={}", xmlRoot.getOwnerDocument().getBaseURI());
 
-    // The used map does not need to be a LinkedHashMap but it helps to see in which order the
-    // entries have been added during when debugging (root first, ...).
-    // final Map<String, List<String>> elemOrderByXsdElemType = new LinkedHashMap<>(128);
-    // final Map<String, String> xsdElemTypeByXsdElemName = new LinkedHashMap<>(256);
-
-    //
-    // Example:
-    // <xsd:element name="BusinessRegistrationInformationNotice"
-    // type="BusinessRegistrationInformationNoticeType"/>
-    //
-
+    // Start from root node.
     final JsonNode rootNode = this.fieldsAndNodes.getRootNode();
 
     final Map<String, List<JsonNode>> fieldOrNodeByParentNodeId =
         fieldsAndNodes.buildMapOfFieldOrNodeByParentNodeId();
 
+    //
+    // HOW TO HANDLE SUCH A SPECIAL CASE.
+    //
+    //
+    // {
+    // "id" : "ND-SubcontractedActivity",
+    // "parentId" : "ND-LotTender",
+    // "xpathRelative" : "efac:SubcontractingTerm",
+    // }, {
+    // "id" : "ND-SubcontractedContract",
+    // "parentId" : "ND-LotTender",
+    // "xpathRelative" : "efac:SubcontractingTerm[efbc:TermCode/@listName='applicability']",
+    // }
+    // This is problematic for my algorithm, two nodes lead to the same xml element
+    // The predicate in the parent element is about the child item ...
+    //
+    final List<JsonNode> listSubcontractedActivity =
+        fieldOrNodeByParentNodeId.get("ND-SubcontractedActivity");
+    if (listSubcontractedActivity != null) {
+      final List<JsonNode> listSubcontractedContract =
+          fieldOrNodeByParentNodeId.get("ND-SubcontractedContract");
+      if (listSubcontractedContract != null) {
+        // The context of ND-SubcontractedActivity is broader than for ND-SubcontractedContract.
+        // We want to group them.
+        listSubcontractedActivity.addAll(listSubcontractedContract);
+        listSubcontractedContract.clear();
+      }
+    }
+
+    logSpecialCases(fieldOrNodeByParentNodeId);
+    // ND-CountryOriginUnpublish has same element as other nodeId=ND-LotTenderOriginCountry
+    // ND-SubcontractedActivity has same element as other nodeId=ND-SubcontractedContract
+    // ND-LotAwardCriterionParameter has same element as other
+    // nodeId=ND-LotAwardCriterionNumberFixUnpublish
+    // ND-SubcontractTerms has same element as other nodeId=ND-AllowedSubcontracting
+    // ND-SubcontractingObligation has same element as other nodeId=ND-SubcontractTerms
+    // ND-LotsGroupAwardCriterionParameter has same element as other
+    // nodeId=ND-LotsGroupAwardCriterionNumberThresholdUnpublish|
+
     sortRecursive(xmlRoot, rootNode, fieldOrNodeByParentNodeId);
     // NOTE: we do not normalize the document, this can be done later if desired.
   }
 
+  private void logSpecialCases(final Map<String, List<JsonNode>> fieldOrNodeByParentNodeId) {
+    final Map<String, JsonNode> map = new HashMap<>();
+    for (final Entry<String, List<JsonNode>> entry : fieldOrNodeByParentNodeId.entrySet()) {
+      final String nodeId = entry.getKey();
+      if (nodeId.equals(FieldsAndNodes.ND_ROOT)) {
+        continue;
+      }
+      final JsonNode node = fieldsAndNodes.getNodeById(nodeId);
+      final String parentNodeId = JsonUtils.getTextStrict(node, FieldsAndNodes.NODE_PARENT_NODE_ID);
+
+      final String xpathRel = JsonUtils.getTextStrict(node, FieldsAndNodes.XPATH_RELATIVE);
+      final List<String> xpathList =
+          Arrays.asList(XpathUtils.getXpathPartsWithoutPredicates(xpathRel));
+      final String xpathRelWithoutPredicate = xpathList.get(0);
+      if (map.containsKey(xpathRelWithoutPredicate)) {
+        final JsonNode nodeOther = map.get(xpathRelWithoutPredicate);
+
+        final String nodeIdOther =
+            JsonUtils.getTextStrict(nodeOther, FieldsAndNodes.FIELD_OR_NODE_ID_KEY);
+
+        final String parentNodeIdOther =
+            JsonUtils.getTextStrict(nodeOther, FieldsAndNodes.NODE_PARENT_NODE_ID);
+
+        final String otherXpathRel =
+            JsonUtils.getTextStrict(nodeOther, FieldsAndNodes.XPATH_RELATIVE);
+
+        if (parentNodeId.equals(parentNodeIdOther) && !nodeId.equals(nodeIdOther)
+            && (otherXpathRel.startsWith(xpathRel) || xpathRel.startsWith(otherXpathRel))) {
+          logger.warn(String.format("{} has same element as other nodeId={}", nodeId, nodeIdOther));
+        }
+      }
+
+      map.put(xpathRelWithoutPredicate, node);
+    }
+  }
+
   /**
-   * @param xmlRootElem The XML root element to sort (physical model)
+   * @param xmlRootElem The XML root element to sort (physical model), children of this element will
+   *        be sorted
    * @param fieldOrNode Field or node (conceptual model), initially the root node
+   * @param fieldOrNodeByParentNodeId List of fields or nodes by parent node id
    */
   public void sortRecursive(final Element xmlRootElem, final JsonNode fieldOrNode,
       final Map<String, List<JsonNode>> fieldOrNodeByParentNodeId) {
@@ -139,6 +210,7 @@ public class NoticeXmlTagSorter {
     Validate.notNull(fieldOrNode);
 
     final String id = JsonUtils.getTextStrict(fieldOrNode, FieldsAndNodes.FIELD_OR_NODE_ID_KEY);
+    logger.debug("Sorting children of id={}", id);
     final String xpathAbsolute =
         JsonUtils.getTextStrict(fieldOrNode, FieldsAndNodes.XPATH_ABSOLUTE);
 
@@ -150,19 +222,28 @@ public class NoticeXmlTagSorter {
     if (childItems == null) {
       return; // Nothing to sort.
     }
+
+    // Get sort order of child items for the current node id.
     final List<OrderItem> orderItemsForParent = new ArrayList<>(childItems.size());
     for (final JsonNode childItem : childItems) {
 
       final String fieldOrNodeId =
           JsonUtils.getTextStrict(childItem, FieldsAndNodes.FIELD_OR_NODE_ID_KEY);
+      logger.debug("Found child fieldOrNodeId={}", fieldOrNodeId);
+
+      final String xpathRel = JsonUtils.getTextStrict(childItem, FieldsAndNodes.XPATH_RELATIVE);
+      final List<String> xpathRelParts = XpathUtils.getXpathParts(xpathRel);
+      Validate.notEmpty(xpathRelParts);
+      final String xpathRelFirst = xpathRelParts.get(0);
 
       final JsonNode arr = childItem.get(FieldsAndNodes.XSD_SEQUENCE_ORDER_KEY);
       // The sort order is missing for the root node, it can also be missing in older SDK versions.
       if (arr != null) {
         final ArrayNode xsdSequenceOrder = (ArrayNode) arr;
-        final JsonNode firstItem = xsdSequenceOrder.get(0);
-        final String key = firstItem.fieldNames().next();
-        final int order = firstItem.get(key).asInt();
+        final JsonNode firstItemInOrder = xsdSequenceOrder.get(0);
+        final String key = firstItemInOrder.fieldNames().next();
+        // final String keyWithPredicate = xpathRelFirst;
+        final int order = firstItemInOrder.get(key).asInt();
         final OrderItem orderItem = new OrderItem(fieldOrNodeId, key, order);
         orderItemsForParent.add(orderItem);
       } else {

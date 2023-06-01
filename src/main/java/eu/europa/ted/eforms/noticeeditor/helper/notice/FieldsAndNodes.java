@@ -33,8 +33,8 @@ public class FieldsAndNodes {
   static final String CODELIST_ID = "id";
   static final String CODELIST_TYPE = "type";
 
-  static final String FIELD_PARENT_NODE_ID = "parentNodeId";
-  static final String NODE_PARENT_NODE_ID = "parentId";
+  public static final String FIELD_PARENT_NODE_ID = "parentNodeId";
+  public static final String NODE_PARENT_NODE_ID = "parentId";
 
   private static final String FIELD_REPEATABLE = "repeatable";
   private static final String NODE_REPEATABLE = "repeatable";
