@@ -190,7 +190,7 @@ public class NoticeXmlTagSorter {
 
         if (parentNodeId.equals(parentNodeIdOther) && !nodeId.equals(nodeIdOther)
             && (otherXpathRel.startsWith(xpathRel) || xpathRel.startsWith(otherXpathRel))) {
-          logger.warn(String.format("{} has same element as other nodeId={}", nodeId, nodeIdOther));
+          logger.warn("{} has same element as other nodeId={}", nodeId, nodeIdOther);
         }
       }
 
