@@ -54,5 +54,4 @@ public class XsdValidator {
     validator.validate(new StreamSource(new StringReader(xmlAsText)));
   }
 
-
 }

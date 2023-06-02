@@ -49,6 +49,22 @@ public class DummySdk {
   }
 
   /**
+   * T01.
+   */
+  public static Document getDummyT01PrtReference(final DocumentBuilder builder,
+      final SdkVersion sdkVersion) throws SAXException, IOException {
+    return parseDoc(builder, sdkVersion, "examples/notices/t01_PRT.xml");
+  }
+
+  /**
+   * Covers contract modification.
+   */
+  public static Document getDummyCanModif24Reference(final DocumentBuilder builder,
+      final SdkVersion sdkVersion) throws SAXException, IOException {
+    return parseDoc(builder, sdkVersion, "examples/notices/can-modif_24_duration.xml");
+  }
+
+  /**
    * This is a small example and covers things that most of the other examples do not cover. Tests
    * are usually first performed on smaller examples to first solve basic problems.
    */

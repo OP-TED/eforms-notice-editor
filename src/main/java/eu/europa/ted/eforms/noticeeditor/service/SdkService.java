@@ -165,8 +165,8 @@ public class SdkService {
 
   private static Optional<Value> gcFindFirstColumnRef(final Collection<Value> gcRowValues,
       final String columnRefText) {
-    return gcRowValues.stream()//
-        .filter(v -> ((Column) v.getColumnRef()).getId().equals(columnRefText))//
+    return gcRowValues.stream()
+        .filter(v -> ((Column) v.getColumnRef()).getId().equals(columnRefText))
         .findFirst();
   }
 
@@ -215,11 +215,12 @@ public class SdkService {
     map.put("appVersion", EformsNoticeEditorApp.APP_VERSION);
 
     // Load available sdk versions. They will be listed in the UI.
-    map.put("sdkVersions", supportedSdks.stream()//
-        .map(SdkVersion::toStringWithoutPatch)//
-        .sorted(new IntuitiveStringComparator<>())//
-        .sorted(Collections.reverseOrder())//
-        .collect(Collectors.toList()));
+    map.put(
+        "sdkVersions", supportedSdks.stream()
+            .map(SdkVersion::toStringWithoutPatch)
+            .sorted(new IntuitiveStringComparator<>())
+            .sorted(Collections.reverseOrder())
+            .collect(Collectors.toList()));
 
     logger.info("Fetching home info: DONE");
     return map;
@@ -238,13 +239,13 @@ public class SdkService {
       final List<String> availableNoticeTypes = JavaTools.listFiles(
           SdkResourceLoader.getResourceAsPath(sdkVersion, SdkResource.NOTICE_TYPES, eformsSdkDir));
 
-      final List<String> noticeTypes = availableNoticeTypes.stream()//
+      final List<String> noticeTypes = availableNoticeTypes.stream()
           // Remove some files.
-          .filter(filename -> filename.endsWith(".json")//
-              && !SDK_NOTICE_TYPES_JSON.equals(filename))//
+          .filter(filename -> filename.endsWith(".json")
+              && !SDK_NOTICE_TYPES_JSON.equals(filename))
           // Remove extension.
-          .map(filename -> filename.substring(0, filename.lastIndexOf('.')))//
-          .sorted(new IntuitiveStringComparator<>())//
+          .map(filename -> filename.substring(0, filename.lastIndexOf('.')))
+          .sorted(new IntuitiveStringComparator<>())
           .collect(Collectors.toList());
 
       map.put("noticeTypes", noticeTypes);
@@ -572,4 +573,5 @@ public class SdkService {
   public Path getSdkRootFolder() {
     return Path.of(this.eformsSdkPath);
   }
+
 }
