@@ -298,7 +298,9 @@ public class XmlWriteService {
     final String eformsSdkPrefix = SdkConstants.NOTICE_CUSTOMIZATION_ID_VERSION_PREFIX;
     Validate.isTrue(eformsSdkVersion.startsWith(eformsSdkPrefix),
         "Expecting sdk version to start with prefix=%s", eformsSdkPrefix);
-    return eformsSdkVersion.substring(eformsSdkPrefix.length());
+    final String sdkVersionStr = eformsSdkVersion.substring(eformsSdkPrefix.length());
+    final SdkVersion sdkVersion = new SdkVersion(sdkVersionStr);
+    return sdkVersion.toString();
   }
 
   /**

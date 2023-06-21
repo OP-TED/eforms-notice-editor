@@ -103,7 +103,7 @@ public class NoticeXmlTagSorter {
     final SdkVersion sdkVersionOfNotice =
         new SdkVersion(XmlWriteService.parseEformsSdkVersionText(sdkVersionOfNoticeStr));
     final SdkVersion sdkVersionOfSorter = getSorterSdkVersion();
-    if (!sdkVersionOfSorter.equals(sdkVersionOfNotice)) {
+    if (!sdkVersionOfSorter.getMajor().equals(sdkVersionOfNotice.getMajor())) {
       throw new RuntimeException(
           String.format("Incompatible version: sorterInstance=%s, noticeToSort=%s",
               sdkVersionOfSorter, sdkVersionOfNotice));
