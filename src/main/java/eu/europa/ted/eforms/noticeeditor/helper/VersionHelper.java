@@ -4,16 +4,18 @@ import org.apache.commons.lang3.Validate;
 import eu.europa.ted.eforms.sdk.SdkConstants;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
+/**
+ * Common SDK Version handling code. Some of this could be moved to SdkVersion.java later.
+ */
 public class VersionHelper {
 
   public static String buildSdkVersionWithoutPatch(final SdkVersion sdkVersion) {
-    return sdkVersion.getMajor() + "." + sdkVersion.getMinor();
+    return sdkVersion.toStringWithoutPatch();
   }
 
-  public static String prefixSdkVersion(final SdkVersion sdkVersion) {
-    return SdkConstants.NOTICE_CUSTOMIZATION_ID_VERSION_PREFIX + sdkVersion.toString();
-  }
-
+  /**
+   * @param sdkVersion The SDK version which should be prefixed by "eforms-sdk-"
+   */
   public static String prefixSdkVersionWithoutPatch(final SdkVersion sdkVersion) {
     final String prefixedSdkVersionNoPatch =
         SdkConstants.NOTICE_CUSTOMIZATION_ID_VERSION_PREFIX
@@ -21,11 +23,15 @@ public class VersionHelper {
     return prefixedSdkVersionNoPatch;
   }
 
+  /**
+   * Example: If we have "eforms-sdk-1.6" we want "1.6"
+   *
+   * @param eformsSdkVersion A prefixed SDK version like "eforms-sdk-1.6"
+   */
   public static SdkVersion parsePrefixedSdkVersion(final String eformsSdkVersion) {
-    // If we have "eforms-sdk-1.1.0" we want "1.1.0".
     final String eformsSdkPrefix = SdkConstants.NOTICE_CUSTOMIZATION_ID_VERSION_PREFIX;
     Validate.isTrue(eformsSdkVersion.startsWith(eformsSdkPrefix),
-        "Expecting sdk version to start with prefix=%s", eformsSdkPrefix);
+        "Expecting SDK version to start with prefix=%s", eformsSdkPrefix);
     final String sdkVersionStr = eformsSdkVersion.substring(eformsSdkPrefix.length());
     return new SdkVersion(sdkVersionStr);
   }

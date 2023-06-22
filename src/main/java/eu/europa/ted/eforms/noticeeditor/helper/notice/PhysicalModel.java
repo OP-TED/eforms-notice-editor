@@ -82,7 +82,7 @@ public class PhysicalModel {
   private final Optional<Path> mainXsdPathOpt;
 
   /**
-   * @param document W3C DOM document
+   * @param document W3C DOM document representing the notice XML
    * @param xpathInst Used for xpath evaluation
    * @param fieldsAndNodes Holds SDK field and node metadata
    * @param mainXsdPathOpt Path to the main XSD file to use, may be empty if the feature is not
@@ -91,7 +91,11 @@ public class PhysicalModel {
   public PhysicalModel(final Document document, final XPath xpathInst,
       final FieldsAndNodes fieldsAndNodes, final Optional<Path> mainXsdPathOpt) {
     this.domDocument = document;
+
+    // You may have the patch until this point, which could help debug the application.
+    // But before the XML is written the patch version is removed.
     this.setSdkVersionWithoutPatch(getSdkVersion());
+
     this.fieldsAndNodes = fieldsAndNodes;
     this.xpathInst = xpathInst;
     this.mainXsdPathOpt = mainXsdPathOpt;
@@ -120,15 +124,19 @@ public class PhysicalModel {
   }
 
   public void setSdkVersionWithoutPatch(final SdkVersion sdkVersion) {
-    final Node xmlElem = this.domDocument.getElementsByTagName(CBC_CUSTOMIZATION_ID).item(0);
+    final Node xmlElem = getSdkVersionElement();
     xmlElem.setTextContent(VersionHelper.prefixSdkVersionWithoutPatch(sdkVersion));
   }
 
   public SdkVersion getSdkVersion() {
-    final Node jsonNode = this.domDocument.getElementsByTagName(CBC_CUSTOMIZATION_ID).item(0);
-    Validate.notNull(jsonNode, "The physical model SDK version cannot be found!");
+    final Node jsonNode = getSdkVersionElement();
+    Validate.notNull(jsonNode, "The physical model SDK version element cannot be found!");
     final String text = jsonNode.getTextContent();
     return VersionHelper.parsePrefixedSdkVersion(text);
+  }
+
+  private Node getSdkVersionElement() {
+    return this.domDocument.getElementsByTagName(CBC_CUSTOMIZATION_ID).item(0);
   }
 
   /**
