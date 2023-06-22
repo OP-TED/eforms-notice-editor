@@ -20,6 +20,7 @@ import org.xml.sax.SAXException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import eu.europa.ted.eforms.noticeeditor.helper.VersionHelper;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.ConceptualModel;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.PhysicalModel;
@@ -286,21 +287,10 @@ public class XmlWriteService {
         JsonUtils.getTextStrict(visualRoot, VisualModel.VIS_SDK_VERSION);
     Validate.notBlank(eformsSdkVersion, "virtual root eFormsSdkVersion is blank");
 
-    final String sdkVersionStr = parseEformsSdkVersionText(eformsSdkVersion);
-    logger.info("Found SDK version: {}, using {}", eformsSdkVersion, sdkVersionStr);
-
-    // Load fields json depending of the correct SDK version.
-    return new SdkVersion(sdkVersionStr);
-  }
-
-  public static String parseEformsSdkVersionText(final String eformsSdkVersion) {
-    // If we have "eforms-sdk-1.1.0" we want "1.1.0".
-    final String eformsSdkPrefix = SdkConstants.NOTICE_CUSTOMIZATION_ID_VERSION_PREFIX;
-    Validate.isTrue(eformsSdkVersion.startsWith(eformsSdkPrefix),
-        "Expecting sdk version to start with prefix=%s", eformsSdkPrefix);
-    final String sdkVersionStr = eformsSdkVersion.substring(eformsSdkPrefix.length());
-    final SdkVersion sdkVersion = new SdkVersion(sdkVersionStr);
-    return sdkVersion.toString();
+    final SdkVersion sdkVersion =
+        VersionHelper.parsePrefixedSdkVersion(eformsSdkVersion);
+    logger.info("Found SDK version: {}, using {}", eformsSdkVersion, sdkVersion);
+    return sdkVersion;
   }
 
   /**

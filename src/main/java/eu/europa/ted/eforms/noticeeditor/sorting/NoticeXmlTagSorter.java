@@ -21,8 +21,10 @@ import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import eu.europa.ted.eforms.noticeeditor.helper.VersionHelper;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.DocumentTypeInfo;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
+import eu.europa.ted.eforms.noticeeditor.helper.notice.PhysicalModel;
 import eu.europa.ted.eforms.noticeeditor.service.XmlWriteService;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.noticeeditor.util.XmlUtils;
@@ -39,8 +41,6 @@ import eu.europa.ted.eforms.sdk.SdkVersion;
 public class NoticeXmlTagSorter {
 
   private static final Logger logger = LoggerFactory.getLogger(NoticeXmlTagSorter.class);
-
-  private static final String CBC_CUSTOMIZATION_ID = "cbc:CustomizationID";
 
   private final DocumentTypeInfo docTypeInfo;
   private final Path sdkFolder;
@@ -98,15 +98,12 @@ public class NoticeXmlTagSorter {
 
     // Compare sdkVersion of the element to the SDK version of this instance.
     final String sdkVersionOfNoticeStr =
-        XmlUtils.getDirectChild(xmlRoot, CBC_CUSTOMIZATION_ID).getTextContent();
+        XmlUtils.getDirectChild(xmlRoot, PhysicalModel.CBC_CUSTOMIZATION_ID).getTextContent();
 
     final SdkVersion sdkVersionOfNotice =
-        new SdkVersion(XmlWriteService.parseEformsSdkVersionText(sdkVersionOfNoticeStr));
+        VersionHelper.parsePrefixedSdkVersion(sdkVersionOfNoticeStr);
     final SdkVersion sdkVersionOfSorter = getSorterSdkVersion();
-    final boolean majorEq = sdkVersionOfSorter.getMajor().equals(sdkVersionOfNotice.getMajor());
-    final boolean minorEq = sdkVersionOfSorter.getMinor().equals(sdkVersionOfNotice.getMinor());
-    final boolean majorAndMinorEq = majorEq && minorEq;
-    if (!majorAndMinorEq) {
+    if (!VersionHelper.equalsVersionWithoutPatch(sdkVersionOfSorter, sdkVersionOfNotice)) {
       throw new RuntimeException(
           String.format("Incompatible version: sorterInstance=%s, noticeToSort=%s",
               sdkVersionOfSorter, sdkVersionOfNotice));

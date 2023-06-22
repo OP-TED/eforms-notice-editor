@@ -53,6 +53,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
+import eu.europa.ted.eforms.noticeeditor.helper.notice.PhysicalModel;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.noticeeditor.util.XmlUtils;
 
@@ -341,7 +342,7 @@ public class CvsApiClient {
     try {
       final Document doc = getXmlAsDoc(xmlPath);
       final NodeList elements =
-          doc.getDocumentElement().getElementsByTagName("cbc:CustomizationID");
+          doc.getDocumentElement().getElementsByTagName(PhysicalModel.CBC_CUSTOMIZATION_ID);
       final String eformsSdkVersionInFile = XmlUtils.getTextNodeContentOneLine(elements.item(0));
       logger.debug("eformsSdkVersionInFile={}", eformsSdkVersionInFile);
       doc.normalize();

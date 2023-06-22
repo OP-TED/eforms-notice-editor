@@ -170,7 +170,7 @@ public class NoticeXmlTagSorterTest {
 
     // VALIDATE THE REFERENCE.
     final Optional<Path> mainXsdPathOpt = sorter.getMainXsdPathOpt();
-    Validate.isTrue(mainXsdPathOpt.isPresent(), "Expected for SDK 1.8");
+    Validate.isTrue(mainXsdPathOpt.isPresent(), "Expected for SDK %s", SDK_VERSION);
     final Path mainXsdPath = mainXsdPathOpt.get();
 
     validateXml(validate, mainXsdPath, textReference);

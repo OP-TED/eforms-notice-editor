@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import eu.europa.ted.eforms.noticeeditor.helper.VersionHelper;
 import eu.europa.ted.eforms.noticeeditor.service.SdkService;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
@@ -189,7 +190,7 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     final ObjectMapper mapper = new ObjectMapper();
     // A dummy 1.6.0, not real 1.6.0
     final SdkVersion sdkVersion = new SdkVersion("1.6.0");
-    final String prefixedSdkVersion = FieldsAndNodes.EFORMS_SDK_PREFIX + sdkVersion.toString();
+    final String prefixedSdkVersion = VersionHelper.prefixSdkVersionWithoutPatch(sdkVersion);
     final String noticeSubType = "X02"; // A dummy X02, not the real X02 of 1.6.0
 
     final VisualModel visualModel = setupVisualModel(mapper, sdkVersion, noticeSubType);

@@ -44,6 +44,7 @@ import eu.europa.ted.eforms.noticeeditor.domain.Language;
 import eu.europa.ted.eforms.noticeeditor.genericode.CustomGenericodeMarshaller;
 import eu.europa.ted.eforms.noticeeditor.genericode.GenericodeTools;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
+import eu.europa.ted.eforms.noticeeditor.helper.VersionHelper;
 import eu.europa.ted.eforms.noticeeditor.util.IntuitiveStringComparator;
 import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
@@ -399,14 +400,14 @@ public class SdkService {
   }
 
   /**
-   * Sdk resouce as a Path.
+   * SDK resouce as a Path.
    */
   public Path readSdkPath(final SdkVersion sdkVersion, final PathResource resourceType,
       final String filenameForDownload) {
     Validate.notNull(sdkVersion, "SDK version is null");
     // For the moment the way the folders work is that the folder "1.1.2" would be in folder "1.1",
     // if "1.1.3" exists it would overwrite "1.1.2", but the folder would still be "1.1".
-    final String sdkVersionNoPatch = sdkVersion.getMajor() + "." + sdkVersion.getMinor();
+    final String sdkVersionNoPatch = VersionHelper.buildSdkVersionWithoutPatch(sdkVersion);
     return SdkResourceLoader.getResourceAsPath(new SdkVersion(sdkVersionNoPatch), resourceType,
         filenameForDownload, Path.of(eformsSdkPath));
   }

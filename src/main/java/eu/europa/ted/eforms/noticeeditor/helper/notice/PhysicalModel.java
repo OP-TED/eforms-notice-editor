@@ -25,6 +25,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import com.fasterxml.jackson.databind.JsonNode;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
+import eu.europa.ted.eforms.noticeeditor.helper.VersionHelper;
 import eu.europa.ted.eforms.noticeeditor.sorting.NoticeXmlTagSorter;
 import eu.europa.ted.eforms.noticeeditor.util.EditorXmlUtils;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
@@ -46,15 +47,9 @@ public class PhysicalModel {
 
   private static final Logger logger = LoggerFactory.getLogger(PhysicalModel.class);
 
-  private static final String CBC_CUSTOMIZATION_ID = "cbc:CustomizationID";
+  public static final String CBC_CUSTOMIZATION_ID = "cbc:CustomizationID";
   private static final String CBC_ID = "cbc:ID"; // Notice id, related to BT-701-notice.
   private static final String XMLNS = "xmlns";
-
-  /**
-   * The same prefix is used in the fields.json but technically nothing ensures this will remain
-   * like that.
-   */
-  public static final String EFORMS_SDK_PREFIX = "eforms-sdk-";
 
   /**
    * A special case that we have to solve. HARDCODED. TODO
@@ -96,6 +91,7 @@ public class PhysicalModel {
   public PhysicalModel(final Document document, final XPath xpathInst,
       final FieldsAndNodes fieldsAndNodes, final Optional<Path> mainXsdPathOpt) {
     this.domDocument = document;
+    this.setSdkVersionWithoutPatch(getSdkVersion());
     this.fieldsAndNodes = fieldsAndNodes;
     this.xpathInst = xpathInst;
     this.mainXsdPathOpt = mainXsdPathOpt;
@@ -123,11 +119,16 @@ public class PhysicalModel {
     return UUID.fromString(text);
   }
 
+  public void setSdkVersionWithoutPatch(final SdkVersion sdkVersion) {
+    final Node xmlElem = this.domDocument.getElementsByTagName(CBC_CUSTOMIZATION_ID).item(0);
+    xmlElem.setTextContent(VersionHelper.prefixSdkVersionWithoutPatch(sdkVersion));
+  }
+
   public SdkVersion getSdkVersion() {
     final Node jsonNode = this.domDocument.getElementsByTagName(CBC_CUSTOMIZATION_ID).item(0);
     Validate.notNull(jsonNode, "The physical model SDK version cannot be found!");
     final String text = jsonNode.getTextContent();
-    return new SdkVersion(text.substring(EFORMS_SDK_PREFIX.length()));
+    return VersionHelper.parsePrefixedSdkVersion(text);
   }
 
   /**
@@ -224,7 +225,6 @@ public class PhysicalModel {
     final int depth = 0;
     buildPhysicalModelRec(xmlDoc, fieldsAndNodes, conceptualModelTreeRootNode, xmlDocRoot, debug,
         buildFields, depth, onlyIfPriority, xpathInst);
-
 
     // Reorder the physical model.
     // The location of the XSDs is given in the SDK and could vary by SDK version.

@@ -11,6 +11,7 @@ import org.apache.commons.lang3.Validate;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import eu.europa.ted.eforms.noticeeditor.helper.VersionHelper;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.sdk.SdkConstants;
 import eu.europa.ted.eforms.sdk.SdkVersion;
@@ -39,8 +40,6 @@ public class FieldsAndNodes {
   private static final String FIELD_REPEATABLE = "repeatable";
   private static final String NODE_REPEATABLE = "repeatable";
 
-  public static final String EFORMS_SDK_PREFIX = "eforms-sdk-";
-
   private final Map<String, JsonNode> fieldById;
   private final Map<String, JsonNode> nodeById;
 
@@ -57,7 +56,7 @@ public class FieldsAndNodes {
   public FieldsAndNodes(final JsonNode fieldsJsonRoot, final SdkVersion expectedSdkVersion) {
 
     final SdkVersion sdkVersionFound = parseSdkVersion(fieldsJsonRoot);
-    if (!expectedSdkVersion.equals(sdkVersionFound)) {
+    if (!VersionHelper.equalsVersionWithoutPatch(expectedSdkVersion, sdkVersionFound)) {
       // Sanity check.
       throw new RuntimeException(
           String.format("The SDK version does not match, expected %s but found %s",
@@ -158,7 +157,8 @@ public class FieldsAndNodes {
   private static SdkVersion parseSdkVersion(final JsonNode fieldsJsonRoot) {
     // Example: "sdkVersion" : "eforms-sdk-1.3.2",
     final String text = fieldsJsonRoot.get("sdkVersion").asText(null);
-    return new SdkVersion(text.substring(EFORMS_SDK_PREFIX.length()));
+    Validate.notBlank(text);
+    return VersionHelper.parsePrefixedSdkVersion(text);
   }
 
   public static boolean getFieldPropertyValueBoolStrict(final JsonNode json, final String propKey) {

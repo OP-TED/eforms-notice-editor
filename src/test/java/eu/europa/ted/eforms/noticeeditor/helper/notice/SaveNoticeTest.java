@@ -13,6 +13,7 @@ import org.xml.sax.SAXException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import eu.europa.ted.eforms.noticeeditor.helper.VersionHelper;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
@@ -163,7 +164,7 @@ public abstract class SaveNoticeTest {
   @SuppressWarnings("static-method")
   protected VisualModel setupVisualModel(final ObjectMapper mapper, final SdkVersion sdkVersion,
       final String noticeSubTypeForTest) {
-    final String prefixedSdkVersion = FieldsAndNodes.EFORMS_SDK_PREFIX + sdkVersion.toString();
+    final String prefixedSdkVersion = VersionHelper.prefixSdkVersionWithoutPatch(sdkVersion);
 
     // Setup root of the visual model.
     final ObjectNode visRoot = mapper.createObjectNode();
