@@ -323,7 +323,7 @@ public class PhysicalModel {
     final String nodeId = conceptNode.getNodeId();
     final JsonNode nodeMeta = fieldsAndNodes.getNodeById(nodeId);
 
-    // If a field or node is repeatable, the the XML element to repeat is the first XML
+    // If a field or node is repeatable, then the XML element to repeat is the first XML
     // element in the xpathRelative.
     final boolean nodeMetaRepeatable = FieldsAndNodes.isNodeRepeatableStatic(nodeMeta);
 
@@ -345,6 +345,12 @@ public class PhysicalModel {
       System.out.println(depthStr + " NODE PARTS SIZE: " + xpathParts.size());
       System.out.println(depthStr + " NODE PARTS: " + listToString(xpathParts));
     }
+
+    // In SDK 1.9:
+    // "id" : "OPT-060-Lot"
+    // /cac:ContractExecutionRequirement[cbc:ExecutionRequirementCode/@listName='conditions']
+    // /cbc:ExecutionRequirementCode"
+    // "id" : "OPT-060-Lot-List" is the attribute
 
     for (final String xpathPart : xpathParts) {
       Validate.notBlank(xpathPart, "partXpath is blank for nodeId=%s, xmlNodeElem=%s", nodeId,
@@ -378,6 +384,7 @@ public class PhysicalModel {
 
         // Node is a w3c dom node, nothing to do with the SDK node.
         final Node xmlNode = foundElements.item(0);
+        System.out.println(depthStr + " " + "Found elements: " + foundElements.getLength());
         if (Node.ELEMENT_NODE == xmlNode.getNodeType()) {
           // An existing element was found, reuse it.
           partElem = (Element) xmlNode;
@@ -695,6 +702,7 @@ public class PhysicalModel {
       // HARDCODED
       // TODO This is a TEMPORARY FIX until we have a proper solution inside of the SDK. National is
       // only indirectly described by saying not EU, but the text itself is not given.
+      // NOTE: SDK 1.9 will be the solution to this.
 
       // Example:
       // "xpathAbsolute" : "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName =

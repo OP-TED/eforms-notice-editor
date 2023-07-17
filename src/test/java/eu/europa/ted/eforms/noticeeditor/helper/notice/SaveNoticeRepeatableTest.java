@@ -188,10 +188,10 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
   @Test
   public final void test() throws ParserConfigurationException, IOException, SAXException {
     final ObjectMapper mapper = new ObjectMapper();
-    // A dummy 1.6.0, not real 1.6.0
-    final SdkVersion sdkVersion = new SdkVersion("1.6.0");
+    // A dummy 1.8.0, not real 1.8.0
+    final SdkVersion sdkVersion = new SdkVersion("1.8.0");
     final String prefixedSdkVersion = VersionHelper.prefixSdkVersionWithoutPatch(sdkVersion);
-    final String noticeSubType = "X02"; // A dummy X02, not the real X02 of 1.6.0
+    final String noticeSubType = "X02"; // A dummy X02, not the real X02 of 1.8.0
 
     final VisualModel visualModel = setupVisualModel(mapper, sdkVersion, noticeSubType);
 

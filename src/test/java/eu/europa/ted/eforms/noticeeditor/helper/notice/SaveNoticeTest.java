@@ -101,7 +101,7 @@ public abstract class SaveNoticeTest {
       node.put(KEY_NODE_ID, ND_ROOT);
       node.put(KEY_XPATH_ABS, "/*");
       node.put(KEY_XPATH_REL, "/*");
-      SaveNoticeTest.fieldPutRepeatable(node, false);
+      SaveNoticeTest.nodePutRepeatable(node, false);
     }
     {
       final ObjectNode node = mapper.createObjectNode();
@@ -112,7 +112,7 @@ public abstract class SaveNoticeTest {
           "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension");
       node.put(KEY_XPATH_REL,
           "ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension");
-      SaveNoticeTest.fieldPutRepeatable(node, false);
+      SaveNoticeTest.nodePutRepeatable(node, false);
     }
     return nodeById;
   }

@@ -218,7 +218,7 @@ export class InputField extends NoticeTypeDefinitionElement {
       case 'text-multilingual': return new TextMultilingualInputField(content, level);
       case 'time': return new TimeInputField(content, level);
       case 'url': return new UrlInputField(content, level);
-      default: throw new Error("Unknown field type: " + SdkServiceClient.fields[content?.id]?.type);
+      default: throw new Error("Unknown field type: " + SdkServiceClient.fields[content?.id]?.type + " for content id=" + content?.id);
     }
   }
 
