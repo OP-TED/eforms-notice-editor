@@ -1,8 +1,15 @@
 # eForms Notice Editor Demo
 
 This is a demo application which can create and edit notices (basic).
-For creation it reads eForms SDK notice type files (json).
+For creation of forms it reads eForms SDK notice type files (json files in `notice-types`).
 For edition it reads a notice file (xml) and the corresponding notice type file (json).
+
+## SDK version support
+
+In `application.yaml` see `eforms.sdk.versions`.
+Supported SDK versions are downloaded at start of the application.
+The editor demo code only supports one version of the SDK, it may or may not work with older versions.
+It usually lags behind the latest SDK version. For older versions you can go back in the git history.
 
 ## Building
 
@@ -64,9 +71,7 @@ java -jar notice-editor-demo-0.0.1-SNAPSHOT.jar
 ```
 
 In your browser go to: `localhost:8080/` (or whatever the start logs say)
-For the port settings see `application.properties`.
-
-Login credentials and security: Spring Security could be used.
+For the port settings see `application.yaml`.
 
 For development you may use:
 
@@ -78,16 +83,34 @@ mvn compile exec:java -Dexec.mainClass="eu.europa.ted.eforms.noticeeditor.Eforms
 
 ### Back-end
 
-* Configuration related: application.properties
-* Java at server start: EformsNoticeEditorApp.java (runs before the UI is available)
-* Java REST API: SdkRestController.java (Handles the XHR API calls)
-* Java business logic: SdkService.java (Business logic once it runs)
+* Configuration related: `application.properties` (supported SDK versions, ...)
+* Java at server start: `EformsNoticeEditorApp.java` (runs before the UI is available)
+* Java REST API: `SdkRestController.java` (Handles the XHR API calls)
+* Java SDK business logic: `SdkService.java` (Business logic once it runs)
+* Java XML generation: `PhysicalModel.java` 
 
 ### Front-end
 
 * Home page HTML: index.html
 * JavaScript: editor.js (dynamic creation of HTML elements, XHR API calls)
 * CSS: editor.css (styling)
+
+## XML Generation
+
+* General guidelines: https://docs.ted.europa.eu/eforms/latest/guide/xml-generation.html
+* In this project see `ConceptualModel.java` and `PhysicalModel.java`
+
+### Sorting of XML elements
+
+In `fields.json` since 1.8 you have `xsdSequenceOrder` (see [SDK field docs](https://docs.ted.europa.eu/eforms/latest/fields/xml-structure.html))
+
+In the editor look at the unit test: `NoticeXmlTagSorterTest.java`
+
+Note that before 1.8 the XML sorting relied only on XSD data, you can still find the older algorithms in the git history of `NoticeXmlTagSorter.java`.
+
+## Validation using CVS
+
+Configuration is found in `application.yaml`: `proxy` and `client.cvs`.
 
 ## Running checkstyle
 
@@ -120,6 +143,7 @@ https://github.com/OP-TED/eForms-SDK/discussions/126
 
 For further reference, please consider the following sections:
 
+* https://docs.ted.europa.eu/eforms/latest/guide/notice-forms.html
 * [Official Apache Maven documentation](https://maven.apache.org/guides/index.html)
 * [Genericode 1.0 Code List Representation](http://docs.oasis-open.org/codelist/ns/genericode/1.0/)
 * [Genericode 1.0 xsd](http://docs.oasis-open.org/codelist/genericode/xsd/genericode.xsd)
