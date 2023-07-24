@@ -233,7 +233,6 @@ public class NoticeXmlTagSorter {
       final String xpathRel = JsonUtils.getTextStrict(childItem, FieldsAndNodes.XPATH_RELATIVE);
       final List<String> xpathRelParts = XpathUtils.getXpathParts(xpathRel);
       Validate.notEmpty(xpathRelParts);
-      final String xpathRelFirst = xpathRelParts.get(0);
 
       final JsonNode arr = childItem.get(FieldsAndNodes.XSD_SEQUENCE_ORDER_KEY);
       // The sort order is missing for the root node, it can also be missing in older SDK versions.
