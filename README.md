@@ -134,16 +134,32 @@ For contrib rules see: http://fb-contrib.sourceforge.net/bugdescriptions.html
 
 ## Github discussions
 
-### Save notice
+### SDK
+
+#### Save notice
 
 https://github.com/OP-TED/eForms-SDK/discussions/126
 
+## Github issues
+
+Not every problem in the editor demo is duo to the editor demo.
+
+If the issue is related to the SDK metadata it is best if you report an issue in the SDK project: 
+* [SDK issues](https://github.com/OP-TED/eForms-SDK/issues)
+
+If the issue is related to how the editor uses the metadata, report it in the issues of the editor demo project:
+* [Editor demo issues](https://github.com/OP-TED/eforms-notice-editor/issues)
+
+Always report with some context: 
+* SDK version
+* A concerned notice sub type
+* A field identifier, some logs, ...
 
 ## Reference Documentation
 
 For further reference, please consider the following sections:
 
-* https://docs.ted.europa.eu/eforms/latest/guide/notice-forms.html
+* [Developer guide, notice forms](https://docs.ted.europa.eu/eforms/latest/guide/notice-forms.html)
 * [Official Apache Maven documentation](https://maven.apache.org/guides/index.html)
 * [Genericode 1.0 Code List Representation](http://docs.oasis-open.org/codelist/ns/genericode/1.0/)
 * [Genericode 1.0 xsd](http://docs.oasis-open.org/codelist/genericode/xsd/genericode.xsd)
