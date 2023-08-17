@@ -22,12 +22,21 @@ import eu.europa.ted.eforms.sdk.SdkVersion;
  */
 public class FieldsAndNodes {
 
+  // NOTE: some constants can be found in "SdkConstants.java" of the core.
+
+  private static final String ND_PREFIX = "ND-";
   public static final String ND_ROOT = "ND-Root";
   public static final String FIELD_OR_NODE_ID_KEY = "id";
+  private static final String FIELDS_JSON_SDK_VERSION = "sdkVersion";
   public static final String XPATH_RELATIVE = "xpathRelative";
   public static final String XPATH_ABSOLUTE = "xpathAbsolute";
 
-  public static final String XSD_SEQUENCE_ORDER_KEY = "xsdSequenceOrder"; // Since SDK 1.7
+  /**
+   * Sort order.
+   *
+   * Since SDK 1.7, but data is only correct since SDK 1.8
+   */
+  public static final String XSD_SEQUENCE_ORDER_KEY = "xsdSequenceOrder";
 
   static final String VALUE = "value";
 
@@ -117,7 +126,7 @@ public class FieldsAndNodes {
    * This can be used when working on common values like id, xpathRelative, ...
    */
   public JsonNode getFieldOrNodeById(final String fieldOrNodeId) {
-    return fieldOrNodeId.startsWith("ND-") ? getNodeById(fieldOrNodeId)
+    return fieldOrNodeId.startsWith(ND_PREFIX) ? getNodeById(fieldOrNodeId)
         : getFieldById(fieldOrNodeId);
   }
 
@@ -156,7 +165,7 @@ public class FieldsAndNodes {
 
   private static SdkVersion parseSdkVersion(final JsonNode fieldsJsonRoot) {
     // Example: "sdkVersion" : "eforms-sdk-1.3.2",
-    final String text = fieldsJsonRoot.get("sdkVersion").asText(null);
+    final String text = fieldsJsonRoot.get(FIELDS_JSON_SDK_VERSION).asText(null);
     Validate.notBlank(text);
     return VersionHelper.parsePrefixedSdkVersion(text);
   }

@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import javax.xml.parsers.DocumentBuilder;
 import javax.xml.xpath.XPath;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
@@ -20,7 +19,6 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import eu.europa.ted.eforms.noticeeditor.helper.VersionHelper;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.DocumentTypeInfo;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
@@ -34,7 +32,7 @@ import eu.europa.ted.eforms.sdk.SdkVersion;
  * Sorts notice XML tags (elements) in the order defined by the corresponding SDK XSD sequences.
  *
  * <p>
- * NOTE: For a sample usage there is a unit test which uses this.
+ * NOTE: For a sample usage there are a unit tests which uses this.
  * </p>
  */
 public class NoticeXmlTagSorter {
@@ -49,20 +47,19 @@ public class NoticeXmlTagSorter {
   /**
    * The instance is reusable but specific to a given SDK version.
    *
-   * @param docBuilder The document builder is passed as it can be reused
    * @param xpathInst Reusable xpath preconfigured instance
    * @param docTypeInfo SDK document type info
    * @param sdkFolder The folder of the downloaded SDK
    * @param fieldsAndNodes The SDK fields and nodes metadata (including sort order)
    */
-  public NoticeXmlTagSorter(final DocumentBuilder docBuilder, final XPath xpathInst,
+  public NoticeXmlTagSorter(final XPath xpathInst,
       final DocumentTypeInfo docTypeInfo, final Path sdkFolder,
       final FieldsAndNodes fieldsAndNodes) {
 
-    Validate.notNull(docBuilder);
     Validate.notNull(xpathInst);
     Validate.notNull(docTypeInfo);
     Validate.notNull(sdkFolder);
+    Validate.notNull(fieldsAndNodes);
 
     // SDK specific.
     this.docTypeInfo = docTypeInfo;
@@ -121,7 +118,6 @@ public class NoticeXmlTagSorter {
     //
     // HOW TO HANDLE SUCH A SPECIAL CASE.
     //
-    //
     // {
     // "id" : "ND-SubcontractedActivity",
     // "parentId" : "ND-LotTender",
@@ -147,15 +143,8 @@ public class NoticeXmlTagSorter {
       }
     }
 
+    // Those can be of interest in case the sort order differs.
     logSpecialCases(fieldOrNodeByParentNodeId);
-    // ND-CountryOriginUnpublish has same element as other nodeId=ND-LotTenderOriginCountry
-    // ND-SubcontractedActivity has same element as other nodeId=ND-SubcontractedContract
-    // ND-LotAwardCriterionParameter has same element as other
-    // nodeId=ND-LotAwardCriterionNumberFixUnpublish
-    // ND-SubcontractTerms has same element as other nodeId=ND-AllowedSubcontracting
-    // ND-SubcontractingObligation has same element as other nodeId=ND-SubcontractTerms
-    // ND-LotsGroupAwardCriterionParameter has same element as other
-    // nodeId=ND-LotsGroupAwardCriterionNumberThresholdUnpublish|
 
     sortRecursive(xmlRoot, rootNode, fieldOrNodeByParentNodeId);
     // NOTE: we do not normalize the document, this can be done later if desired.
@@ -189,7 +178,22 @@ public class NoticeXmlTagSorter {
 
         if (parentNodeId.equals(parentNodeIdOther) && !nodeId.equals(nodeIdOther)
             && (otherXpathRel.startsWith(xpathRel) || xpathRel.startsWith(otherXpathRel))) {
-          logger.warn("{} has same element as other nodeId={}", nodeId, nodeIdOther);
+          // This can happen when only the predicate differs.
+          logger.debug("{} has same element as other nodeId={}", nodeId, nodeIdOther);
+
+          // In that case we expect the sort order to be the same!
+
+          final List<JsonNode> nodeList =
+              JsonUtils.getList(node.get(FieldsAndNodes.XSD_SEQUENCE_ORDER_KEY));
+
+          final List<JsonNode> nodeOtherList =
+              JsonUtils.getList(nodeOther.get(FieldsAndNodes.XSD_SEQUENCE_ORDER_KEY));
+
+          if (!nodeList.equals(nodeOtherList)) {
+            logger.warn(
+                "Sort order differs for nodeId1={}, nodeId2={}, but they have the same element",
+                nodeId, nodeIdOther);
+          }
         }
       }
 
@@ -234,11 +238,13 @@ public class NoticeXmlTagSorter {
       final List<String> xpathRelParts = XpathUtils.getXpathParts(xpathRel);
       Validate.notEmpty(xpathRelParts);
 
-      final JsonNode arr = childItem.get(FieldsAndNodes.XSD_SEQUENCE_ORDER_KEY);
-      // The sort order is missing for the root node, it can also be missing in older SDK versions.
-      if (arr != null) {
-        final ArrayNode xsdSequenceOrder = (ArrayNode) arr;
-        final JsonNode firstItemInOrder = xsdSequenceOrder.get(0);
+      final List<JsonNode> list =
+          JsonUtils.getList(childItem.get(FieldsAndNodes.XSD_SEQUENCE_ORDER_KEY));
+
+      // The sort order is always missing for the root node.
+      // It can also be missing in SDK 1.7 but not in SDK 1.8.
+      if (!list.isEmpty()) {
+        final JsonNode firstItemInOrder = list.get(0);
         final String key = firstItemInOrder.fieldNames().next();
         // final String keyWithPredicate = xpathRelFirst;
         final int order = firstItemInOrder.get(key).asInt();
@@ -247,13 +253,15 @@ public class NoticeXmlTagSorter {
       } else {
         logger.info("parentId={}, itemId={} has no {}", id, fieldOrNodeId,
             FieldsAndNodes.XSD_SEQUENCE_ORDER_KEY);
+        // Ideally we want this to throw, but some tests are using dummy data that is missing the
+        // sort order and the tests are not about the order.
         // throw new RuntimeException(
         // String.format("%s is not supported in used SDK version! fieldOrNodeId=%s",
         // FieldsAndNodes.XSD_SEQUENCE_ORDER_KEY, id));
       }
     }
     // The order items are not ordered yet, they contain the order, and we naturally sort on it.
-    Collections.sort(orderItemsForParent);
+    Collections.sort(orderItemsForParent); // Relies on implementation of "Comparable".
     logger.debug("orderItemsForParent=" + orderItemsForParent);
 
     //
@@ -269,17 +277,7 @@ public class NoticeXmlTagSorter {
 
       for (final OrderItem orderItem : orderItemsForParent) {
 
-        // THIS WILL NOT WORK FOR CASES HAVING PREDICATES IF ORDER MATTERS BY PREDICATE ???
-        // cac:Attachment[../cbc:DocumentType/text()='restricted-document']
-        // /cac:ExternalReference
-        // /cbc:URI",
-        //
-        // "xsdSequenceOrder" : [
-        // { "cac:Attachment" : 16 },
-        // { "cac:ExternalReference" : 4 },
-        // { "cbc:URI" : 2 }
-        // ]
-        // We still need to parse the relative xpath
+        // We still need to parse the relative xpath.
         final String xpathExpr = orderItem.getXmlName();
 
         // TODO split xpath relative of children "/abc[xyz]"
@@ -307,8 +305,9 @@ public class NoticeXmlTagSorter {
             }
             previousSibling = previousSibling.getPreviousSibling();
           }
-          Collections.reverse(commentsOrTextsAbove); // To keep the order.
+          Collections.reverse(commentsOrTextsAbove); // To keep the original order.
 
+          // First add back the XML comments.
           for (final Node commentOrTextAbove : commentsOrTextsAbove) {
             removeAndAppend(xpathContext, commentOrTextAbove);
           }

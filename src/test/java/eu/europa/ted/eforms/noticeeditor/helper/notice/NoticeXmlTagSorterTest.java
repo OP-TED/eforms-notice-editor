@@ -30,7 +30,7 @@ import eu.europa.ted.eforms.noticeeditor.util.XpathUtils;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
- * Tests for the sorting algorithm.
+ * Testing the sorting algorithm against examples.
  */
 @SpringBootTest
 public class NoticeXmlTagSorterTest {
@@ -53,8 +53,8 @@ public class NoticeXmlTagSorterTest {
     // How this test works:
     // 1. There is a reference notice XML document.
     // 2. A copy of this reference was created and tag order was purposefully modified.
-    // 3. The test sorts the purposefully modified version and outputs it as indented xml text.
-    // 4. The reference is parsed and rewritten as indented xml (same indentation as other xml
+    // 3. The test sorts the purposefully modified version and outputs it as indented XML text.
+    // 4. The reference is parsed and rewritten as indented xml (same indentation as other XML
     // text).
     // 5. The sorted text is compared to the reference text.
     // 6. The test ensures the unsorted XML is invalid for coherence of the test.
@@ -80,7 +80,7 @@ public class NoticeXmlTagSorterTest {
     // Has wrong order on purpose for this test.
     final Document docUnsorted1 = DummySdk.getDummyX02NoticeUnsorted(builder, sdkVersion);
 
-    sortAndCompare(sdkVersion, builder, xpathInst, docTypeInfo, docUnsorted1, docReference, true);
+    sortAndCompare(sdkVersion, xpathInst, docTypeInfo, docUnsorted1, docReference, true);
   }
 
   @Test
@@ -104,7 +104,7 @@ public class NoticeXmlTagSorterTest {
     final Document docUnsorted1 = DummySdk.getDummyT01PrtReference(builder, sdkVersion);
     XmlUtils.removeXmlComments(xpathInst, docUnsorted1);
 
-    sortAndCompare(sdkVersion, builder, xpathInst, docTypeInfo, docUnsorted1, docReference, false);
+    sortAndCompare(sdkVersion, xpathInst, docTypeInfo, docUnsorted1, docReference, false);
   }
 
   @Test
@@ -128,7 +128,7 @@ public class NoticeXmlTagSorterTest {
     final Document docUnsorted1 = DummySdk.getDummyCanModif24Reference(builder, sdkVersion);
     XmlUtils.removeXmlComments(xpathInst, docUnsorted1);
 
-    sortAndCompare(sdkVersion, builder, xpathInst, docTypeInfo, docUnsorted1, docReference, false);
+    sortAndCompare(sdkVersion, xpathInst, docTypeInfo, docUnsorted1, docReference, false);
   }
 
   @Test
@@ -152,10 +152,10 @@ public class NoticeXmlTagSorterTest {
     final Document docUnsorted1 = DummySdk.getDummyCan24MaximalReference(builder, sdkVersion);
     XmlUtils.removeXmlComments(xpathInst, docUnsorted1);
 
-    sortAndCompare(sdkVersion, builder, xpathInst, docTypeInfo, docUnsorted1, docReference, false);
+    sortAndCompare(sdkVersion, xpathInst, docTypeInfo, docUnsorted1, docReference, false);
   }
 
-  private void sortAndCompare(final SdkVersion sdkVersion, final DocumentBuilder builder,
+  private void sortAndCompare(final SdkVersion sdkVersion,
       final XPath xpathInst,
       final DocumentTypeInfo docTypeInfo,
       final Document docUnsorted,
@@ -164,7 +164,7 @@ public class NoticeXmlTagSorterTest {
 
     final FieldsAndNodes fieldsAndNodes = xmlWriteService.readFieldsAndNodes(sdkVersion);
     final Path pathToSpecificSdk = DummySdk.buildDummySdkPath(sdkVersion);
-    final NoticeXmlTagSorter sorter = new NoticeXmlTagSorter(builder, xpathInst, docTypeInfo,
+    final NoticeXmlTagSorter sorter = new NoticeXmlTagSorter(xpathInst, docTypeInfo,
         pathToSpecificSdk, fieldsAndNodes);
 
     // Indentation is not required technically speaking but it is much nicer in case of problems.
@@ -210,6 +210,7 @@ public class NoticeXmlTagSorterTest {
 
     // VALIDATE after sorting.
     validateXmlUsingXsd(validate, mainXsdPath, textUnsortedAfterSort);
+    logger.info("DONE.");
   }
 
   private static void validateXmlUsingXsd(final boolean validate, final Path mainXsdPath,

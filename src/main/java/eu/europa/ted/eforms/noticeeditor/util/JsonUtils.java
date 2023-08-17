@@ -1,5 +1,9 @@
 package eu.europa.ted.eforms.noticeeditor.util;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.Validate;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -119,5 +123,29 @@ public class JsonUtils {
   public static String marshall(final Object obj) throws JsonProcessingException {
     final ObjectMapper objectMapper = getStandardJacksonObjectMapper();
     return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
+  }
+
+  public static List<String> getListOfStrings(final JsonNode jsonNode) {
+    if (jsonNode != null && jsonNode.isArray()) {
+      final ArrayNode arrayNode = (ArrayNode) jsonNode;
+      final List<String> values = new ArrayList<>(arrayNode.size());
+      for (final Iterator<JsonNode> elements = arrayNode.elements(); elements.hasNext();) {
+        values.add(elements.next().asText());
+      }
+      return values;
+    }
+    return Collections.emptyList();
+  }
+
+  public static List<JsonNode> getList(final JsonNode jsonNode) {
+    if (jsonNode != null && jsonNode.isArray()) {
+      final ArrayNode arrayNode = (ArrayNode) jsonNode;
+      final List<JsonNode> values = new ArrayList<>(arrayNode.size());
+      for (final Iterator<JsonNode> elements = arrayNode.elements(); elements.hasNext();) {
+        values.add(elements.next());
+      }
+      return values;
+    }
+    return Collections.emptyList();
   }
 }

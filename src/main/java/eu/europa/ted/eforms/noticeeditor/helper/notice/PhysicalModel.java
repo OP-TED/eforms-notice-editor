@@ -239,7 +239,7 @@ public class PhysicalModel {
     final SdkVersion sdkVersion = fieldsAndNodes.getSdkVersion();
     final Path pathToSpecificSdk = sdkRootFolder.resolve(sdkVersion.toStringWithoutPatch());
     final NoticeXmlTagSorter sorter =
-        new NoticeXmlTagSorter(safeDocBuilder, xpathInst, docTypeInfo, pathToSpecificSdk,
+        new NoticeXmlTagSorter(xpathInst, docTypeInfo, pathToSpecificSdk,
             fieldsAndNodes);
     sorter.sortXml(xmlDocRoot);
 
@@ -290,7 +290,7 @@ public class PhysicalModel {
 
     // if (debug) {
     // Display the XML steps:
-    // System out is used here because it is more readable than the logger lines.
+    // System out is used here because it is more readable than the logger lines in the console.
     // This is not a replacement for logger.debug(...)
     // System.out.println("");
     // System.out.println(EditorXmlUtils.asText(doc, true));
