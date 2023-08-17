@@ -34,7 +34,7 @@ public class FieldsAndNodes {
   /**
    * Sort order.
    *
-   * Since SDK 1.7, but data is only correct since SDK 1.8
+   * <p>Since SDK 1.7, but data is only correct since SDK 1.8</p>
    */
   public static final String XSD_SEQUENCE_ORDER_KEY = "xsdSequenceOrder";
 
