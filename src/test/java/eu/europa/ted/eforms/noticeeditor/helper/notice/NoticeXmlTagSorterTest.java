@@ -29,7 +29,9 @@ import eu.europa.ted.eforms.noticeeditor.util.XmlUtils;
 import eu.europa.ted.eforms.noticeeditor.util.XpathUtils;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
-
+/**
+ * Tests for the sorting algorithm.
+ */
 @SpringBootTest
 public class NoticeXmlTagSorterTest {
 
@@ -74,6 +76,8 @@ public class NoticeXmlTagSorterTest {
     final XPath xpathInst = XpathUtils.setupXpathInst(docTypeInfo, Optional.empty());
 
     final Document docReference = DummySdk.getDummyX02NoticeReference(builder, sdkVersion);
+
+    // Has wrong order on purpose for this test.
     final Document docUnsorted1 = DummySdk.getDummyX02NoticeUnsorted(builder, sdkVersion);
 
     sortAndCompare(sdkVersion, builder, xpathInst, docTypeInfo, docUnsorted1, docReference, true);
@@ -173,7 +177,7 @@ public class NoticeXmlTagSorterTest {
     Validate.isTrue(mainXsdPathOpt.isPresent(), "Expected for SDK %s", SDK_VERSION);
     final Path mainXsdPath = mainXsdPathOpt.get();
 
-    validateXml(validate, mainXsdPath, textReference);
+    validateXmlUsingXsd(validate, mainXsdPath, textReference);
 
     final String textBeforeSorting = EditorXmlUtils.asText(docUnsorted, indentXml);
     validateXmlIsInvalid(validate, mainXsdPath, textBeforeSorting);
@@ -188,15 +192,15 @@ public class NoticeXmlTagSorterTest {
 
     // Ensure it is sorted by comparing to the reference example.
     if (!textReference.equals(textUnsortedAfterSort)) {
-      logger.info("Reference length: {}", textReference.length());
-      logger.info("Output    length: {}", textUnsortedAfterSort.length());
+      logger.error("Reference length: {}", textReference.length());
+      logger.error("Output    length: {}", textUnsortedAfterSort.length());
       // Show diff for debugging convenience.
-      logger.info(textUnsortedAfterSort);
+      logger.error(textUnsortedAfterSort);
 
-      logger.info("");
-      logger.info("DIFFERENCE: ");
+      logger.error("");
+      logger.error("DIFFERENCE: ");
       // logger.info(StringUtils.difference(textUnsortedAfterSort, textPreSorted));
-      logger.info(StringUtils.difference(textReference, textUnsortedAfterSort));
+      logger.error(StringUtils.difference(textReference, textUnsortedAfterSort));
 
       // Write both files to target as this allows to quickly diff them (in the IDE for example).
       JavaTools.writeTextFile(Path.of("target", "dummy-1-reference.xml"), textReference);
@@ -205,10 +209,10 @@ public class NoticeXmlTagSorterTest {
     assertEquals(textReference, textUnsortedAfterSort);
 
     // VALIDATE after sorting.
-    validateXml(validate, mainXsdPath, textUnsortedAfterSort);
+    validateXmlUsingXsd(validate, mainXsdPath, textUnsortedAfterSort);
   }
 
-  private static void validateXml(final boolean validate, final Path mainXsdPath,
+  private static void validateXmlUsingXsd(final boolean validate, final Path mainXsdPath,
       final String xmlText) throws SAXException, IOException, SAXParseException {
     if (!validate) {
       return;
@@ -216,7 +220,7 @@ public class NoticeXmlTagSorterTest {
     try {
       final List<SAXParseException> exceptions =
           XsdValidator.validateXml(xmlText, mainXsdPath);
-      assertTrue(exceptions.isEmpty());
+      assertTrue(exceptions.isEmpty(), "Exceptions: " + exceptions.toString());
       logger.info("Validated notice XML using XSD.");
     } catch (final SAXParseException ex) {
       logger.error(ex.toString(), ex);
@@ -233,9 +237,9 @@ public class NoticeXmlTagSorterTest {
     try {
       final List<SAXParseException> exceptions =
           XsdValidator.validateXml(xmlText, mainXsdPath);
-      assertTrue(!exceptions.isEmpty());
+      assertTrue(!exceptions.isEmpty(), "Expecting no exceptions but found: " + exceptions);
     } catch (@SuppressWarnings("unused") final SAXParseException ex) {
-      //
+      // Expected.
     }
   }
 

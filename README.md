@@ -97,7 +97,7 @@ mvn compile exec:java -Dexec.mainClass="eu.europa.ted.eforms.noticeeditor.Eforms
 
 ## XML Generation
 
-* General guidelines: https://docs.ted.europa.eu/eforms/latest/guide/xml-generation.html
+* [General guidelines](https://docs.ted.europa.eu/eforms/latest/guide/xml-generation.html)
 * In this project see `ConceptualModel.java` and `PhysicalModel.java`
 
 ### Sorting of XML elements
@@ -120,7 +120,7 @@ Configuration is found in `application.yaml`: `proxy` and `client.cvs`.
 
 `mvn spotbugs:spotbugs`, see target folder spotbugs.xml (I recommend you format and read it in your IDE)
 
-Special local exclude example:
+### Special local exclude example
 
 `@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value="HE_EQUALS_USE_HASHCODE", justification="I know what I'm doing")`
 
@@ -128,9 +128,11 @@ Special local exclude example:
 
 Other exclusions: see `spotbugs-exclude.xml`
 
-Visitors and detectors:
-https://spotbugs-in-kengo-toda.readthedocs.io/en/lqc-list-detectors/detectors.html
-For contrib rules see: http://fb-contrib.sourceforge.net/bugdescriptions.html
+### Visitors and detectors
+
+[Detectors](https://spotbugs-in-kengo-toda.readthedocs.io/en/lqc-list-detectors/detectors.html)
+
+[For contrib rules](http://fb-contrib.sourceforge.net/bugdescriptions.html)
 
 ## Github discussions
 
@@ -138,7 +140,7 @@ For contrib rules see: http://fb-contrib.sourceforge.net/bugdescriptions.html
 
 #### Save notice
 
-https://github.com/OP-TED/eForms-SDK/discussions/126
+[Saving a notice](https://github.com/OP-TED/eForms-SDK/discussions/126)
 
 ## Github issues
 
@@ -163,3 +165,19 @@ For further reference, please consider the following sections:
 * [Official Apache Maven documentation](https://maven.apache.org/guides/index.html)
 * [Genericode 1.0 Code List Representation](http://docs.oasis-open.org/codelist/ns/genericode/1.0/)
 * [Genericode 1.0 xsd](http://docs.oasis-open.org/codelist/genericode/xsd/genericode.xsd)
+
+## Glossary
+
+You will encounter these terms in the code and code comments:
+
+* **BT**: Business Term
+* **CVS**: Central Validation Service (TEDCVS)
+* **SVRL**:	Schematron Validation Reporting Language
+* **NTD**: Notice Type Definition, found in the `notice-types` folder of SDK, represents the **Visual Model**
+* **Node**: found in the `xmlStructure` of the SDK `fields.json`, it can be confusing at times as other tree structures can have elements called Node (XML, JSON, ...). The root node has no parent.
+* **Field**: found in the `fields` of the SDK `fields.json`, fields must have a parent node. In the NTDs, form fields reference fields.
+* **Attribute**: in standands for XML attributes, since SDK 1.9 XML attributes are always associated with fields
+* **Sort order**: found in the `xsdSequenceOrder` of the SDK `fields.json`, there may be order to other things, but in general we mean the XML element order, see section about "Sorting of XML elements"
+* **Visual Model**: Representation of the form used to fill in a notice, found in the `notice-types` folder of SDK
+* **Conceptual Model**: An intermediate representation made of fields and nodes, based on the SDK `fields.json`
+* **Physical Model**: The representation of a notice in XML, see "XML Generation"
