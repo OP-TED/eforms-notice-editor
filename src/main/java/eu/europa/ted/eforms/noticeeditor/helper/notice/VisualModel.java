@@ -522,6 +522,8 @@ public class VisualModel {
   /**
    * Write dot graph file for debugging purposes.
    */
+  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+      value = "EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS", justification = "Ok here")
   public void writeDotFile(final FieldsAndNodes fieldsAndNodes) {
     try {
       // Generate dot file for the conceptual model.

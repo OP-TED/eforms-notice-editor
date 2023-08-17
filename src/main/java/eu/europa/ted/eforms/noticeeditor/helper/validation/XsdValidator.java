@@ -12,8 +12,6 @@ import javax.xml.validation.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
-import org.xml.sax.SAXNotRecognizedException;
-import org.xml.sax.SAXNotSupportedException;
 import org.xml.sax.SAXParseException;
 
 public class XsdValidator {
@@ -22,7 +20,7 @@ public class XsdValidator {
 
   public static List<SAXParseException> validateXml(final String xmlAsText, final Path mainXsdPath)
       throws SAXException, IOException {
-    logger.info(String.format("Attempting to validate using schema: %s", mainXsdPath));
+    logger.info(String.format("Attempting to validate using schema: {}", mainXsdPath));
 
     final XsdCustomErrorHandler xsdErrorHandler = new XsdCustomErrorHandler();
 
@@ -37,8 +35,8 @@ public class XsdValidator {
   }
 
   private static void validateUsingSchema(final String xmlAsText, final Path mainXsdPath,
-      final XsdCustomErrorHandler xsdErrorHandler)
-      throws SAXNotRecognizedException, SAXNotSupportedException, SAXException, IOException {
+      final org.xml.sax.ErrorHandler xsdErrorHandler)
+      throws SAXException, IOException {
 
     final SchemaFactory schemaFactory =
         SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);

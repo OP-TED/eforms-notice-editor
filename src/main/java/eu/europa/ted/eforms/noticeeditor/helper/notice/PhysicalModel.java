@@ -123,7 +123,7 @@ public class PhysicalModel {
     return UUID.fromString(text);
   }
 
-  public void setSdkVersionWithoutPatch(final SdkVersion sdkVersion) {
+  public final void setSdkVersionWithoutPatch(final SdkVersion sdkVersion) {
     final Node xmlElem = getSdkVersionElement();
     xmlElem.setTextContent(VersionHelper.prefixSdkVersionWithoutPatch(sdkVersion));
   }

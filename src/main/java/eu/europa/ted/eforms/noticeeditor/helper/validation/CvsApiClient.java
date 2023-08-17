@@ -30,7 +30,6 @@ import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.config.RequestConfig;
@@ -184,7 +183,7 @@ public class CvsApiClient {
     final ResponseHandler<String> responseHandler = new ResponseHandler<>() {
       @Override
       public String handleResponse(final HttpResponse response)
-          throws ClientProtocolException, IOException {
+          throws IOException {
         final StatusLine statusLine = response.getStatusLine();
         final int status = statusLine.getStatusCode();
         logger.info("CVS responded with status={}", status);
@@ -200,7 +199,7 @@ public class CvsApiClient {
                 SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype(false);
             final Document doc = db.parse(IOUtils.toInputStream(svrlText, CHARSET));
             doc.normalize();
-            final ObjectNode jsonReport = createJsonReport(doc, svrlLangA2);
+            // final ObjectNode jsonReport = createJsonReport(doc, svrlLangA2);
             // return jsonReport;
           } catch (ParserConfigurationException e) {
             logger.error(e.toString(), e);
@@ -252,6 +251,8 @@ public class CvsApiClient {
   /**
    * Provided for convenience.
    */
+  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+      value = "EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS", justification = "It is OK here.")
   public static CloseableHttpClient createDefaultCloseableHttpClient(final int timeoutSeconds,
       final boolean redirectsEnabled, final String proxyUrl) {
 
@@ -303,7 +304,7 @@ public class CvsApiClient {
         builder.setDefaultRequestConfig(defaultRequestConfig);
       } catch (@SuppressWarnings("unused") MalformedURLException e) {
         throw new RuntimeException(
-            "Malformed proxy url (not logging it as it could contain passwords).");
+            "Malformed proxy url (not logging it as it could contain passwords).", e);
       }
     }
 
@@ -337,6 +338,8 @@ public class CvsApiClient {
   /**
    * @return The text encoded in base 64
    */
+  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+      value = "EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS", justification = "It is OK here.")
   public static String getNoticeXmlInBase64(final Path xmlPath)
       throws TransformerFactoryConfigurationError {
     try {
@@ -408,7 +411,7 @@ public class CvsApiClient {
 
         final String nodeId;
         final String fieldId;
-        final int indexOfUnderscore = diagnostic.indexOf("_");
+        final int indexOfUnderscore = diagnostic.indexOf('_');
         if (indexOfUnderscore > 0) {
           nodeId = diagnostic.substring(0, indexOfUnderscore);
           // In case of something like (c) inside of an id ... those are replaced by underscore.
@@ -431,6 +434,7 @@ public class CvsApiClient {
 
   /**
    * @return The text encoded in base 64
+   * @throws UnsupportedEncodingException
    */
   private static String toBase64(final String text) throws UnsupportedEncodingException {
     return new String(Base64.getEncoder().encode(text.getBytes(CHARSET)), CHARSET.toString());

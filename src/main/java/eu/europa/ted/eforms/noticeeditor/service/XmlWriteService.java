@@ -316,6 +316,8 @@ public class XmlWriteService {
     return uuidV4;
   }
 
+  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+      value = "EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS", justification = "Ok here")
   private static void serveJson(final HttpServletResponse response,
       final String filenameForDownload, final boolean isAsDownload, final String jsonText) {
     Validate.notBlank(jsonText, "jsonText is blank");
