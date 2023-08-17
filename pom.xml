@@ -8,7 +8,7 @@
   <version>0.0.1-SNAPSHOT</version>
 
   <name>eForms notice editor demo</name>
-  <description>Demo project for Spring Boot</description>
+  <description>The eForms notice editor demo, demonstrates use of the SDK</description>
   <packaging>jar</packaging>
 
   <url>https://docs.ted.europa.eu/eforms/latest/</url>
@@ -47,7 +47,7 @@
     <maven.compiler.target>${java.version}</maven.compiler.target>
 
     <!-- Versions - eForms -->
-    <version.eforms-core>1.0.5-SNAPSHOT</version.eforms-core>
+    <version.eforms-core>1.0.5</version.eforms-core>
 
     <!-- Versions - Third-party libraries -->
     <version.xml.bind-api>2.3.3</version.xml.bind-api>
