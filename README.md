@@ -8,7 +8,7 @@ For edition it reads a notice file (xml) and the corresponding notice type file 
 
 In `application.yaml` see `eforms.sdk.versions`.
 Supported SDK versions are downloaded at start of the application.
-The editor demo code only supports one version of the SDK, it may or may not work with older versions.
+The editor demo code only supports one version of the SDK, it may not work with older versions.
 It usually lags behind the latest SDK version. For older versions you can go back in the git history.
 
 ## Building
@@ -151,7 +151,7 @@ If the issue is related to how the editor uses the metadata, report it in the is
 * [Editor demo issues](https://github.com/OP-TED/eforms-notice-editor/issues)
 
 Always report with some context: 
-* SDK version
+* Used SDK version
 * A concerned notice sub type
 * A field identifier, some logs, ...
 
