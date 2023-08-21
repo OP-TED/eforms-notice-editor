@@ -75,7 +75,7 @@ public class ConceptualModel {
     // HARDCODED LOGIC.
     final List<ConceptTreeNode> conceptNodes = treeRootNode.getConceptNodes();
     final Optional<ConceptTreeNode> rootExtOpt = conceptNodes.stream()
-        .filter(item -> ND_ROOT_EXTENSION == item.getNodeId()).findFirst();
+        .filter(item -> ND_ROOT_EXTENSION.equals(item.getNodeId())).findFirst();
     if (rootExtOpt.isEmpty()) {
       throw new RuntimeException(String.format("Conceptual model: Expecting to find root extension "
           + "in conceptual model! Missing important nodeId=%s", ND_ROOT_EXTENSION));
@@ -83,7 +83,7 @@ public class ConceptualModel {
 
     final ConceptTreeNode rootExtension = rootExtOpt.get();
     final Optional<ConceptTreeField> noticeSubTypeOpt = rootExtension.getConceptFields().stream()
-        .filter(item -> FIELD_ID_NOTICE_SUB_TYPE == item.getFieldId()).findFirst();
+        .filter(item -> FIELD_ID_NOTICE_SUB_TYPE.equals(item.getFieldId())).findFirst();
     if (noticeSubTypeOpt.isEmpty()) {
       throw new RuntimeException(String.format(
           "Concept model: Expecting to find notice sub type field! Missing important fieldId=%s",
