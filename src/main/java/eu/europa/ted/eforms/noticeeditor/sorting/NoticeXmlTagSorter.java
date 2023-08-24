@@ -154,7 +154,7 @@ public class NoticeXmlTagSorter {
     final Map<String, JsonNode> map = new HashMap<>();
     for (final Entry<String, List<JsonNode>> entry : fieldOrNodeByParentNodeId.entrySet()) {
       final String nodeId = entry.getKey();
-      if (FieldsAndNodes.ND_ROOT == nodeId) {
+      if (nodeId.equals(FieldsAndNodes.ND_ROOT)) {
         continue;
       }
       final JsonNode node = fieldsAndNodes.getNodeById(nodeId);
