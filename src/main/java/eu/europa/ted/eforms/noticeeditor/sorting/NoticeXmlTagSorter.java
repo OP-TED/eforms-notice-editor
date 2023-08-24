@@ -3,13 +3,13 @@ package eu.europa.ted.eforms.noticeeditor.sorting;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
-import javax.xml.parsers.DocumentBuilder;
 import javax.xml.xpath.XPath;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
@@ -18,68 +18,55 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
+import com.fasterxml.jackson.databind.JsonNode;
+import eu.europa.ted.eforms.noticeeditor.helper.VersionHelper;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.DocumentTypeInfo;
-import eu.europa.ted.eforms.noticeeditor.helper.notice.DocumentTypeNamespace;
-import eu.europa.ted.eforms.noticeeditor.service.XmlWriteService;
+import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
+import eu.europa.ted.eforms.noticeeditor.helper.notice.PhysicalModel;
+import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.noticeeditor.util.XmlUtils;
+import eu.europa.ted.eforms.noticeeditor.util.XpathUtils;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
  * Sorts notice XML tags (elements) in the order defined by the corresponding SDK XSD sequences.
  *
  * <p>
- * NOTE: For a sample usage there is a unit test which uses this.
+ * NOTE: For a sample usage there are a unit tests which uses this.
  * </p>
  */
 public class NoticeXmlTagSorter {
 
   private static final Logger logger = LoggerFactory.getLogger(NoticeXmlTagSorter.class);
 
-  private static final String CBC_CUSTOMIZATION_ID = "cbc:CustomizationID";
-  private static final String XSD_COMPLEX_TYPE = "xsd:complexType";
-
-  /**
-   * Contains the tag order.
-   */
-  private static final String XSD_SEQUENCE = "xsd:sequence";
-
-  private static final String XSD_ELEMENT = "xsd:element";
-
-  private final DocumentBuilder docBuilder;
   private final DocumentTypeInfo docTypeInfo;
   private final Path sdkFolder;
-  private final Map<String, DocumentTypeNamespace> xsdMetaByPrefix;
   private final XPath xpathInst;
-
-  /**
-   * This is not technically required, but avoids parsing the XSD XML multiple times.
-   */
-  private final Map<String, Element> xsdRootByPrefixCache;
+  private final FieldsAndNodes fieldsAndNodes;
 
   /**
    * The instance is reusable but specific to a given SDK version.
    *
-   * @param docBuilder The document builder is passed as it can be reused
    * @param xpathInst Reusable xpath preconfigured instance
    * @param docTypeInfo SDK document type info
    * @param sdkFolder The folder of the downloaded SDK
+   * @param fieldsAndNodes The SDK fields and nodes metadata (including sort order)
    */
-  public NoticeXmlTagSorter(final DocumentBuilder docBuilder, final XPath xpathInst,
-      final DocumentTypeInfo docTypeInfo, final Path sdkFolder) {
+  public NoticeXmlTagSorter(final XPath xpathInst,
+      final DocumentTypeInfo docTypeInfo, final Path sdkFolder,
+      final FieldsAndNodes fieldsAndNodes) {
 
-    Validate.notNull(docBuilder);
     Validate.notNull(xpathInst);
-    Validate.notNull(sdkFolder);
     Validate.notNull(docTypeInfo);
-
-    this.docBuilder = docBuilder;
+    Validate.notNull(sdkFolder);
+    Validate.notNull(fieldsAndNodes);
 
     // SDK specific.
     this.docTypeInfo = docTypeInfo;
     this.xpathInst = xpathInst;
     this.sdkFolder = sdkFolder;
-    this.xsdRootByPrefixCache = new HashMap<>();
-    this.xsdMetaByPrefix = docTypeInfo.buildAdditionalNamespacesByPrefix();
+
+    this.fieldsAndNodes = fieldsAndNodes;
   }
 
   /**
@@ -107,62 +94,233 @@ public class NoticeXmlTagSorter {
 
     // Compare sdkVersion of the element to the SDK version of this instance.
     final String sdkVersionOfNoticeStr =
-        XmlUtils.getDirectChild(xmlRoot, CBC_CUSTOMIZATION_ID).getTextContent();
+        XmlUtils.getDirectChild(xmlRoot, PhysicalModel.CBC_CUSTOMIZATION_ID).getTextContent();
 
     final SdkVersion sdkVersionOfNotice =
-        new SdkVersion(XmlWriteService.parseEformsSdkVersionText(sdkVersionOfNoticeStr));
+        VersionHelper.parsePrefixedSdkVersion(sdkVersionOfNoticeStr);
     final SdkVersion sdkVersionOfSorter = getSorterSdkVersion();
-    if (!sdkVersionOfSorter.equals(sdkVersionOfNotice)) {
+    if (!VersionHelper.equalsVersionWithoutPatch(sdkVersionOfSorter, sdkVersionOfNotice)) {
       throw new RuntimeException(
           String.format("Incompatible version: sorterInstance=%s, noticeToSort=%s",
               sdkVersionOfSorter, sdkVersionOfNotice));
-    }
-
-    //
-    // Example:
-    // <ext:UBLExtensions>
-    // Get the "ext" prefix.
-    // final DocumentTypeNamespace documentTypeNamespace = infoByPrefix.get("ext");
-    // final String xsdSchemaLocation = documentTypeNamespace.getSchemaLocation();
-    //
-
-    //
-    // Setup main XSD path.
-    //
-    final Optional<Path> mainXsdPathOpt = getMainXsdPathOpt();
-    if (mainXsdPathOpt.isEmpty()) {
-      return;
     }
 
     logger.info("Attempting to sort tags in the XML, starting from root element={}",
         xmlRoot.getTagName());
     logger.info("XML uri={}", xmlRoot.getOwnerDocument().getBaseURI());
 
-    final Document xsdRootDoc = buildDoc(mainXsdPathOpt.get());
-    final Element xsdRootElem = xsdRootDoc.getDocumentElement();
+    // Start from root node.
+    final JsonNode rootNode = this.fieldsAndNodes.getRootNode();
 
-    // The used map does not need to be a LinkedHashMap but it helps to see in which order the
-    // entries have been added during when debugging (root first, ...).
-    final Map<String, List<String>> elemOrderByXsdElemType = new LinkedHashMap<>(128);
-    final Map<String, String> xsdElemTypeByXsdElemName = new LinkedHashMap<>(256);
+    final Map<String, List<JsonNode>> fieldOrNodeByParentNodeId =
+        fieldsAndNodes.buildMapOfFieldOrNodeByParentNodeId();
 
     //
+    // HOW TO HANDLE SUCH A SPECIAL CASE.
+    //
+    // {
+    // "id" : "ND-SubcontractedActivity",
+    // "parentId" : "ND-LotTender",
+    // "xpathRelative" : "efac:SubcontractingTerm",
+    // }, {
+    // "id" : "ND-SubcontractedContract",
+    // "parentId" : "ND-LotTender",
+    // "xpathRelative" : "efac:SubcontractingTerm[efbc:TermCode/@listName='applicability']",
+    // }
+    // This is problematic for my algorithm, two nodes lead to the same xml element
+    // The predicate in the parent element is about the child item ...
+    //
+    final List<JsonNode> listSubcontractedActivity =
+        fieldOrNodeByParentNodeId.get("ND-SubcontractedActivity");
+    if (listSubcontractedActivity != null) {
+      final List<JsonNode> listSubcontractedContract =
+          fieldOrNodeByParentNodeId.get("ND-SubcontractedContract");
+      if (listSubcontractedContract != null) {
+        // The context of ND-SubcontractedActivity is broader than for ND-SubcontractedContract.
+        // We want to group them.
+        listSubcontractedActivity.addAll(listSubcontractedContract);
+        listSubcontractedContract.clear();
+      }
+    }
+
+    // Those can be of interest in case the sort order differs.
+    logSpecialCases(fieldOrNodeByParentNodeId);
+
+    sortRecursive(xmlRoot, rootNode, fieldOrNodeByParentNodeId);
+    // NOTE: we do not normalize the document, this can be done later if desired.
+  }
+
+  private void logSpecialCases(final Map<String, List<JsonNode>> fieldOrNodeByParentNodeId) {
+    final Map<String, JsonNode> map = new HashMap<>();
+    for (final Entry<String, List<JsonNode>> entry : fieldOrNodeByParentNodeId.entrySet()) {
+      final String nodeId = entry.getKey();
+      if (nodeId.equals(FieldsAndNodes.ND_ROOT)) {
+        continue;
+      }
+      final JsonNode node = fieldsAndNodes.getNodeById(nodeId);
+      final String parentNodeId = JsonUtils.getTextStrict(node, FieldsAndNodes.NODE_PARENT_NODE_ID);
+
+      final String xpathRel = JsonUtils.getTextStrict(node, FieldsAndNodes.XPATH_RELATIVE);
+      final List<String> xpathList =
+          Arrays.asList(XpathUtils.getXpathPartsWithoutPredicates(xpathRel));
+      final String xpathRelWithoutPredicate = xpathList.get(0);
+      if (map.containsKey(xpathRelWithoutPredicate)) {
+        final JsonNode nodeOther = map.get(xpathRelWithoutPredicate);
+
+        final String nodeIdOther =
+            JsonUtils.getTextStrict(nodeOther, FieldsAndNodes.FIELD_OR_NODE_ID_KEY);
+
+        final String parentNodeIdOther =
+            JsonUtils.getTextStrict(nodeOther, FieldsAndNodes.NODE_PARENT_NODE_ID);
+
+        final String otherXpathRel =
+            JsonUtils.getTextStrict(nodeOther, FieldsAndNodes.XPATH_RELATIVE);
+
+        if (parentNodeId.equals(parentNodeIdOther) && !nodeId.equals(nodeIdOther)
+            && (otherXpathRel.startsWith(xpathRel) || xpathRel.startsWith(otherXpathRel))) {
+          // This can happen when only the predicate differs.
+          logger.debug("{} has same element as other nodeId={}", nodeId, nodeIdOther);
+
+          // In that case we expect the sort order to be the same!
+
+          final List<JsonNode> nodeList =
+              JsonUtils.getList(node.get(FieldsAndNodes.XSD_SEQUENCE_ORDER_KEY));
+
+          final List<JsonNode> nodeOtherList =
+              JsonUtils.getList(nodeOther.get(FieldsAndNodes.XSD_SEQUENCE_ORDER_KEY));
+
+          if (!nodeList.equals(nodeOtherList)) {
+            logger.warn(
+                "Sort order differs for nodeId1={}, nodeId2={}, but they have the same element",
+                nodeId, nodeIdOther);
+          }
+        }
+      }
+
+      map.put(xpathRelWithoutPredicate, node);
+    }
+  }
+
+  /**
+   * @param xmlRootElem The XML root element to sort (physical model), children of this element will
+   *        be sorted
+   * @param fieldOrNode Field or node (conceptual model), initially the root node
+   * @param fieldOrNodeByParentNodeId List of fields or nodes by parent node id
+   */
+  public void sortRecursive(final Element xmlRootElem, final JsonNode fieldOrNode,
+      final Map<String, List<JsonNode>> fieldOrNodeByParentNodeId) {
+    Validate.notNull(xmlRootElem);
+    Validate.notNull(fieldOrNode);
+
+    final String id = JsonUtils.getTextStrict(fieldOrNode, FieldsAndNodes.FIELD_OR_NODE_ID_KEY);
+    logger.debug("Sorting children of id={}", id);
+    final String xpathAbsolute =
+        JsonUtils.getTextStrict(fieldOrNode, FieldsAndNodes.XPATH_ABSOLUTE);
+
+    // All the fields or nodes found under the same parent.
     // Example:
-    // <xsd:element name="BusinessRegistrationInformationNotice"
-    // type="BusinessRegistrationInformationNoticeType"/>
+    // id = "ND-BusinessParty" but in the XML it is "cac:BusinessParty"
+    // We want the XML child elements of "cac:BusinessParty" in the correct xsd sequence order.
+    final List<JsonNode> childItems = fieldOrNodeByParentNodeId.get(id);
+    if (childItems == null) {
+      return; // Nothing to sort.
+    }
+
+    // Get sort order of child items for the current node id.
+    final List<OrderItem> orderItemsForParent = new ArrayList<>(childItems.size());
+    for (final JsonNode childItem : childItems) {
+
+      final String fieldOrNodeId =
+          JsonUtils.getTextStrict(childItem, FieldsAndNodes.FIELD_OR_NODE_ID_KEY);
+      logger.debug("Found child fieldOrNodeId={}", fieldOrNodeId);
+
+      final String xpathRel = JsonUtils.getTextStrict(childItem, FieldsAndNodes.XPATH_RELATIVE);
+      final List<String> xpathRelParts = XpathUtils.getXpathParts(xpathRel);
+      Validate.notEmpty(xpathRelParts);
+
+      final List<JsonNode> list =
+          JsonUtils.getList(childItem.get(FieldsAndNodes.XSD_SEQUENCE_ORDER_KEY));
+
+      // The sort order is always missing for the root node.
+      // It can also be missing in SDK 1.7 but not in SDK 1.8.
+      if (!list.isEmpty()) {
+        final JsonNode firstItemInOrder = list.get(0);
+        final String key = firstItemInOrder.fieldNames().next();
+        // final String keyWithPredicate = xpathRelFirst;
+        final int order = firstItemInOrder.get(key).asInt();
+        final OrderItem orderItem = new OrderItem(fieldOrNodeId, key, order);
+        orderItemsForParent.add(orderItem);
+      } else {
+        logger.info("parentId={}, itemId={} has no {}", id, fieldOrNodeId,
+            FieldsAndNodes.XSD_SEQUENCE_ORDER_KEY);
+        // Ideally we want this to throw, but some tests are using dummy data that is missing the
+        // sort order and the tests are not about the order.
+        // throw new RuntimeException(
+        // String.format("%s is not supported in used SDK version! fieldOrNodeId=%s",
+        // FieldsAndNodes.XSD_SEQUENCE_ORDER_KEY, id));
+      }
+    }
+    // The order items are not ordered yet, they contain the order, and we naturally sort on it.
+    Collections.sort(orderItemsForParent); // Relies on implementation of "Comparable".
+    logger.debug("orderItemsForParent=" + orderItemsForParent);
+
     //
-    final Element xsdElem = XmlUtils.getDirectChild(xsdRootElem, XSD_ELEMENT);
-    this.parseSequence(elemOrderByXsdElemType, xsdElemTypeByXsdElemName, xsdElem, Optional.empty(),
-        xsdRootElem.getNodeName(), xsdRootElem);
+    // Find parent elements in the XML.
+    //
+    final List<Element> xmlParentElements =
+        XmlUtils.evaluateXpathAsElemList(xpathInst, xmlRootElem, xpathAbsolute, xpathAbsolute);
 
-    // Recursion on child elements.
-    sortChildTagsRec(elemOrderByXsdElemType, xsdElemTypeByXsdElemName, xmlRoot);
-    logger.trace("elemOrderByXsdElemType size={}", elemOrderByXsdElemType.size());
-    logger.trace("elemOrderByXsdElemType keys={}", elemOrderByXsdElemType.keySet());
+    for (final Element xmlParentElement : xmlParentElements) {
 
-    if (logger.isTraceEnabled()) {
-      elemOrderByXsdElemType.entrySet()
-          .forEach(entry -> logger.trace("{} = {}", entry.getKey(), entry.getValue()));
+      // Find child elements relative to the parent context.
+      final Element xpathContext = xmlParentElement;
+
+      for (final OrderItem orderItem : orderItemsForParent) {
+
+        // We still need to parse the relative xpath.
+        final String xpathExpr = orderItem.getXmlName();
+
+        // TODO split xpath relative of children "/abc[xyz]"
+        // order only provides "abc"
+        // map index to order
+
+        final List<Element> foundChildElements =
+            XmlUtils.evaluateXpathAsElemList(xpathInst, xpathContext, xpathExpr, xpathExpr);
+
+        // Reorder XML elements.
+        // Also note that XML attributes have no order.
+        for (final Element foundChildElement : foundChildElements) {
+
+          // PRESERVE POSITION OF COMMENTS OR XML TEXTS NODES (formatting...).
+          // Find comments or text nodes above the element.
+          final List<Node> commentsOrTextsAbove = new ArrayList<>();
+          Node previousSibling = foundChildElement.getPreviousSibling();
+          while (previousSibling != null) {
+            if (previousSibling.getNodeType() == Node.TEXT_NODE) {
+              commentsOrTextsAbove.add(previousSibling);
+            } else if (previousSibling.getNodeType() == Node.COMMENT_NODE) {
+              commentsOrTextsAbove.add(previousSibling);
+            } else {
+              break;
+            }
+            previousSibling = previousSibling.getPreviousSibling();
+          }
+          Collections.reverse(commentsOrTextsAbove); // To keep the original order.
+
+          // First add back the XML comments.
+          for (final Node commentOrTextAbove : commentsOrTextsAbove) {
+            removeAndAppend(xpathContext, commentOrTextAbove);
+          }
+
+          // This sorts the xml elements by removing them and appending them back.
+          removeAndAppend(xpathContext, foundChildElement);
+        }
+      }
+    }
+
+    // Continue on child items in the field and node hierarchy.
+    for (final JsonNode childItem : childItems) {
+      sortRecursive(xmlRootElem, childItem, fieldOrNodeByParentNodeId);
     }
   }
 
@@ -183,62 +341,6 @@ public class NoticeXmlTagSorter {
     return docTypeInfo.getSdkVersion();
   }
 
-  private void sortChildTagsRec(final Map<String, List<String>> elemOrderByXsdElemType,
-      final Map<String, String> xsdElemTypeByXsdElemName, final Element noticeElem)
-      throws SAXException, IOException {
-
-    final String xsdElemType = xsdElemTypeByXsdElemName.get(noticeElem.getTagName());
-    Validate.notNull(xsdElemType, "XSD element type is null for key %s", noticeElem.getTagName());
-
-    final List<String> tagOrder = elemOrderByXsdElemType.get(xsdElemType);
-    if (tagOrder == null) {
-      return; // It can be null, there is nothing to sort in that case.
-    }
-
-    // Go through tags in order.
-    for (final String tagName : tagOrder) {
-
-      // Find elements by tag name in the notice.
-      final String xpathExpr = tagName; // Search for the tags.
-      final String idForError = tagName;
-      final List<Element> elemsFoundByTag =
-          XmlUtils.evaluateXpathAsElemList(xpathInst, noticeElem, xpathExpr, idForError);
-
-      // Modify physical model: sort, reorder XML elements.
-      for (final Element elemFound : elemsFoundByTag) {
-
-        // Find comments above the element.
-        final List<Node> commentsAbove = new ArrayList<>();
-        Node previousSibling = elemFound.getPreviousSibling();
-        while (previousSibling != null) {
-          if (previousSibling.getNodeType() == Node.TEXT_NODE) {
-            commentsAbove.add(previousSibling);
-          } else if (previousSibling.getNodeType() == Node.COMMENT_NODE) {
-            commentsAbove.add(previousSibling);
-          } else {
-            break;
-          }
-          previousSibling = previousSibling.getPreviousSibling();
-        }
-        Collections.reverse(commentsAbove); // To keep the order.
-
-        // THIS SORTS THE TAGS:
-        for (final Node commentAbove : commentsAbove) {
-          removeAndAppend(noticeElem, commentAbove);
-        }
-        removeAndAppend(noticeElem, elemFound);
-      }
-
-      // Continue recursively on the child elements of the notice.
-      for (final Element elemFound : elemsFoundByTag) {
-        parseXsdSequencesByPrefix(elemOrderByXsdElemType, xsdElemTypeByXsdElemName, elemFound);
-
-        logger.trace("sortChildTagsRec: XML tagName={}", elemFound.getTagName());
-        sortChildTagsRec(elemOrderByXsdElemType, xsdElemTypeByXsdElemName, elemFound);
-      }
-    }
-  }
-
   /**
    * @param elemParent The element in which to append
    * @param elemToSort The element to remove and append
@@ -246,179 +348,5 @@ public class NoticeXmlTagSorter {
   private static void removeAndAppend(final Element elemParent, final Node elemToSort) {
     elemParent.removeChild(elemToSort); // Removes child from old location.
     elemParent.appendChild(elemToSort); // Appends child at the new location.
-  }
-
-  /**
-   * Starts from the prefix found inside of the element node name, finds the XSD and parses the
-   * sequences to populate the element order by XSD element type.
-   *
-   * @param elemOrderByXsdElemType Is modified as a SIDE-EFFECT
-   * @param xsdElemTypeByXsdElemName Is modified as a SIDE-EFFECT
-   */
-  private final void parseXsdSequencesByPrefix(
-      final Map<String, List<String>> elemOrderByXsdElemType,
-      final Map<String, String> xsdElemTypeByXsdElemName, final Element noticeElem)
-      throws SAXException, IOException {
-
-    final String prefixedTagName = noticeElem.getNodeName();
-    final int indexOfColon = prefixedTagName.indexOf(':');
-    if (indexOfColon <= 0) {
-      return;
-    }
-
-    // efac:BusinessPartyGroup -> efx
-    final String prefix = prefixedTagName.substring(0, indexOfColon);
-    logger.trace("Namespace prefix={}", prefix);
-
-    final Element xsdRootElem = loadXsdRootByPrefix(prefix);
-
-    // efac:BusinessPartyGroup -> BusinessPartyGroup
-    final String tagName = prefixedTagName.substring(indexOfColon + 1);
-
-    //
-    // Find prefix, get xsd, get type, ... recursively
-    // <xsd:element name="BusinessPartyGroup" type="BusinessPartyGroupType"/>
-    //
-    final List<Element> elemsFound = XmlUtils.evaluateXpathAsElemList(xpathInst, xsdRootElem,
-        String.format("%s[@name='%s']", XSD_ELEMENT, tagName), tagName);
-
-    for (final Element xsdElem : elemsFound) {
-      parseSequence(elemOrderByXsdElemType, xsdElemTypeByXsdElemName, xsdElem, Optional.of(prefix),
-          prefixedTagName, xsdRootElem);
-    }
-  }
-
-  /**
-   * @param elemOrderByXsdElemType Is modified as a SIDE-EFFECT
-   * @param xsdElemTypeByXsdElemName Is modified as a SIDE-EFFECT
-   */
-  private void parseSequence(final Map<String, List<String>> elemOrderByXsdElemType,
-      final Map<String, String> xsdElemTypeByXsdElemName, final Element xsdElem,
-      final Optional<String> prefixOpt, final String prefixedTagName, final Element xsdRootElem) {
-    //
-    // NOTE: Multiple tag names can point to the same type:
-    // <xsd:element name="CallForTenderDocumentReference" type="DocumentReferenceType"/>
-    // <xsd:element name="CallForTendersDocumentReference" type="DocumentReferenceType"/>
-    // Thus the key used for caching is the type, here the key would be "DocumentReferenceType"
-    //
-    final String xsdElemType = XmlUtils.getAttrText(xsdElem, "type");
-    final String xsdElemName = XmlUtils.getAttrText(xsdElem, "name");
-
-    // Because it can be pointed to by several names, always put the entry into the map!
-    final String xsdElemNamePrefixed =
-        prefixOpt.isPresent() ? prefixOpt.get() + ":" + xsdElemName : xsdElemName;
-    xsdElemTypeByXsdElemName.put(xsdElemNamePrefixed, xsdElemType);
-
-    if (elemOrderByXsdElemType.containsKey(xsdElemType)) {
-      return; // We already have this type cached.
-    }
-
-    //
-    // Look for sequences inside complexType
-    //
-    // <xsd:complexType name="BusinessPartyGroupType">
-    // <xsd:sequence>
-    // <xsd:element ref="efbc:GroupTypeCode" minOccurs="0" maxOccurs="1"/>
-    // <xsd:element ref="efbc:GroupType" minOccurs="0" maxOccurs="unbounded"/>
-    // <xsd:element ref="cac:Party" minOccurs="1" maxOccurs="unbounded"/>
-    // </xsd:sequence>
-    // </xsd:complexType>
-    //
-    final List<Element> xsdSequences = XmlUtils.evaluateXpathAsElemList(xpathInst, xsdRootElem,
-        String.format("%s[@name='%s']/%s", XSD_COMPLEX_TYPE, xsdElemType, XSD_SEQUENCE),
-        xsdElemType);
-    if (xsdSequences.isEmpty()) {
-      return;
-    }
-
-    // Populate order list from sequence.
-    final List<String> xmlTagOrder = new ArrayList<>();
-    for (Element xsdSequence : xsdSequences) {
-      xmlTagOrder.addAll(parseSequenceElementOrder(xsdSequence, xpathInst));
-    }
-
-    // Populate order by type map from sequence.
-    if (!xmlTagOrder.isEmpty()) {
-      if (elemOrderByXsdElemType.containsKey(xsdElemType)) {
-        // It is not expected to find a type more than one time.
-        throw new RuntimeException(
-            String.format("prefixedTagName=%s is already contained", prefixedTagName));
-      }
-      elemOrderByXsdElemType.put(xsdElemType, xmlTagOrder);
-    }
-  }
-
-  /**
-   * @param xsdSequence The XSD sequence element
-   * @return The list of the XSD elements ref found in the XSD sequence
-   */
-  private static List<String> parseSequenceElementOrder(final Element xsdSequence,
-      final XPath xpathInst) {
-
-    //
-    // There are nested sequences:
-    //
-    // <xsd:complexType name="OrganizationType">
-    // <xsd:sequence>
-    // <xsd:choice minOccurs="0" maxOccurs="1">
-    // <xsd:sequence>
-    // ...
-    // </xsd:sequence>
-    //
-
-    // The expression is good enough to work with the current state of the XSDs.
-    // If the expression should evolve we could use the SDK version the code logic.
-    final String xpathExpr = String.format(".//%s", XSD_ELEMENT);
-    final List<Element> seqElements = XmlUtils.evaluateXpathAsElemList(xpathInst, xsdSequence,
-        xpathExpr, "Looking for " + XSD_ELEMENT);
-
-    final List<String> xmlTagsInOrder = new ArrayList<>(seqElements.size());
-    for (final Element seqElem : seqElements) {
-      // Get the reference.
-      // Example: <xsd:element ref="ext:UBLExtensions" .../>
-      final String ref = XmlUtils.getAttrText(seqElem, "ref");
-      Validate.notBlank(ref, "ref is blank");
-      if (!xmlTagsInOrder.contains(ref)) {
-        xmlTagsInOrder.add(ref);
-      } else {
-        // There is a duplicate which in terms of order is problematic.
-        throw new RuntimeException(String.format("Already contains order ref=%s", ref));
-      }
-    }
-
-    Validate.notEmpty(xmlTagsInOrder, "xmlTagOrder is empty");
-    return xmlTagsInOrder;
-  }
-
-  /**
-   * @param namespacePrefix A namespace prefix like cac, cbc, ...
-   * @return The XML root element of the XSD for the passed prefix
-   */
-  private Element loadXsdRootByPrefix(final String namespacePrefix)
-      throws SAXException, IOException {
-
-    // Find the SDK metadata by prefix.
-    final DocumentTypeNamespace dtn = xsdMetaByPrefix.get(namespacePrefix);
-    if (dtn == null) {
-      throw new RuntimeException(String.format("Info not found for prefix=%s", namespacePrefix));
-    }
-
-    final Element cached = this.xsdRootByPrefixCache.get(namespacePrefix);
-    if (cached != null) {
-      return cached; // Return from cache.
-    }
-
-    // Parse the XSD XML and return the root element of the XML.
-    final String xsdLocation = dtn.getSchemaLocation();
-    final Path xsdPath = sdkFolder.resolve(Path.of(xsdLocation));
-    final Document xsdDoc = buildDoc(xsdPath);
-    final Element rootElem = xsdDoc.getDocumentElement();
-    this.xsdRootByPrefixCache.put(namespacePrefix, rootElem); // Cache it.
-
-    return rootElem;
-  }
-
-  private Document buildDoc(final Path xsdPath) throws SAXException, IOException {
-    return docBuilder.parse(xsdPath.toFile());
   }
 }

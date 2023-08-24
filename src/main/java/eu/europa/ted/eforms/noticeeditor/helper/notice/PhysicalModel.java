@@ -25,6 +25,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import com.fasterxml.jackson.databind.JsonNode;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
+import eu.europa.ted.eforms.noticeeditor.helper.VersionHelper;
 import eu.europa.ted.eforms.noticeeditor.sorting.NoticeXmlTagSorter;
 import eu.europa.ted.eforms.noticeeditor.util.EditorXmlUtils;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
@@ -46,15 +47,9 @@ public class PhysicalModel {
 
   private static final Logger logger = LoggerFactory.getLogger(PhysicalModel.class);
 
-  private static final String CBC_CUSTOMIZATION_ID = "cbc:CustomizationID";
+  public static final String CBC_CUSTOMIZATION_ID = "cbc:CustomizationID";
   private static final String CBC_ID = "cbc:ID"; // Notice id, related to BT-701-notice.
   private static final String XMLNS = "xmlns";
-
-  /**
-   * The same prefix is used in the fields.json but technically nothing ensures this will remain
-   * like that.
-   */
-  public static final String EFORMS_SDK_PREFIX = "eforms-sdk-";
 
   /**
    * A special case that we have to solve. HARDCODED. TODO
@@ -87,7 +82,7 @@ public class PhysicalModel {
   private final Optional<Path> mainXsdPathOpt;
 
   /**
-   * @param document W3C DOM document
+   * @param document W3C DOM document representing the notice XML
    * @param xpathInst Used for xpath evaluation
    * @param fieldsAndNodes Holds SDK field and node metadata
    * @param mainXsdPathOpt Path to the main XSD file to use, may be empty if the feature is not
@@ -96,6 +91,11 @@ public class PhysicalModel {
   public PhysicalModel(final Document document, final XPath xpathInst,
       final FieldsAndNodes fieldsAndNodes, final Optional<Path> mainXsdPathOpt) {
     this.domDocument = document;
+
+    // You may have the patch until this point, which could help debug the application.
+    // But before the XML is written the patch version is removed.
+    this.setSdkVersionWithoutPatch(getSdkVersion());
+
     this.fieldsAndNodes = fieldsAndNodes;
     this.xpathInst = xpathInst;
     this.mainXsdPathOpt = mainXsdPathOpt;
@@ -123,11 +123,20 @@ public class PhysicalModel {
     return UUID.fromString(text);
   }
 
+  public final void setSdkVersionWithoutPatch(final SdkVersion sdkVersion) {
+    final Node xmlElem = getSdkVersionElement();
+    xmlElem.setTextContent(VersionHelper.prefixSdkVersionWithoutPatch(sdkVersion));
+  }
+
   public SdkVersion getSdkVersion() {
-    final Node jsonNode = this.domDocument.getElementsByTagName(CBC_CUSTOMIZATION_ID).item(0);
-    Validate.notNull(jsonNode, "The physical model SDK version cannot be found!");
+    final Node jsonNode = getSdkVersionElement();
+    Validate.notNull(jsonNode, "The physical model SDK version element cannot be found!");
     final String text = jsonNode.getTextContent();
-    return new SdkVersion(text.substring(EFORMS_SDK_PREFIX.length()));
+    return VersionHelper.parsePrefixedSdkVersion(text);
+  }
+
+  private Node getSdkVersionElement() {
+    return this.domDocument.getElementsByTagName(CBC_CUSTOMIZATION_ID).item(0);
   }
 
   /**
@@ -225,13 +234,13 @@ public class PhysicalModel {
     buildPhysicalModelRec(xmlDoc, fieldsAndNodes, conceptualModelTreeRootNode, xmlDocRoot, debug,
         buildFields, depth, onlyIfPriority, xpathInst);
 
-
     // Reorder the physical model.
     // The location of the XSDs is given in the SDK and could vary by SDK version.
     final SdkVersion sdkVersion = fieldsAndNodes.getSdkVersion();
     final Path pathToSpecificSdk = sdkRootFolder.resolve(sdkVersion.toStringWithoutPatch());
     final NoticeXmlTagSorter sorter =
-        new NoticeXmlTagSorter(safeDocBuilder, xpathInst, docTypeInfo, pathToSpecificSdk);
+        new NoticeXmlTagSorter(xpathInst, docTypeInfo, pathToSpecificSdk,
+            fieldsAndNodes);
     sorter.sortXml(xmlDocRoot);
 
     final Optional<Path> mainXsdPathOpt = sorter.getMainXsdPathOpt();
@@ -281,7 +290,7 @@ public class PhysicalModel {
 
     // if (debug) {
     // Display the XML steps:
-    // System out is used here because it is more readable than the logger lines.
+    // System out is used here because it is more readable than the logger lines in the console.
     // This is not a replacement for logger.debug(...)
     // System.out.println("");
     // System.out.println(EditorXmlUtils.asText(doc, true));
@@ -314,7 +323,7 @@ public class PhysicalModel {
     final String nodeId = conceptNode.getNodeId();
     final JsonNode nodeMeta = fieldsAndNodes.getNodeById(nodeId);
 
-    // If a field or node is repeatable, the the XML element to repeat is the first XML
+    // If a field or node is repeatable, then the XML element to repeat is the first XML
     // element in the xpathRelative.
     final boolean nodeMetaRepeatable = FieldsAndNodes.isNodeRepeatableStatic(nodeMeta);
 
@@ -336,6 +345,12 @@ public class PhysicalModel {
       System.out.println(depthStr + " NODE PARTS SIZE: " + xpathParts.size());
       System.out.println(depthStr + " NODE PARTS: " + listToString(xpathParts));
     }
+
+    // In SDK 1.9:
+    // "id" : "OPT-060-Lot"
+    // /cac:ContractExecutionRequirement[cbc:ExecutionRequirementCode/@listName='conditions']
+    // /cbc:ExecutionRequirementCode"
+    // "id" : "OPT-060-Lot-List" is the attribute
 
     for (final String xpathPart : xpathParts) {
       Validate.notBlank(xpathPart, "partXpath is blank for nodeId=%s, xmlNodeElem=%s", nodeId,
@@ -369,6 +384,7 @@ public class PhysicalModel {
 
         // Node is a w3c dom node, nothing to do with the SDK node.
         final Node xmlNode = foundElements.item(0);
+        System.out.println(depthStr + " " + "Found elements: " + foundElements.getLength());
         if (Node.ELEMENT_NODE == xmlNode.getNodeType()) {
           // An existing element was found, reuse it.
           partElem = (Element) xmlNode;
@@ -686,6 +702,7 @@ public class PhysicalModel {
       // HARDCODED
       // TODO This is a TEMPORARY FIX until we have a proper solution inside of the SDK. National is
       // only indirectly described by saying not EU, but the text itself is not given.
+      // NOTE: SDK 1.9 will be the solution to this.
 
       // Example:
       // "xpathAbsolute" : "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName =

@@ -20,6 +20,7 @@ import org.xml.sax.SAXException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import eu.europa.ted.eforms.noticeeditor.helper.VersionHelper;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.ConceptualModel;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.PhysicalModel;
@@ -182,8 +183,7 @@ public class XmlWriteService {
     Validate.notNull(visualRoot);
     Validate.notNull(noticeUuid);
 
-    final JsonNode fieldsJson = sdkService.readSdkFieldsJson(sdkVersion);
-    final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldsJson, sdkVersion);
+    final FieldsAndNodes fieldsAndNodes = readFieldsAndNodes(sdkVersion);
     final VisualModel visualModel = new VisualModel(visualRoot);
 
     if (debug) {
@@ -215,6 +215,12 @@ public class XmlWriteService {
     final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptModel,
         fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields, sdkRootFolder);
     return physicalModel;
+  }
+
+  public FieldsAndNodes readFieldsAndNodes(final SdkVersion sdkVersion) {
+    final JsonNode fieldsJson = sdkService.readSdkFieldsJson(sdkVersion);
+    final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldsJson, sdkVersion);
+    return fieldsAndNodes;
   }
 
   public static Map<String, JsonNode> parseDocumentTypes(final JsonNode noticeTypesJson) {
@@ -281,19 +287,10 @@ public class XmlWriteService {
         JsonUtils.getTextStrict(visualRoot, VisualModel.VIS_SDK_VERSION);
     Validate.notBlank(eformsSdkVersion, "virtual root eFormsSdkVersion is blank");
 
-    final String sdkVersionStr = parseEformsSdkVersionText(eformsSdkVersion);
-    logger.info("Found SDK version: {}, using {}", eformsSdkVersion, sdkVersionStr);
-
-    // Load fields json depending of the correct SDK version.
-    return new SdkVersion(sdkVersionStr);
-  }
-
-  public static String parseEformsSdkVersionText(final String eformsSdkVersion) {
-    // If we have "eforms-sdk-1.1.0" we want "1.1.0".
-    final String eformsSdkPrefix = SdkConstants.NOTICE_CUSTOMIZATION_ID_VERSION_PREFIX;
-    Validate.isTrue(eformsSdkVersion.startsWith(eformsSdkPrefix),
-        "Expecting sdk version to start with prefix=%s", eformsSdkPrefix);
-    return eformsSdkVersion.substring(eformsSdkPrefix.length());
+    final SdkVersion sdkVersion =
+        VersionHelper.parsePrefixedSdkVersion(eformsSdkVersion);
+    logger.info("Found SDK version: {}, using {}", eformsSdkVersion, sdkVersion);
+    return sdkVersion;
   }
 
   /**
@@ -319,6 +316,8 @@ public class XmlWriteService {
     return uuidV4;
   }
 
+  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+      value = "EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS", justification = "Ok here")
   private static void serveJson(final HttpServletResponse response,
       final String filenameForDownload, final boolean isAsDownload, final String jsonText) {
     Validate.notBlank(jsonText, "jsonText is blank");
