@@ -1,7 +1,5 @@
 package eu.europa.ted.eforms.noticeeditor;
 
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
@@ -11,8 +9,6 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
-import eu.europa.ted.eforms.sdk.SdkVersion;
-import eu.europa.ted.eforms.sdk.resource.SdkDownloader;
 
 /**
  * The entry point, a Spring boot application.
@@ -48,13 +44,14 @@ public class EformsNoticeEditorApp implements CommandLineRunner {
     Validate.notEmpty(eformsSdkDir, "Undefined eForms SDK path");
     Validate.notNull(supportedSdks, "Undefined supported SDK versions");
 
-    for (final String sdkVersion : supportedSdks) {
-      try {
-        SdkDownloader.downloadSdk(new SdkVersion(sdkVersion), Path.of(eformsSdkDir));
-      } catch (IOException e) {
-        throw new RuntimeException(
-            String.format("Failed to download SDK artifacts for sdkVersion=%s", sdkVersion), e);
-      }
-    }
+    // tttt
+    // for (final String sdkVersion : supportedSdks) {
+    // try {
+    // SdkDownloader.downloadSdk(new SdkVersion(sdkVersion), Path.of(eformsSdkDir));
+    // } catch (IOException e) {
+    // throw new RuntimeException(
+    // String.format("Failed to download SDK artifacts for sdkVersion=%s", sdkVersion), e);
+    // }
+    // }
   }
 }
