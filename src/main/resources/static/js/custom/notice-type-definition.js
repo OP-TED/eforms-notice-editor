@@ -35,15 +35,19 @@ export class NoticeTypeDefinitionElement extends DocumentFragment {
   
   detectAndAddNtdAttribute(content) {
     const level = this.level;
+    
     if (content.contentType === "field") {
       const sdkField = SdkServiceClient.fields[content.id];
-      if (sdkField.attributes) {
+      
+      // NOTE: for type "id-ref" we want to automate the attribute value choice either on the front or back.
+      // Example: TPO = touchpoint, ORG = organization, ... no need for the user to do it.
+      if (sdkField.attributes && sdkField.type !== "id-ref") {
       
         // There are associated attributes.
-        for (const attr of sdkField.attributes) {
-          const sdkAttr = SdkServiceClient.fields[attr];
+        for (const attrId of sdkField.attributes) {
+          const sdkAttr = SdkServiceClient.fields[attrId];
           if (sdkAttr == null) {
-            throw new Error("Attribute field not found by id: " + attr);
+            throw new Error("Attribute field not found by id: " + attrId);
           }
           
           // We do not have NTD content for the attributes.
@@ -51,33 +55,39 @@ export class NoticeTypeDefinitionElement extends DocumentFragment {
           
           const contentAttr = {};
           contentAttr["id"] = sdkAttr.id;
-          contentAttr["contentType"] = "field";
           contentAttr["description"] = sdkAttr.name;
+
+          contentAttr["contentType"] = Constants.ContentType.FIELD;
+          contentAttr["displayType"] = sdkAttr.type === "code" ? Constants.DisplayType.COMBOBOX : Constants.DisplayType.TEXTBOX;
           
-          contentAttr["displayType"] = sdkAttr.type === "code" ? "COMBOBOX" : "TEXTBOX";
-          
-          contentAttr["editorCount"] = 1; // TODO
-          contentAttr["editorLevel"] = level; // TODO
-          contentAttr["readOnly"] = false; // TODO
-          contentAttr["hidden"] = false;
-          
-          contentAttr["_label"] = "field|name|" + sdkAttr.id;
-          if (sdkAttr.presetValue) {
-            contentAttr["_presetValue"] = sdkAttr.presetValue;
-            contentAttr["readOnly"] = true;
-            contentAttr["hidden"] = true;
-            //contentAttr["disabled"] = true;
-          }
+          contentAttr["editorCount"] = 1;
+          contentAttr["editorLevel"] = level;
+
           if (sdkAttr.repeatable) {
             contentAttr["_repeatable"] = sdkAttr.repeatable.value;
           }
-         
-          const vme = FormElement.create(contentAttr, level);
+          contentAttr["_label"] = "field|name|" + sdkAttr.id; // Label id.
           
-          // NOTE: we want this active only if there is a value in the associated field ('attributeOf').
-          // Maybe we could use a concept of 'disabled' or 'novalidate'?
+          if (!sdkAttr.presetValue && sdkAttr.id !== "BT-03-notice") {
+            contentAttr["readOnly"] = false; // No presetValue
+            contentAttr["hidden"] = false; // No presetValue
+            
+            
+            // TODO tttt BT-26(m)-Procedure is already there, we do not want to add it twice...
+            //alert(sdkAttr.id);
+            
           
-          this.htmlElement.appendChild(vme);
+						// If there is no presetValue, it means the user can make a choice in the UI.
+						// Add a form field for the attribute value choice.
+            console.debug("Adding attribute field: " + sdkAttr.id + ", displayType=" + contentAttr["displayType"]);
+            if (sdkAttr.codeList) {
+              console.debug(sdkAttr.id + " " + sdkAttr.codeList.value.id);
+            }
+            
+            const vme = NoticeTypeDefinitionElement.create(contentAttr, level);
+            this.htmlElement.appendChild(vme);
+          }
+          // If there is a presetValue, this can be handled later in the back-end.
         }
         
       }
@@ -509,14 +519,18 @@ export class CodeInputField extends InputField {
 
   async populate(sdkVersion, language) {
 
-    const response = await fetch("sdk/" + sdkVersion + "/codelists/" + this.getCodelist().filename + "/lang/" + language);
+    const url = SdkServiceClient.codelistUrl(sdkVersion, this.getCodelist().filename, language);
+    console.debug(url);
+    const response = await fetch(url);
     const json = await response.json();
 
 		if (this.formElement.populate) {
-		  const msg = "this.formElement.populate not found for field id=" + this.content.id;
-		  console.warn(msg);
-		  //throw new Error(msg);
       this.formElement.populate(json.codes.map((code) => [code.codeValue, code[language]]), true);
+		} else {
+		  //throw new Error(msg);
+		  var msg = "this.formElement.populate not found for field id=" + this.formElement.fieldId;
+		  msg += ", expecting displayType " + Constants.DisplayType.COMBOBOX + " but found " + this.formElement.displayType;
+		  console.warn(msg);
 		}
 
     // After the select options have been set, an option can be selected.

@@ -37,22 +37,22 @@ export class FormElement extends DocumentFragment {
    * @param {String} contentId 
    * @param {Number} instanceNumber 
    */
-    static idFromFieldIdAndInstanceNumber(contentId, instanceNumber = -1) {
-      const prefix = /^\d/.test(contentId) ? "_" : "";                                              // prefix with an underscore if the contentId starts with a number
-      const identifier = contentId.replace(/\W/g,'_').toLowerCase();                                // replace all non-word characters with underscores
-      const suffix = instanceNumber > -1 ? `_${instanceNumber?.toString().padStart(4, "0")}` : "";  // add an instance number if requested
-      return prefix + identifier + suffix;
-    }
-  
-    /**
-     * Gets the element that corresponds to the given content-id and instance-number.
-     * 
-     * @param {String} contentId 
-     * @param {Number} instanceNumber 
-     */
-    static getElementByContentId(contentId, instanceNumber = -1) {
-      return document.getElementById(FormElement.idFromFieldIdAndInstanceNumber(contentId, instanceNumber));
-    }
+  static idFromFieldIdAndInstanceNumber(contentId, instanceNumber = -1) {
+    const prefix = /^\d/.test(contentId) ? "_" : "";                                              // prefix with an underscore if the contentId starts with a number
+    const identifier = contentId.replace(/\W/g,'_').toLowerCase();                                // replace all non-word characters with underscores
+    const suffix = instanceNumber > -1 ? `_${instanceNumber?.toString().padStart(4, "0")}` : "";  // add an instance number if requested
+    return prefix + identifier + suffix;
+  }
+
+  /**
+   * Gets the element that corresponds to the given content-id and instance-number.
+   * 
+   * @param {String} contentId 
+   * @param {Number} instanceNumber 
+   */
+  static getElementByContentId(contentId, instanceNumber = -1) {
+    return document.getElementById(FormElement.idFromFieldIdAndInstanceNumber(contentId, instanceNumber));
+  }
   
   constructor(content, level) {
     super();
@@ -96,6 +96,10 @@ export class FormElement extends DocumentFragment {
   
   get contentId() {
     return this.content?.id;
+  }
+
+  get displayType() {
+    return this.content?.displayType;
   }
 
   get instanceNumber() {
@@ -314,11 +318,11 @@ export class InputFieldElement extends FormElement {
    */
   static create(content, level) {
     switch (content.displayType) {
-      case "CHECKBOX": return new CheckBoxInputElement(content, level);
-      case "COMBOBOX": return new ComboBoxInputElement(content, level); 
-      case "RADIO": return new RadioInputElement(content, level); 
-      case "TEXTAREA": return new TextAreaInputElement(content, level);
-      case "TEXTBOX": return new TextBoxInputElement(content, level); 
+      case Constants.DisplayType.CHECKBOX: return new CheckBoxInputElement(content, level);
+      case Constants.DisplayType.COMBOBOX: return new ComboBoxInputElement(content, level); 
+      case Constants.DisplayType.RADIO: return new RadioInputElement(content, level); 
+      case Constants.DisplayType.TEXTAREA: return new TextAreaInputElement(content, level);
+      case Constants.DisplayType.TEXTBOX: return new TextBoxInputElement(content, level); 
     }
   }
 
