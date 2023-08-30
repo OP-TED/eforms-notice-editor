@@ -55,6 +55,11 @@ public abstract class SaveNoticeTest {
   static final String KEY_XPATH_REL = "xpathRelative";
   static final String KEY_XPATH_ABS = "xpathAbsolute";
 
+  static final String KEY_ATTRIBUTE_OF = FieldsAndNodes.ATTRIBUTE_OF;
+  static final String KEY_ATTRIBUTE_NAME = FieldsAndNodes.ATTRIBUTE_NAME;
+  static final String KEY_ATTRIBUTES = FieldsAndNodes.ATTRIBUTES;
+  static final String KEY_PRESET_VALUE = FieldsAndNodes.PRESET_VALUE;
+
   static final String KEY_FIELD_ID = "id";
   static final String KEY_FIELD_REPEATABLE = "repeatable";
   static final String KEY_NODE_REPEATABLE = "repeatable";
@@ -144,8 +149,25 @@ public abstract class SaveNoticeTest {
           "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension/efac:NoticeSubType/cbc:SubTypeCode");
       field.put(KEY_XPATH_REL, "efac:NoticeSubType/cbc:SubTypeCode");
       field.put(KEY_TYPE, TYPE_CODE);
+      field.set(
+          KEY_ATTRIBUTES,
+          JsonUtils.createArrayNode().add(ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE_LIST));
       SaveNoticeTest.fieldPutRepeatable(field, false);
       FieldsAndNodes.setFieldFlatCodeList(mapper, field, CODELIST_NOTICE_SUBTYPE);
+    }
+    {
+      final ObjectNode field = mapper.createObjectNode();
+      fieldById.put(ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE_LIST, field);
+      field.put(KEY_FIELD_ID, ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE_LIST);
+      field.put(KEY_PARENT_NODE_ID, ND_ROOT_EXTENSION);
+      field.put(KEY_XPATH_ABS,
+          "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension/efac:NoticeSubType/cbc:SubTypeCode/@listName");
+      field.put(KEY_XPATH_REL, "efac:NoticeSubType/cbc:SubTypeCode/@listName");
+      field.put(KEY_TYPE, TYPE_TEXT);
+      field.put(KEY_ATTRIBUTE_NAME, "listName");
+      field.put(KEY_ATTRIBUTE_OF, ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE);
+      field.put(KEY_PRESET_VALUE, CODELIST_NOTICE_SUBTYPE);
+      SaveNoticeTest.fieldPutRepeatable(field, false);
     }
     {
       final ObjectNode field = mapper.createObjectNode();

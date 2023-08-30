@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import eu.europa.ted.eforms.noticeeditor.helper.VersionHelper;
 import eu.europa.ted.eforms.noticeeditor.service.SdkService;
+import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
@@ -43,8 +44,13 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
   private static final String OPP_113_BUSINESS_EUROPEAN = "OPP-113-Business-European";
 
   private static final String BT_500_BUSINESS = "BT-500-Business";
+
   private static final String BT_501_BUSINESS_NATIONAL = "BT-501-Business-National";
+  private static final String BT_501_BUSINESS_NATIONAL_SCHEME = "BT-501-Business-National-Scheme";
+
   private static final String BT_501_BUSINESS_EUROPEAN = "BT-501-Business-European";
+  private static final String BT_501_BUSINESS_EUROPEAN_SCHEME = "BT-501-Business-European-Scheme";
+
   private static final String BT_505_BUSINESS = "BT-505-Business";
 
   private static final String VALUE_HEALTH = "health";
@@ -235,28 +241,63 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
       field.put(KEY_TYPE, TYPE_TEXT);
       SaveNoticeTest.fieldPutRepeatable(field, false);
     }
+
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(BT_501_BUSINESS_EUROPEAN, field);
       field.put(KEY_FIELD_ID, BT_501_BUSINESS_EUROPEAN);
       field.put(KEY_PARENT_NODE_ID, ND_EU_ENTITY);
       field.put(KEY_XPATH_ABS,
-          "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName = 'EU']/cbc:CompanyID[@schemeName = 'EU']");
-      field.put(KEY_XPATH_REL, "cbc:CompanyID[@schemeName = 'EU']");
+          "/*/cac:BusinessParty/cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']/cbc:CompanyID");
+      field.put(KEY_XPATH_REL, "cbc:CompanyID");
+      field.set(
+          KEY_ATTRIBUTES,
+          JsonUtils.createArrayNode().add(BT_501_BUSINESS_EUROPEAN_SCHEME));
       field.put(KEY_TYPE, TYPE_ID);
       SaveNoticeTest.fieldPutRepeatable(field, false);
     }
+    {
+      final ObjectNode field = mapper.createObjectNode();
+      fieldById.put(BT_501_BUSINESS_EUROPEAN_SCHEME, field);
+      field.put(KEY_FIELD_ID, BT_501_BUSINESS_EUROPEAN);
+      field.put(KEY_PARENT_NODE_ID, ND_EU_ENTITY);
+      field.put(KEY_XPATH_ABS,
+          "/*/cac:BusinessParty/cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']/cbc:CompanyID/@schemeName");
+      field.put(KEY_XPATH_REL, "cbc:CompanyID/@schemeName");
+      field.put(KEY_ATTRIBUTE_NAME, "schemeName");
+      field.put(KEY_ATTRIBUTE_OF, "EU");
+      field.put(KEY_TYPE, TYPE_ID);
+      SaveNoticeTest.fieldPutRepeatable(field, false);
+    }
+
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(BT_501_BUSINESS_NATIONAL, field);
       field.put(KEY_FIELD_ID, BT_501_BUSINESS_NATIONAL);
       field.put(KEY_PARENT_NODE_ID, ND_LOCAL_ENTITY);
       field.put(KEY_XPATH_ABS,
-          "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[not(@schemeName = 'EU')]/cbc:CompanyID[not(@schemeName = 'EU')]");
-      field.put(KEY_XPATH_REL, "cbc:CompanyID[not(@schemeName = 'EU')]");
+          "/*/cac:BusinessParty/cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'national']/cbc:CompanyID");
+      field.put(KEY_XPATH_REL, "cbc:CompanyID");
+      field.set(
+          KEY_ATTRIBUTES,
+          JsonUtils.createArrayNode().add(BT_501_BUSINESS_NATIONAL_SCHEME));
       field.put(KEY_TYPE, TYPE_ID);
       SaveNoticeTest.fieldPutRepeatable(field, false);
     }
+    {
+      final ObjectNode field = mapper.createObjectNode();
+      fieldById.put(BT_501_BUSINESS_NATIONAL_SCHEME, field);
+      field.put(KEY_FIELD_ID, BT_501_BUSINESS_NATIONAL);
+      field.put(KEY_PARENT_NODE_ID, ND_LOCAL_ENTITY);
+      field.put(KEY_XPATH_ABS,
+          "/*/cac:BusinessParty/cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'national']/cbc:CompanyID/@schemeName");
+      field.put(KEY_XPATH_REL, "cbc:CompanyID/@schemeName");
+      field.put(KEY_ATTRIBUTE_NAME, "schemeName");
+      field.put(KEY_ATTRIBUTE_OF, "national");
+      field.put(KEY_TYPE, TYPE_ID);
+      SaveNoticeTest.fieldPutRepeatable(field, false);
+    }
+
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(OPP_105_BUSINESS, field);
@@ -312,10 +353,12 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     // also to demonstrate how the entire thing works but based on something much smaller and more
     // controllable.
 
-    // A dummy 1.8.0, not real 1.8.0
-    final SdkVersion sdkVersion = new SdkVersion("1.8.0");
+    // Note that sometimes a new SDK has new data and new features and that this test has to be
+    // adapted to changes done in that data and done in the code of the editor demo itself.
+    // A dummy SDK 1.9.0, not real 1.9.0. Updating this version here is not enough.
+    final SdkVersion sdkVersion = new SdkVersion("1.9.0");
     final String prefixedSdkVersion = VersionHelper.prefixSdkVersionWithoutPatch(sdkVersion);
-    final String noticeSubType = "X02"; // A dummy X02, not the real X02 of 1.8.0
+    final String noticeSubType = "X02"; // A dummy X02 (close to X02).
 
     final VisualModel visualModel = setupVisualModel(mapper, sdkVersion, noticeSubType);
 

@@ -14,7 +14,8 @@ public class ConceptTreeField extends ConceptTreeItem {
   }
 
   /**
-   * For convenience and to make it clear that the ID in the SDK is the field ID in this case.
+   * For convenience and to make it clear that the ID in the SDK is the field ID in this case. It
+   * can be used to get general information about the field (data from fields.json).
    */
   public String getFieldId() {
     return idInSdkFieldsJson;

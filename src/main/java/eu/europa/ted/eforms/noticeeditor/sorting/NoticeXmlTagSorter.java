@@ -92,10 +92,18 @@ public class NoticeXmlTagSorter {
    */
   public void sortXml(final Element xmlRoot) throws SAXException, IOException {
 
+    final String cbcCustomizationId = PhysicalModel.CBC_CUSTOMIZATION_ID;
     // Compare sdkVersion of the element to the SDK version of this instance.
-    final String sdkVersionOfNoticeStr =
-        XmlUtils.getDirectChild(xmlRoot, PhysicalModel.CBC_CUSTOMIZATION_ID).getTextContent();
+    final Element customizationElem =
+        XmlUtils.getDirectChild(xmlRoot, cbcCustomizationId);
+    if (customizationElem == null) {
+      throw new RuntimeException(
+          String.format(
+              "Failed to find field=%s, the physical model is probably not well formed. xmlRoot=%s",
+              cbcCustomizationId, xmlRoot));
+    }
 
+    final String sdkVersionOfNoticeStr = customizationElem.getTextContent();
     final SdkVersion sdkVersionOfNotice =
         VersionHelper.parsePrefixedSdkVersion(sdkVersionOfNoticeStr);
     final SdkVersion sdkVersionOfSorter = getSorterSdkVersion();

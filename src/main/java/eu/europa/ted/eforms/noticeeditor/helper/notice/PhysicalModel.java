@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -59,15 +60,11 @@ public class PhysicalModel {
   private static final String NODE_XPATH_RELATIVE = "xpathRelative";
 
   public static final String FIELD_CODE_LIST = "codeList";
-  private static final String FIELD_TYPE_CODE = "code";
   private static final String FIELD_XPATH_RELATIVE = "xpathRelative";
-  private static final String FIELD_TYPE = "type";
 
   private static final String XML_ATTR_EDITOR_COUNTER_SELF = "editorCounterSelf";
   private static final String XML_ATTR_EDITOR_FIELD_ID = "editorFieldId";
   private static final String XML_ATTR_EDITOR_NODE_ID = "editorNodeId";
-  private static final String XML_ATTR_SCHEME_NAME = "schemeName";
-  private static final String XML_ATTR_LIST_NAME = "listName";
 
   private static final String XPATH_TEMP_REPLACEMENT = "~"; // ONE CHAR ONLY!
 
@@ -172,7 +169,7 @@ public class PhysicalModel {
   }
 
   /**
-   * Builds the physical model.
+   * Builds the physical model from the conceptual model and SDK field and nodes information.
    *
    * @param conceptModel The conceptual model from the previous step
    * @param fieldsAndNodes Information about SDK fields and nodes
@@ -233,22 +230,32 @@ public class PhysicalModel {
     final int depth = 0;
     buildPhysicalModelRec(xmlDoc, fieldsAndNodes, conceptualModelTreeRootNode, xmlDocRoot, debug,
         buildFields, depth, onlyIfPriority, xpathInst);
+    logger.info("Done building unsorted physical model.");
 
-    // Reorder the physical model.
+    // Reorder / sort the physical model.
     // The location of the XSDs is given in the SDK and could vary by SDK version.
+    logger.info("Attempting to sort physical model.");
     final SdkVersion sdkVersion = fieldsAndNodes.getSdkVersion();
     final Path pathToSpecificSdk = sdkRootFolder.resolve(sdkVersion.toStringWithoutPatch());
     final NoticeXmlTagSorter sorter =
         new NoticeXmlTagSorter(xpathInst, docTypeInfo, pathToSpecificSdk,
             fieldsAndNodes);
-    sorter.sortXml(xmlDocRoot);
+    try {
 
-    final Optional<Path> mainXsdPathOpt = sorter.getMainXsdPathOpt();
-    if (mainXsdPathOpt.isPresent()) {
-      Validate.isTrue(mainXsdPathOpt.get().toFile().exists(), "File does not exist: mainXsdPath=%s",
-          mainXsdPathOpt);
+      sorter.sortXml(xmlDocRoot);
+      final Optional<Path> mainXsdPathOpt = sorter.getMainXsdPathOpt();
+      if (mainXsdPathOpt.isPresent()) {
+        Validate.isTrue(mainXsdPathOpt.get().toFile().exists(),
+            "File does not exist: mainXsdPath=%s",
+            mainXsdPathOpt);
+      }
+      return new PhysicalModel(xmlDoc, xpathInst, fieldsAndNodes, mainXsdPathOpt);
+
+    } catch (final Exception e) {
+      final String xmlAsText = EditorXmlUtils.asText(xmlDoc, true);
+      logger.error("Problem sorting XML: {}", xmlAsText); // Log the entire XML.
+      throw e;
     }
-    return new PhysicalModel(xmlDoc, xpathInst, fieldsAndNodes, mainXsdPathOpt);
   }
 
   /**
@@ -278,14 +285,38 @@ public class PhysicalModel {
 
     // NODES.
     for (final ConceptTreeNode conceptNode : conceptElem.getConceptNodes()) {
+      // The nodes may contain fields ...
       buildNodesAndFields(doc, fieldsAndNodes, conceptNode, xpathInst, xmlNodeElem, debug, depth,
           onlyIfPriority, buildFields);
     }
 
     // FIELDS.
-    for (final ConceptTreeField conceptField : conceptElem.getConceptFields()) {
-      buildFields(doc, fieldsAndNodes, conceptField, xmlNodeElem, debug, depth,
-          onlyIfPriority, buildFields);
+    if (buildFields) {
+      // The fields are terminal (tree leaves) and cannot contain nodes.
+      // But we have to deal with element attributes that must be added to some elements.
+      // We want the attribute information available once we reach the element that has them.
+      // This is done in a separator for loop as the attribute fields could appear after the fields
+      // that have the attributes.
+      final Map<String, ConceptTreeField> attributeFieldById = new HashMap<>();
+      for (final ConceptTreeField conceptField : conceptElem.getConceptFields()) {
+        final String fieldId = conceptField.getFieldId();
+        final JsonNode fieldMeta = fieldsAndNodes.getFieldById(fieldId);
+        // An attribute is an attribute of another field.
+        final Optional<String> attributeOf = JsonUtils.getTextOpt(fieldMeta, "attributeOf");
+        if (attributeOf.isPresent()) {
+          // This is an attribute field.
+          attributeFieldById.put(fieldId, conceptField);
+        }
+      }
+
+      // Handle fields, build field elements and set the attributes.
+      for (final ConceptTreeField conceptField : conceptElem.getConceptFields()) {
+        final boolean isAttribute = attributeFieldById.containsKey(conceptField.getFieldId());
+        if (!isAttribute) {
+          buildFieldElementsAndAttributes(doc, fieldsAndNodes, conceptField, xmlNodeElem, debug,
+              depth, onlyIfPriority, attributeFieldById);
+        }
+      }
     }
 
     // if (debug) {
@@ -356,7 +387,7 @@ public class PhysicalModel {
       Validate.notBlank(xpathPart, "partXpath is blank for nodeId=%s, xmlNodeElem=%s", nodeId,
           xmlNodeElem);
       final PhysicalXpathPart px = handleXpathPart(xpathPart);
-      final Optional<String> schemeNameOpt = px.getSchemeNameOpt();
+      // final Optional<String> schemeNameOpt = px.getSchemeNameOpt();
       final String xpathExpr = px.getXpathExpr();
       final String tag = px.getTagOrAttribute();
       if (debug) {
@@ -402,13 +433,6 @@ public class PhysicalModel {
       }
 
       previousElem.appendChild(partElem); // SIDE-EFFECT! Adding item to the tree.
-
-      if (schemeNameOpt.isPresent()) {
-        final String schemeName = schemeNameOpt.get();
-        final String msg = String.format("%s=%s", XML_ATTR_SCHEME_NAME, schemeName);
-        System.out.println(depthStr + " " + msg);
-        partElem.setAttribute(XML_ATTR_SCHEME_NAME, schemeName); // SIDE-EFFECT!
-      }
       previousElem = partElem;
 
     } // End of for loop on parts of relative xpath.
@@ -438,24 +462,22 @@ public class PhysicalModel {
   }
 
   /**
-   * Builds the fields, some fields have nodes in their xpath, those will also be built. As a
-   * side-effect the doc and the passed xml element will be modified.
+   * Builds the fields XML, some fields have XML elements in their xpath, those will also be built.
+   * As a side-effect the XML document and the passed XML element will be modified.
    *
    * @param doc The XML document, modified as a SIDE-EFFECT!
    * @param xmlNodeElem current XML element (modified as a SIDE-EFFECT!)
    * @param debug special debug mode for humans and unit tests (XML may be invalid)
    * @param depth The current depth level passed for debugging and logging purposes
    * @param onlyIfPriority add only elements that have priority
-   * @param buildFields If false it will abort (only exists to simplify the code elsewhere)
+   * @param attributeFieldById All attribute fields by id
    */
-  private static void buildFields(final Document doc, final FieldsAndNodes fieldsAndNodes,
+  private static void buildFieldElementsAndAttributes(final Document doc,
+      final FieldsAndNodes fieldsAndNodes,
       final ConceptTreeField conceptField, final Element xmlNodeElem,
       final boolean debug, final int depth, final boolean onlyIfPriority,
-      final boolean buildFields) {
+      final Map<String, ConceptTreeField> attributeFieldById) {
 
-    if (!buildFields) {
-      return;
-    }
     final String depthStr = StringUtils.leftPad(" ", depth * 4);
 
     // logger.debug("xmlEleme=" + EditorXmlUtils.getNodePath(xmlNodeElem));
@@ -471,6 +493,18 @@ public class PhysicalModel {
     // Get the field meta-data from the SDK.
     final JsonNode fieldMeta = fieldsAndNodes.getFieldById(fieldId);
     Validate.notNull(fieldMeta, "fieldMeta null for fieldId=%s", fieldId);
+
+    final Optional<String> attributeOf =
+        JsonUtils.getTextOpt(fieldMeta, FieldsAndNodes.ATTRIBUTE_OF);
+    final boolean isAttribute = attributeOf.isPresent();
+    if (isAttribute) {
+      // Skip. Attributes are used later in this code from the field on which they are attached to.
+      // Starting from "attributes" and not from "attributeOf".
+      throw new RuntimeException(String
+          .format("Attribute fields should not reach this part of the code, fieldId=%s", fieldId));
+    }
+    final Map<String, String> attributeNameAndValueMap =
+        determineAttributes(fieldsAndNodes, attributeFieldById, fieldId, fieldMeta);
 
     // IMPORTANT: !!! The relative xpath of fields can contain intermediary xml elements !!!
     // Example: "cac:PayerParty/cac:PartyIdentification/cbc:ID" contains more than just the field.
@@ -492,121 +526,147 @@ public class PhysicalModel {
       System.out.println(depthStr + " FIELD PARTS: " + listToString(parts));
     }
 
-    final String attrTemp = "temp";
+    // final String attrTemp = "temp";
     for (final String partXpath : parts) {
 
       final PhysicalXpathPart px = handleXpathPart(partXpath);
-      final Optional<String> schemeNameOpt = px.getSchemeNameOpt();
+      // final Optional<String> schemeNameOpt = px.getSchemeNameOpt();
       final String tagOrAttr = px.getTagOrAttribute();
 
-      // In this case the field is an attribute of a field in the XML, technically this makes a
-      // difference and we have to handle this with specific code.
-      // Example: "@listName"
-      // IDEA: "attribute" : "listName" in the fields.json for fields at are attributes in the
-      // XML.
-      final boolean isAttribute = tagOrAttr.startsWith("@") && tagOrAttr.length() > 1;
+      // Example:
+      // ... efbc:OverallApproximateFrameworkContractsAmount/@currencyID", the last part.
+      final boolean isAttributePart = tagOrAttr.startsWith("@") && tagOrAttr.length() > 1;
+      Validate.isTrue(!isAttributePart, "An attribute should not appear here! fieldId=%s", fieldId);
 
-      // NOTE: for the field relative xpath we want to build the all the elements (no reuse).
-      if (isAttribute) {
-        // Set attribute on previous element.
-        // Example:
-        // @listName or @currencyID
-        // In the case we cannot create a new XML element.
-        // We have to add this attribute to the previous element.
-        logger.debug(depthStr + " Creating attribute=" + tagOrAttr);
-        previousElem.setAttribute(tagOrAttr.substring(1), value); // SIDE-EFFECT!
-        // partElem = ... NO we do not want to reassign the partElem. This ensures that after we
-        // exit the loop the partElem still points to the last XML element.
-        // We also cannot set an attribute on an attribute!
-      } else {
-        // Create an XML element.
-        logger.debug(depthStr + " Creating tag=" + tagOrAttr);
-        partElem = createElemXml(doc, tagOrAttr);
-        partElem.setAttribute(attrTemp, attrTemp);
-      }
+      // Create an XML element.
+      logger.debug(depthStr + " Creating tag=" + tagOrAttr);
+      partElem = createElemXml(doc, tagOrAttr);
+      // partElem.setAttribute(attrTemp, attrTemp);
 
-      // This check is to avoid a problem with attributes.
-      if (!isAttribute && partElem != null) {
-        previousElem.appendChild(partElem); // SIDE-EFFECT! Adding item to the tree.
-
-        if (schemeNameOpt.isPresent()) {
-          partElem.setAttribute(XML_ATTR_SCHEME_NAME, schemeNameOpt.get());
-        }
-        previousElem = partElem;
-      }
-
+      previousElem.appendChild(partElem); // SIDE-EFFECT! Adding item to the XML doc tree.
+      previousElem = partElem;
     } // End of for loop on parts of relative xpath.
 
     // We arrived at the end of the relative xpath.
     // By design of the above algorithm the last element is always a leaf: the current field.
-    final Element fieldElem = partElem != null ? partElem : previousElem;
-
+    final Element fieldElem = partElem;
     Validate.notNull(fieldElem, "fieldElem is null for fieldId=%s, xpathRel=%s", fieldId, xpathRel);
 
-    if (debug) {
-      // This could make the XML invalid, this is meant to be read by humans.
-      // These attributes are also useful in unit tests for easy checking of field by id.
-      fieldElem.setAttribute(XML_ATTR_EDITOR_FIELD_ID, fieldId);
+    // Set the attributes of this element.
+    for (final Entry<String, String> entry : attributeNameAndValueMap.entrySet()) {
+      final String attributeName = entry.getKey();
+      if (StringUtils.isNotBlank(fieldElem.getAttribute(attributeName))) {
+        throw new RuntimeException(String.format(
+            "Double set: Attribute already set, attributeName=%s, fieldId=%s", attributeName,
+            fieldId));
+      }
+      String attributeValue = entry.getValue();
+      if (fieldElem.getNodeName().equals("cbc:CapabilityTypeCode")) {
+        attributeValue = "sector"; // This will be fixed in SDK 1.10.
+      }
+      fieldElem.setAttribute(attributeName, attributeValue); // SIDE-EFFECT!
+    }
 
+
+    if (debug) {
+      // This makes the XML invalid, it is meant to be read by humans to help understand the XML.
+      // These attributes are also useful in unit tests for easy checking of field by id.
+      // This keeps the original visual / conceptual fieldId in the physical model.
+      // Another concept could be to set XML comments but this can also be a problem in unit tests.
+      fieldElem.setAttribute(XML_ATTR_EDITOR_FIELD_ID, fieldId);
       fieldElem.setAttribute(XML_ATTR_EDITOR_COUNTER_SELF,
           Integer.toString(conceptField.getCounter()));
     }
 
-    if (onlyIfPriority && StringUtils.isBlank(fieldElem.getAttribute(XML_ATTR_SCHEME_NAME))) {
-      // Remove created and appended child elements.
-      Element elem = fieldElem;
-      while (true) {
-        if (elem.hasAttribute(attrTemp)) {
-          final Node parentNode = elem.getParentNode();
-          if (parentNode != null) {
-            parentNode.removeChild(elem);
-            elem = (Element) parentNode;
-          } else {
-            break;
-          }
-        } else {
-          break;
-        }
-      }
-      return; // Skip, it will be added later.
-
-    } else {
-      // Remove temporary attribute.
-      Element elem = fieldElem;
-      while (true) {
-        if (elem.hasAttribute(attrTemp)) {
-          final Node parentNode = elem.getParentNode();
-          if (parentNode != null) {
-            elem.removeAttribute(attrTemp);
-            elem = (Element) parentNode;
-          } else {
-            break;
-          }
-        } else {
-          break;
-        }
-      }
-    }
+    // if (onlyIfPriority && StringUtils.isBlank(fieldElem.getAttribute(XML_ATTR_SCHEME_NAME))) {
+    // // Remove created and appended child elements.
+    // Element elem = fieldElem;
+    // while (true) {
+    // if (elem.hasAttribute(attrTemp)) {
+    // final Node parentNode = elem.getParentNode();
+    // if (parentNode != null) {
+    // parentNode.removeChild(elem);
+    // elem = (Element) parentNode;
+    // } else {
+    // break;
+    // }
+    // } else {
+    // break;
+    // }
+    // }
+    // return; // Skip, it will be added later.
+    //
+    // } else {
+    // // Remove temporary attribute.
+    // Element elem = fieldElem;
+    // while (true) {
+    // if (elem.hasAttribute(attrTemp)) {
+    // final Node parentNode = elem.getParentNode();
+    // if (parentNode != null) {
+    // elem.removeAttribute(attrTemp);
+    // elem = (Element) parentNode;
+    // } else {
+    // break;
+    // }
+    // } else {
+    // break;
+    // }
+    // }
+    // }
 
     // Set value of the field.
     Validate.notNull(value, "value is null for fieldId=%s", fieldId, "fieldId=" + fieldId);
     fieldElem.setTextContent(value);
+  }
 
-    final String fieldType = JsonUtils.getTextStrict(fieldMeta, FIELD_TYPE);
-    if (FIELD_TYPE_CODE.equals(fieldType)) {
-
-      // Find the SDK codelist identifier.
-      final JsonNode codelistValue =
-          FieldsAndNodes.getFieldPropertyValue(fieldMeta, FIELD_CODE_LIST);
-      String codelistName = JsonUtils.getTextStrict(codelistValue, "id", "fieldId=" + fieldId);
-      if (ConceptualModel.FIELD_SECTOR_OF_ACTIVITY.equals(fieldId)) {
-        // TODO sector, temporary hardcoded fix here, this information should be provided in the
-        // SDK. Maybe via a special key/value.
-        codelistName = "sector";
+  /**
+   * @return A map with the determined attribute name and value entries for the passed field.
+   */
+  private static Map<String, String> determineAttributes(final FieldsAndNodes fieldsAndNodes,
+      final Map<String, ConceptTreeField> attributeFieldById, final String fieldId,
+      final JsonNode fieldMeta) {
+    // Find attribute field ids of this SDK field.
+    final List<String> attributeFieldIds =
+        JsonUtils.getListOfStrings(fieldMeta, FieldsAndNodes.ATTRIBUTES);
+    final Map<String, String> attributeNameAndValues =
+        new HashMap<>(attributeFieldIds.size(), 1.0f);
+    for (final String attributeFieldId : attributeFieldIds) {
+      final ConceptTreeField conceptAttribute = attributeFieldById.get(attributeFieldId);
+      final JsonNode sdkAttrMeta = fieldsAndNodes.getFieldById(attributeFieldId);
+      final String attrName = JsonUtils.getTextStrict(sdkAttrMeta, FieldsAndNodes.ATTRIBUTE_NAME);
+      if (conceptAttribute != null) {
+        final String attributeValue = conceptAttribute.getValue(); // Value from the form.
+        if (StringUtils.isNotBlank(attributeValue)) {
+          attributeNameAndValues.put(attrName, attributeValue);
+        } else {
+          // It does not make sense for the value to be blank, but it can happen if there is no
+          // front-end validation and we want an empty form to be processed, otherwise we would have
+          // to only pass a fully filled and valid form, which is not easy in the editor demo.
+          // We want to set the attributes as those are used in the xpath expressions which are used
+          // to locate elements.
+          inferAttribute(sdkAttrMeta, attributeNameAndValues, attrName);
+        }
+      } else {
+        logger.warn("TODO: infer attribute? fieldId={}, attributeFieldId={}", fieldId,
+            attributeFieldId);
+        inferAttribute(sdkAttrMeta, attributeNameAndValues, attrName);
       }
+    }
+    return attributeNameAndValues;
+  }
 
-      // Convention: in the XML the codelist is set in the listName attribute.
-      fieldElem.setAttribute(XML_ATTR_LIST_NAME, codelistName);
+  private static void inferAttribute(final JsonNode sdkAttrMeta,
+      final Map<String, String> attributeNameAndValues, final String attrName) {
+    final Optional<String> presetValueOpt = JsonUtils.getTextOpt(sdkAttrMeta, "presetValue");
+    if (presetValueOpt.isPresent()) {
+      // For example:
+      // "id" : "OPP-070-notice-List",
+      // "presetValue" : "notice-subtype",
+      final String presetValue = presetValueOpt.get();
+      attributeNameAndValues.put(attrName, presetValue);
+    } else {
+      // Maybe infer it? Example: TPO-xyz => "touchpoint" etc. via presetValue and DB tables
+      // listName="touchpoint">TPO-xyz<...
     }
   }
 

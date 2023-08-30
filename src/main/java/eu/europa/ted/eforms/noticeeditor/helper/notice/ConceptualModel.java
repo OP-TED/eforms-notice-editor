@@ -40,6 +40,11 @@ public class ConceptualModel {
   public static final String FIELD_ID_NOTICE_SUB_TYPE = "OPP-070-notice";
 
   /**
+   * Notice field id defining the notice sub type list attribute.
+   */
+  public static final String FIELD_ID_NOTICE_SUB_TYPE_LIST = "OPP-070-notice-List";
+
+  /**
    * Sector of activity.
    */
   public static final String FIELD_SECTOR_OF_ACTIVITY = "OPP-105-Business";

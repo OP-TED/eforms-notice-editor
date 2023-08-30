@@ -31,10 +31,18 @@ public class FieldsAndNodes {
   public static final String XPATH_RELATIVE = "xpathRelative";
   public static final String XPATH_ABSOLUTE = "xpathAbsolute";
 
+  public static final String ATTRIBUTES = "attributes";
+  public static final String ATTRIBUTE_OF = "attributeOf";
+  public static final String ATTRIBUTE_NAME = "attributeName";
+
+  public static final String PRESET_VALUE = "presetValue";
+
   /**
    * Sort order.
    *
-   * <p>Since SDK 1.7, but data is only correct since SDK 1.8</p>
+   * <p>
+   * Since SDK 1.7, but data is only correct since SDK 1.8
+   * </p>
    */
   public static final String XSD_SEQUENCE_ORDER_KEY = "xsdSequenceOrder";
 
