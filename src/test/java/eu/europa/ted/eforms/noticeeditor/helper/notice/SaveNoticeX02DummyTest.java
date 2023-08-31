@@ -38,9 +38,13 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
   private static final String ND_EU_ENTITY = "ND-EuEntity";
   private static final String ND_LOCAL_ENTITY = "ND-LocalEntity";
   private static final String ND_BUSINESS_PARTY = "ND-BusinessParty";
+  private static final String ND_BUSINESS_CAPABILITY = "ND-BusinessCapability";
 
   private static final String OPP_100_BUSINESS = "OPP-100-Business";
+
   private static final String OPP_105_BUSINESS = ConceptualModel.FIELD_SECTOR_OF_ACTIVITY;
+  private static final String OPP_105_BUSINESS_LIST = "OPP-105-Business-List";
+
   private static final String OPP_113_BUSINESS_EUROPEAN = "OPP-113-Business-European";
 
   private static final String BT_500_BUSINESS = "BT-500-Business";
@@ -178,7 +182,16 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
       node.put(KEY_NODE_PARENT_ID, ND_ROOT);
       node.put(KEY_XPATH_ABS, "/*/cac:BusinessParty");
       node.put(KEY_XPATH_REL, "cac:BusinessParty");
-      SaveNoticeTest.fieldPutRepeatable(node, false);
+      SaveNoticeTest.nodePutRepeatable(node, false);
+    }
+    {
+      final ObjectNode node = mapper.createObjectNode();
+      nodeById.put(ND_BUSINESS_CAPABILITY, node);
+      node.put(KEY_NODE_ID, ND_BUSINESS_CAPABILITY);
+      node.put(KEY_NODE_PARENT_ID, ND_ROOT);
+      node.put(KEY_XPATH_ABS, "/*/cac:BusinessCapability");
+      node.put(KEY_XPATH_REL, "cac:BusinessCapability");
+      SaveNoticeTest.nodePutRepeatable(node, true);
     }
     {
       final ObjectNode node = mapper.createObjectNode();
@@ -186,9 +199,9 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
       node.put(KEY_NODE_ID, ND_LOCAL_ENTITY);
       node.put(KEY_NODE_PARENT_ID, ND_BUSINESS_PARTY);
       node.put(KEY_XPATH_ABS,
-          "/*/cac:BusinessParty/cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName = 'EU')]");
-      node.put(KEY_XPATH_REL, "cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName = 'EU')]");
-      SaveNoticeTest.fieldPutRepeatable(node, false);
+          "/*/cac:BusinessParty/cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'national']");
+      node.put(KEY_XPATH_REL, "cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'national']");
+      SaveNoticeTest.nodePutRepeatable(node, false);
     }
     {
       final ObjectNode node = mapper.createObjectNode();
@@ -198,7 +211,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
       node.put(KEY_XPATH_ABS,
           "/*/cac:BusinessParty/cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']");
       node.put(KEY_XPATH_REL, "cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']");
-      SaveNoticeTest.fieldPutRepeatable(node, false);
+      SaveNoticeTest.nodePutRepeatable(node, false);
     }
     {
       final ObjectNode node = mapper.createObjectNode();
@@ -207,7 +220,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
       node.put(KEY_NODE_PARENT_ID, ND_ROOT);
       node.put(KEY_XPATH_ABS, "/*/efac:NoticePurpose");
       node.put(KEY_XPATH_REL, "efac:NoticePurpose");
-      SaveNoticeTest.fieldPutRepeatable(node, false);
+      SaveNoticeTest.nodePutRepeatable(node, false);
     }
     return nodeById;
   }
@@ -250,13 +263,12 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
       field.put(KEY_XPATH_ABS,
           "/*/cac:BusinessParty/cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']/cbc:CompanyID");
       field.put(KEY_XPATH_REL, "cbc:CompanyID");
-      field.set(
-          KEY_ATTRIBUTES,
-          JsonUtils.createArrayNode().add(BT_501_BUSINESS_EUROPEAN_SCHEME));
+      setAttributes(field, BT_501_BUSINESS_EUROPEAN_SCHEME);
       field.put(KEY_TYPE, TYPE_ID);
       SaveNoticeTest.fieldPutRepeatable(field, false);
     }
     {
+      // The attribute field for the scheme name.
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(BT_501_BUSINESS_EUROPEAN_SCHEME, field);
       field.put(KEY_FIELD_ID, BT_501_BUSINESS_EUROPEAN);
@@ -265,7 +277,8 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
           "/*/cac:BusinessParty/cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'EU']/cbc:CompanyID/@schemeName");
       field.put(KEY_XPATH_REL, "cbc:CompanyID/@schemeName");
       field.put(KEY_ATTRIBUTE_NAME, "schemeName");
-      field.put(KEY_ATTRIBUTE_OF, "EU");
+      field.put(KEY_ATTRIBUTE_OF, BT_501_BUSINESS_EUROPEAN);
+      field.put(KEY_PRESET_VALUE, "EU");
       field.put(KEY_TYPE, TYPE_ID);
       SaveNoticeTest.fieldPutRepeatable(field, false);
     }
@@ -278,13 +291,12 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
       field.put(KEY_XPATH_ABS,
           "/*/cac:BusinessParty/cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'national']/cbc:CompanyID");
       field.put(KEY_XPATH_REL, "cbc:CompanyID");
-      field.set(
-          KEY_ATTRIBUTES,
-          JsonUtils.createArrayNode().add(BT_501_BUSINESS_NATIONAL_SCHEME));
+      setAttributes(field, BT_501_BUSINESS_NATIONAL_SCHEME);
       field.put(KEY_TYPE, TYPE_ID);
       SaveNoticeTest.fieldPutRepeatable(field, false);
     }
     {
+      // The attribute field for the scheme name.
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(BT_501_BUSINESS_NATIONAL_SCHEME, field);
       field.put(KEY_FIELD_ID, BT_501_BUSINESS_NATIONAL);
@@ -293,7 +305,8 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
           "/*/cac:BusinessParty/cac:PartyLegalEntity[cbc:CompanyID/@schemeName = 'national']/cbc:CompanyID/@schemeName");
       field.put(KEY_XPATH_REL, "cbc:CompanyID/@schemeName");
       field.put(KEY_ATTRIBUTE_NAME, "schemeName");
-      field.put(KEY_ATTRIBUTE_OF, "national");
+      field.put(KEY_ATTRIBUTE_OF, BT_501_BUSINESS_NATIONAL);
+      field.put(KEY_PRESET_VALUE, "national");
       field.put(KEY_TYPE, TYPE_ID);
       SaveNoticeTest.fieldPutRepeatable(field, false);
     }
@@ -302,13 +315,29 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(OPP_105_BUSINESS, field);
       field.put(KEY_FIELD_ID, OPP_105_BUSINESS);
-      field.put(KEY_PARENT_NODE_ID, ND_ROOT);
+      field.put(KEY_PARENT_NODE_ID, ND_BUSINESS_CAPABILITY);
       field.put(KEY_XPATH_ABS, "/*/cac:BusinessCapability/cbc:CapabilityTypeCode");
-      field.put(KEY_XPATH_REL, "cac:BusinessCapability/cbc:CapabilityTypeCode");
+      field.put(KEY_XPATH_REL, "cbc:CapabilityTypeCode");
+      setAttributes(field, OPP_105_BUSINESS_LIST);
       field.put(KEY_TYPE, TYPE_CODE);
-      SaveNoticeTest.fieldPutRepeatable(field, true);
+      SaveNoticeTest.fieldPutRepeatable(field, false);
       FieldsAndNodes.setFieldFlatCodeList(mapper, field, "main-activity");
     }
+    {
+      // The attribute field.
+      final ObjectNode field = mapper.createObjectNode();
+      fieldById.put(OPP_105_BUSINESS_LIST, field);
+      field.put(KEY_FIELD_ID, OPP_105_BUSINESS_LIST);
+      field.put(KEY_PARENT_NODE_ID, ND_BUSINESS_CAPABILITY);
+      field.put(KEY_XPATH_ABS, "/*/cac:BusinessCapability/cbc:CapabilityTypeCode/@listName");
+      field.put(KEY_XPATH_REL, "cac:BusinessCapability/cbc:CapabilityTypeCode/@listName");
+      field.put(KEY_ATTRIBUTE_NAME, "listName");
+      field.put(KEY_ATTRIBUTE_OF, OPP_105_BUSINESS);
+      field.put(KEY_PRESET_VALUE, "sector");
+      field.put(KEY_TYPE, TYPE_CODE);
+      SaveNoticeTest.fieldPutRepeatable(field, false);
+    }
+
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(OPP_100_BUSINESS, field);
@@ -332,6 +361,10 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
       SaveNoticeTest.fieldPutRepeatable(field, false);
     }
     return fieldById;
+  }
+
+  private static JsonNode setAttributes(final ObjectNode field, final String attributeFieldId) {
+    return field.set(KEY_ATTRIBUTES, JsonUtils.createArrayNode().add(attributeFieldId));
   }
 
   /**
@@ -424,7 +457,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
 
     // Ensure the field is indeed repeatable so that the test itself is not broken.
     final FieldsAndNodes fieldsAndNodes = physicalModel.getFieldsAndNodes();
-    assert fieldsAndNodes.isFieldRepeatable(OPP_105_BUSINESS) : OPP_105_BUSINESS
+    assert fieldsAndNodes.isNodeRepeatable(ND_BUSINESS_CAPABILITY) : ND_BUSINESS_CAPABILITY
         + " should be repeatable";
 
     contains(xml, OPP_105_BUSINESS + "\"");

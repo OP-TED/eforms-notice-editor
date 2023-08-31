@@ -158,11 +158,11 @@ public class SaveNoticeFillingTest extends SaveNoticeTest {
   public final void test() throws ParserConfigurationException, IOException, SAXException {
     final ObjectMapper mapper = new ObjectMapper();
 
-    // A dummy 1.8.0, not real 1.8.0
-    final SdkVersion sdkVersion = new SdkVersion("1.8.0");
+    // A dummy 1.9.0, not real 1.9.0
+    final SdkVersion sdkVersion = new SdkVersion("1.9.0");
     final String prefixedSdkVersion =
         VersionHelper.prefixSdkVersionWithoutPatch(sdkVersion).toString();
-    final String noticeSubType = "X02"; // A dummy X02, not the real X02 of 1.8.0
+    final String noticeSubType = "X02"; // A dummy X02, not the real X02 of the SDK.
 
     final VisualModel visualModel = setupVisualModel(mapper, sdkVersion, noticeSubType);
 

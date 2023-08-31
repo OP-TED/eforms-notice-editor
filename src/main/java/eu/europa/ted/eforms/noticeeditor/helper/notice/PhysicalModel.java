@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 import java.util.Optional;
 import java.util.UUID;
 import javax.xml.XMLConstants;
@@ -66,7 +67,11 @@ public class PhysicalModel {
   private static final String XML_ATTR_EDITOR_FIELD_ID = "editorFieldId";
   private static final String XML_ATTR_EDITOR_NODE_ID = "editorNodeId";
 
-  private static final String XPATH_TEMP_REPLACEMENT = "~"; // ONE CHAR ONLY!
+  /**
+   * This character should not be part of the reserved xpath technical characters. It should also no
+   * be part of any xpath that is used in the SDK.
+   */
+  private static final char XPATH_TEMP_REPLACEMENT = '~'; // ONE CHAR ONLY!
 
   /**
    * W3C Document Object Model (DOM), holds the XML representation. This can be queried using xpath
@@ -155,7 +160,7 @@ public class PhysicalModel {
   }
 
   /**
-   * @param indented True if the xml text should be indented, false otherwise.
+   * @param indented True if the XML text should be indented, false otherwise.
    *
    * @return The XML as text.
    */
@@ -215,21 +220,15 @@ public class PhysicalModel {
     // For the moment do as if it was there.
     final XPath xpathInst = setXmlNamespaces(docTypeInfo, xmlDocRoot);
 
-    // Attempt to put schemeName first.
-    // buildPhysicalModelXmlRec(fieldsAndNodes, doc, concept.getRoot(), rootElem, debug,
-    // buildFields,
-    // 0, true, xPathInst);
-
     if (debug) {
       conceptModel.writeDotFile(fieldsAndNodes);
     }
 
     // Recursion: start with the concept root.
     final ConceptTreeNode conceptualModelTreeRootNode = conceptModel.getTreeRootNode();
-    final boolean onlyIfPriority = false;
     final int depth = 0;
     buildPhysicalModelRec(xmlDoc, fieldsAndNodes, conceptualModelTreeRootNode, xmlDocRoot, debug,
-        buildFields, depth, onlyIfPriority, xpathInst);
+        buildFields, depth, xpathInst);
     logger.info("Done building unsorted physical model.");
 
     // Reorder / sort the physical model.
@@ -241,7 +240,6 @@ public class PhysicalModel {
         new NoticeXmlTagSorter(xpathInst, docTypeInfo, pathToSpecificSdk,
             fieldsAndNodes);
     try {
-
       sorter.sortXml(xmlDocRoot);
       final Optional<Path> mainXsdPathOpt = sorter.getMainXsdPathOpt();
       if (mainXsdPathOpt.isPresent()) {
@@ -250,7 +248,6 @@ public class PhysicalModel {
             mainXsdPathOpt);
       }
       return new PhysicalModel(xmlDoc, xpathInst, fieldsAndNodes, mainXsdPathOpt);
-
     } catch (final Exception e) {
       final String xmlAsText = EditorXmlUtils.asText(xmlDoc, true);
       logger.error("Problem sorting XML: {}", xmlAsText); // Log the entire XML.
@@ -271,7 +268,7 @@ public class PhysicalModel {
    */
   private static void buildPhysicalModelRec(final Document doc, final FieldsAndNodes fieldsAndNodes,
       final ConceptTreeNode conceptElem, final Element xmlNodeElem, final boolean debug,
-      final boolean buildFields, final int depth, final boolean onlyIfPriority,
+      final boolean buildFields, final int depth,
       final XPath xpathInst) {
     Validate.notNull(conceptElem, "conceptElem is null");
     Validate.notNull(xmlNodeElem, "xmlElem is null, conceptElem=%s", conceptElem.getIdUnique());
@@ -287,7 +284,7 @@ public class PhysicalModel {
     for (final ConceptTreeNode conceptNode : conceptElem.getConceptNodes()) {
       // The nodes may contain fields ...
       buildNodesAndFields(doc, fieldsAndNodes, conceptNode, xpathInst, xmlNodeElem, debug, depth,
-          onlyIfPriority, buildFields);
+          buildFields);
     }
 
     // FIELDS.
@@ -298,24 +295,41 @@ public class PhysicalModel {
       // This is done in a separator for loop as the attribute fields could appear after the fields
       // that have the attributes.
       final Map<String, ConceptTreeField> attributeFieldById = new HashMap<>();
+      final List<ConceptTreeField> conceptFieldsHavingAttributes = new ArrayList<>();
+      final List<ConceptTreeField> conceptFieldsWithoutAttributes = new ArrayList<>();
       for (final ConceptTreeField conceptField : conceptElem.getConceptFields()) {
         final String fieldId = conceptField.getFieldId();
         final JsonNode fieldMeta = fieldsAndNodes.getFieldById(fieldId);
         // An attribute is an attribute of another field.
-        final Optional<String> attributeOf = JsonUtils.getTextOpt(fieldMeta, "attributeOf");
+        final Optional<String> attributeOf =
+            JsonUtils.getTextOpt(fieldMeta, FieldsAndNodes.ATTRIBUTE_OF);
         if (attributeOf.isPresent()) {
           // This is an attribute field.
           attributeFieldById.put(fieldId, conceptField);
+        } else {
+          if (fieldMeta.has(FieldsAndNodes.ATTRIBUTES)) {
+            conceptFieldsHavingAttributes.add(conceptField);
+          } else {
+            conceptFieldsWithoutAttributes.add(conceptField);
+          }
         }
       }
 
+      //
       // Handle fields, build field elements and set the attributes.
-      for (final ConceptTreeField conceptField : conceptElem.getConceptFields()) {
-        final boolean isAttribute = attributeFieldById.containsKey(conceptField.getFieldId());
-        if (!isAttribute) {
-          buildFieldElementsAndAttributes(doc, fieldsAndNodes, conceptField, xmlNodeElem, debug,
-              depth, onlyIfPriority, attributeFieldById);
-        }
+      //
+
+      // First: add fields having attributes as other fields may have an xpath referring to the
+      // attribute (sibling fields). For example one field could be some kind of category marker.
+      for (final ConceptTreeField conceptField : conceptFieldsHavingAttributes) {
+        buildFieldElementsAndAttributes(doc, fieldsAndNodes, conceptField, xmlNodeElem, debug,
+            depth, attributeFieldById);
+      }
+
+      // Second: add fields that have no attribute.
+      for (final ConceptTreeField conceptField : conceptFieldsWithoutAttributes) {
+        buildFieldElementsAndAttributes(doc, fieldsAndNodes, conceptField, xmlNodeElem, debug,
+            depth, attributeFieldById);
       }
     }
 
@@ -339,13 +353,11 @@ public class PhysicalModel {
    * @param debug Adds extra debugging info in the XML if true, for humans or unit tests, the XML
    *        may become invalid
    * @param depth The current depth level passed for debugging and logging purposes
-   * @param onlyIfPriority Only build priority items (for xpath of other items which refer to them
-   *        later)
    * @param buildFields True if fields have to be built, false otherwise
    */
   private static boolean buildNodesAndFields(final Document doc,
       final FieldsAndNodes fieldsAndNodes, final ConceptTreeNode conceptNode, final XPath xpathInst,
-      final Element xmlNodeElem, final boolean debug, final int depth, boolean onlyIfPriority,
+      final Element xmlNodeElem, final boolean debug, final int depth,
       final boolean buildFields) {
 
     final String depthStr = StringUtils.leftPad(" ", depth * 4);
@@ -362,14 +374,9 @@ public class PhysicalModel {
     Element previousElem = xmlNodeElem;
     Element partElem = null;
 
-    // xpathRelative can contain many xml elements. We must build the hierarchy.
-    // TODO Use ANTLR xpath grammar later? Avoid parsing the xpath altogether?
-
+    // xpathRelative can contain many XML elements. We must build the hierarchy.
     // Split the XPATH into parts.
-    final String[] partsArr = getXpathPartsArr(xpathRel);
-    final List<String> xpathParts = new ArrayList<>(Arrays.asList(partsArr));
-    // parts.remove(0); // If absolute.
-    // parts.remove(0); // If absolute.
+    final List<String> xpathParts = getXpathPartsArrWithoutPredicates(xpathRel);
     if (debug) {
       // System out is used here because it is more readable than the logger lines.
       // This is not a replacement for logger.debug(...)
@@ -386,8 +393,7 @@ public class PhysicalModel {
     for (final String xpathPart : xpathParts) {
       Validate.notBlank(xpathPart, "partXpath is blank for nodeId=%s, xmlNodeElem=%s", nodeId,
           xmlNodeElem);
-      final PhysicalXpathPart px = handleXpathPart(xpathPart);
-      // final Optional<String> schemeNameOpt = px.getSchemeNameOpt();
+      final PhysicalXpathPart px = buildXpathPart(xpathPart);
       final String xpathExpr = px.getXpathExpr();
       final String tag = px.getTagOrAttribute();
       if (debug) {
@@ -456,7 +462,7 @@ public class PhysicalModel {
 
     // Build child nodes recursively.
     buildPhysicalModelRec(doc, fieldsAndNodes, conceptNode, nodeElem, debug, buildFields, depth + 1,
-        onlyIfPriority, xpathInst);
+        xpathInst);
 
     return nodeMetaRepeatable;
   }
@@ -469,13 +475,12 @@ public class PhysicalModel {
    * @param xmlNodeElem current XML element (modified as a SIDE-EFFECT!)
    * @param debug special debug mode for humans and unit tests (XML may be invalid)
    * @param depth The current depth level passed for debugging and logging purposes
-   * @param onlyIfPriority add only elements that have priority
    * @param attributeFieldById All attribute fields by id
    */
   private static void buildFieldElementsAndAttributes(final Document doc,
       final FieldsAndNodes fieldsAndNodes,
       final ConceptTreeField conceptField, final Element xmlNodeElem,
-      final boolean debug, final int depth, final boolean onlyIfPriority,
+      final boolean debug, final int depth,
       final Map<String, ConceptTreeField> attributeFieldById) {
 
     final String depthStr = StringUtils.leftPad(" ", depth * 4);
@@ -518,9 +523,7 @@ public class PhysicalModel {
     Element previousElem = xmlNodeElem;
     Element partElem = null;
 
-    // TODO Use ANTLR xpath grammar later.
-    final String[] partsArr = getXpathPartsArr(xpathRel);
-    final List<String> parts = new ArrayList<>(Arrays.asList(partsArr));
+    final List<String> parts = getXpathPartsArrWithoutPredicates(xpathRel);
     if (debug) {
       System.out.println(depthStr + " FIELD PARTS SIZE: " + parts.size());
       System.out.println(depthStr + " FIELD PARTS: " + listToString(parts));
@@ -529,7 +532,7 @@ public class PhysicalModel {
     // final String attrTemp = "temp";
     for (final String partXpath : parts) {
 
-      final PhysicalXpathPart px = handleXpathPart(partXpath);
+      final PhysicalXpathPart px = buildXpathPart(partXpath);
       // final Optional<String> schemeNameOpt = px.getSchemeNameOpt();
       final String tagOrAttr = px.getTagOrAttribute();
 
@@ -726,85 +729,54 @@ public class PhysicalModel {
    * @param xpath A valid xpath string
    * @return The xpath string split by slash but with predicates ignored.
    */
-  private static String[] getXpathPartsArr(final String xpath) {
+  private static List<String> getXpathPartsArrWithoutPredicates(final String xpath) {
     final StringBuilder sb = new StringBuilder(xpath.length());
     int stacked = 0;
     for (int i = 0; i < xpath.length(); i++) {
       final char ch = xpath.charAt(i);
+      if (ch == XPATH_TEMP_REPLACEMENT) {
+        throw new RuntimeException(String.format("Found temp replacement character: %s in %s",
+            XPATH_TEMP_REPLACEMENT, xpath));
+      }
       if (ch == '[') {
         stacked++;
       } else if (ch == ']') {
         stacked--;
         Validate.isTrue(stacked >= 0, "stacked is < 0 for %s", xpath);
       }
+      // If we are inside of a predicate, replace '/' by a temporary replacement.
       sb.append(ch == '/' && stacked > 0 ? XPATH_TEMP_REPLACEMENT : ch);
     }
-    return sb.toString().split("/");
+    // The predicates are not split thanks to usage of the temporary replacement.
+    final String originalRegex = "/";
+    final char originalChar = '/';
+    final String[] split = sb.toString().split(originalRegex);
+
+    // Inside each part, put back the original character.
+    return Arrays.stream(split)
+        .map(item -> item.replace(XPATH_TEMP_REPLACEMENT, originalChar))
+        .collect(Collectors.toList());
   }
 
   @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
       value = "UCPM_USE_CHARACTER_PARAMETERIZED_METHOD",
       justification = "OK here, used in other places as a string")
-  private static PhysicalXpathPart handleXpathPart(final String partParam) {
-    Validate.notBlank(partParam, "partParam is blank");
+  private static PhysicalXpathPart buildXpathPart(final String xpathPart) {
+    Validate.notBlank(xpathPart, "partParam is blank");
 
-    final Optional<String> schemeNameOpt;
-
-    // NOTE: ideally we would want to fully avoid using xpath.
-    // NOTE: in the future the SDK will provide the schemeName separately for convenience!
-    String tagOrAttr = partParam;
-    if (tagOrAttr.contains("@schemeName='")) {
-      // Normalize the string before we start parsing it.
-      tagOrAttr = tagOrAttr.replace("@schemeName='", "@schemeName = '");
-    }
-
-    if (tagOrAttr.contains("[not(@schemeName = 'EU')]")) {
-      // HARDCODED
-      // TODO This is a TEMPORARY FIX until we have a proper solution inside of the SDK. National is
-      // only indirectly described by saying not EU, but the text itself is not given.
-      // NOTE: SDK 1.9 will be the solution to this.
-
-      // Example:
-      // "xpathAbsolute" : "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName =
-      // 'EU']",
-
-      tagOrAttr =
-          tagOrAttr.replace("[not(@schemeName = 'EU')]", "[@schemeName = '" + NATIONAL + "']");
-    }
-
-    if (tagOrAttr.contains("[@schemeName = '")) {
-      final int indexOfSchemeName = tagOrAttr.indexOf("[@schemeName = '");
-      String schemeName = tagOrAttr.substring(indexOfSchemeName + "[@schemeName = '".length());
-      // Remove the ']
-      schemeName = schemeName.substring(0, schemeName.length() - "']".length());
-      Validate.notBlank(schemeName, "schemeName is blank for %s", tagOrAttr);
-      tagOrAttr = tagOrAttr.substring(0, indexOfSchemeName);
-      schemeNameOpt = Optional.of(schemeName);
-    } else {
-      schemeNameOpt = Optional.empty();
-    }
+    // NOTE: ideally we would want to avoid parsing xpath as much as possible.
+    // Since SDK 1.9 the attributes are provided via fields "attributes".
+    String tagName = xpathPart;
 
     // We want to remove the predicate as we only want the name.
-    if (tagOrAttr.contains("[")) {
-      // TEMPORARY FIX.
-      // Ignore predicate with negation as it is not useful for XML generation.
-      // Example:
-      // "xpathAbsolute" :
-      // "/*/cac:BusinessParty/cac:PartyLegalEntity[not(cbc:CompanyID/@schemeName =
-      // 'EU')]/cbc:RegistrationName",
-      tagOrAttr = tagOrAttr.substring(0, tagOrAttr.indexOf('['));
+    if (tagName.indexOf('[') > 0) {
+      // Example: "cbc:somename[xyz]", we want to only keep "cbc:somename"
+      tagName = tagName.substring(0, tagName.indexOf('['));
     }
 
-    if (tagOrAttr.contains(XPATH_TEMP_REPLACEMENT)) {
-      tagOrAttr = tagOrAttr.substring(0, tagOrAttr.indexOf(XPATH_TEMP_REPLACEMENT));
-    }
-
-    // For the xpath expression keep the original param, only do the replacement.
-    final String xpathExpr = partParam.replaceAll(XPATH_TEMP_REPLACEMENT, "/");
-
-    Validate.notBlank(xpathExpr, "xpathExpr is blank for tag=%s, partParam=%s", tagOrAttr,
-        partParam);
-    return new PhysicalXpathPart(xpathExpr, tagOrAttr, schemeNameOpt);
+    Validate.notBlank(xpathPart, "xpathExpr is blank for tag=%s, partParam=%s", tagName,
+        xpathPart);
+    return new PhysicalXpathPart(xpathPart, tagName);
   }
 
   /**
