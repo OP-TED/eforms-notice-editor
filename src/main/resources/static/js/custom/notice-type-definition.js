@@ -33,7 +33,7 @@ export class NoticeTypeDefinitionElement extends DocumentFragment {
     }
   }
   
-  detectAndAddNtdAttribute(content) {
+  detectAndAddNtdAttributeFields(content) {
     const level = this.level;
     
     if (content.contentType === "field") {
@@ -50,45 +50,43 @@ export class NoticeTypeDefinitionElement extends DocumentFragment {
             throw new Error("Attribute field not found by id: " + attrId);
           }
           
-          // Note that for the special field with id "BT-03-notice" we want to avoid creation.
-          if (!sdkAttr.presetValue && sdkAttr.id !== "BT-03-notice") {
-						// If there is no presetValue, it means the user can make a choice in the UI.
-						// Add a form field for the attribute value choice.
-            // We do not have NTD content for the attributes.
-	          // Create the NTD content dynamically, to do as if it was there:
-	          
-	          const contentAttr = {};
-	          contentAttr["id"] = sdkAttr.id;
-	          contentAttr["description"] = sdkAttr.name;
-	
-	          contentAttr["contentType"] = Constants.ContentType.FIELD;
-	          contentAttr["displayType"] = sdkAttr.type === "code" ? Constants.DisplayType.COMBOBOX : Constants.DisplayType.TEXTBOX;
-	          
-	          contentAttr["editorCount"] = 1;
-	          contentAttr["editorLevel"] = level;
-	
-	          if (sdkAttr.repeatable) {
-	            contentAttr["_repeatable"] = sdkAttr.repeatable.value;
-	          }
-	          contentAttr["_label"] = "field|name|" + sdkAttr.id; // Label id.
-	          
-            contentAttr["readOnly"] = false; // No presetValue
-            contentAttr["hidden"] = false; // No presetValue
-            
-            // TODO tttt BT-26(m)-Procedure is already there, we do not want to add it twice...
-            //alert(sdkAttr.id);
-          
-            console.debug("Adding attribute field: " + sdkAttr.id + ", displayType=" + contentAttr["displayType"]);
-            if (sdkAttr.codeList) {
-              console.debug(sdkAttr.id + " " + sdkAttr.codeList.value.id);
-            }
-            
-            const vme = NoticeTypeDefinitionElement.create(contentAttr, level);
-            this.htmlElement.appendChild(vme);
+          if (sdkAttr["xpathAbsolute"].endsWith("/@listName")) {
+            console.debug("Attribute already present: " + sdkAttr.id);
+          	continue;
           }
-          // If there is a presetValue, this can be handled later in the back-end.
+          
+          if (sdkAttr.presetValue) {
+            // Skip if there is a presetValue, this attribute field can be handled later in the back-end.
+            // Assuming the associated field has a value, the attribute preset value could be set automatically.
+            continue;
+          }
+
+					// If there is no presetValue, it means the user can make a choice in the UI.
+					// Add a form field for the attribute value choice (usually a code selector).
+          // We do not have NTD content for this attribute.
+          // Create the NTD content dynamically to do as if it was there in the NTD:
+
+          const contentAttr = {};
+          contentAttr["id"] = sdkAttr.id;
+          contentAttr["description"] = sdkAttr.name;
+          contentAttr["contentType"] = Constants.ContentType.FIELD;
+          contentAttr["displayType"] = sdkAttr.type === "code" ? Constants.DisplayType.COMBOBOX : Constants.DisplayType.TEXTBOX;
+          contentAttr["readOnly"] = false;
+          contentAttr["hidden"] = false;
+          
+          if (sdkAttr.repeatable) {
+            contentAttr["_repeatable"] = sdkAttr.repeatable.value;
+          }
+          contentAttr["_label"] = "field|name|" + sdkAttr.id; // Label id.
+          
+          console.debug("Adding attribute field: " + sdkAttr.id + ", displayType=" + contentAttr["displayType"]);
+          if (sdkAttr.codeList) {
+            console.debug(sdkAttr.id + " " + sdkAttr.codeList.value.id);
+          }
+          
+          const vme = NoticeTypeDefinitionElement.create(contentAttr, level);
+          this.htmlElement.appendChild(vme);
         }
-        
       }
     }
   }
@@ -124,7 +122,9 @@ export class NoticeTypeDefinitionElement extends DocumentFragment {
         const vme = NoticeTypeDefinitionElement.create(contentSub, this.level + 1);
         this.htmlElement.appendChild(vme);
         
-        this.detectAndAddNtdAttribute(contentSub);
+        // Are there attributes for which the user may have to do a choice (like a currency...)?
+        // If this is the case and the attribute is not already present, add the attribute.
+        this.detectAndAddNtdAttributeFields(contentSub);
       }
     }
   }

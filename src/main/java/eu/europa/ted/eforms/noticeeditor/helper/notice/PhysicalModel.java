@@ -484,11 +484,9 @@ public class PhysicalModel {
       final Map<String, ConceptTreeField> attributeFieldById) {
 
     final String depthStr = StringUtils.leftPad(" ", depth * 4);
-
-    // logger.debug("xmlEleme=" + EditorXmlUtils.getNodePath(xmlNodeElem));
-
     final String value = conceptField.getValue();
     final String fieldId = conceptField.getFieldId();
+    logger.debug("PM fieldId={}", fieldId);
 
     if (debug) {
       System.out.println("");
@@ -559,6 +557,8 @@ public class PhysicalModel {
     for (final Entry<String, String> entry : attributeNameAndValueMap.entrySet()) {
       final String attributeName = entry.getKey();
       if (StringUtils.isNotBlank(fieldElem.getAttribute(attributeName))) {
+        // If the attribute had already been set this would overwrite the existing value.
+        // There is no case for which this is desirable.
         throw new RuntimeException(String.format(
             "Double set: Attribute already set, attributeName=%s, fieldId=%s", attributeName,
             fieldId));
@@ -570,7 +570,6 @@ public class PhysicalModel {
       fieldElem.setAttribute(attributeName, attributeValue); // SIDE-EFFECT!
     }
 
-
     if (debug) {
       // This makes the XML invalid, it is meant to be read by humans to help understand the XML.
       // These attributes are also useful in unit tests for easy checking of field by id.
@@ -581,49 +580,15 @@ public class PhysicalModel {
           Integer.toString(conceptField.getCounter()));
     }
 
-    // if (onlyIfPriority && StringUtils.isBlank(fieldElem.getAttribute(XML_ATTR_SCHEME_NAME))) {
-    // // Remove created and appended child elements.
-    // Element elem = fieldElem;
-    // while (true) {
-    // if (elem.hasAttribute(attrTemp)) {
-    // final Node parentNode = elem.getParentNode();
-    // if (parentNode != null) {
-    // parentNode.removeChild(elem);
-    // elem = (Element) parentNode;
-    // } else {
-    // break;
-    // }
-    // } else {
-    // break;
-    // }
-    // }
-    // return; // Skip, it will be added later.
-    //
-    // } else {
-    // // Remove temporary attribute.
-    // Element elem = fieldElem;
-    // while (true) {
-    // if (elem.hasAttribute(attrTemp)) {
-    // final Node parentNode = elem.getParentNode();
-    // if (parentNode != null) {
-    // elem.removeAttribute(attrTemp);
-    // elem = (Element) parentNode;
-    // } else {
-    // break;
-    // }
-    // } else {
-    // break;
-    // }
-    // }
-    // }
-
     // Set value of the field.
     Validate.notNull(value, "value is null for fieldId=%s", fieldId, "fieldId=" + fieldId);
     fieldElem.setTextContent(value);
   }
 
   /**
-   * @return A map with the determined attribute name and value entries for the passed field.
+   * @param fieldId The field ID for the field for which the attributes have to be determined
+   * @param fieldMeta The SDK metadata about the field
+   * @return A map with the determined attribute name and value for the passed field
    */
   private static Map<String, String> determineAttributes(final FieldsAndNodes fieldsAndNodes,
       final Map<String, ConceptTreeField> attributeFieldById, final String fieldId,
@@ -658,6 +623,10 @@ public class PhysicalModel {
     return attributeNameAndValues;
   }
 
+  /**
+   * Some attributes can be determined automatically. They do not need to be put in the forms (or
+   * they could but would need to be hidden).
+   */
   private static void inferAttribute(final JsonNode sdkAttrMeta,
       final Map<String, String> attributeNameAndValues, final String attrName) {
     final Optional<String> presetValueOpt = JsonUtils.getTextOpt(sdkAttrMeta, "presetValue");
