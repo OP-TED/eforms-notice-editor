@@ -38,6 +38,7 @@ public class FieldsAndNodes {
   public static final String ATTRIBUTE_NAME = "attributeName";
 
   public static final String ID = "id";
+  public static final String FIELD_TYPE = "type";
   public static final String PRESET_VALUE = "presetValue";
 
   /**

@@ -23,6 +23,9 @@ eforms:
     # Comma-separated list of the supported major versions of eForms SDK
     versions: 1.9
 
+    # Default should be true, it can be set to false for development or experimental purposes.
+    # If set to false the SDK files must be put manually inside the eforms sdk path
+    autoDownload: true
 
 proxy:
   ### Security: use a command line parameter for security related data

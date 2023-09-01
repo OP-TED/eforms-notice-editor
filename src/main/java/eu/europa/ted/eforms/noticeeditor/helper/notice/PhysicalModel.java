@@ -67,6 +67,7 @@ public class PhysicalModel {
   private static final String XML_ATTR_EDITOR_NODE_ID = "editorNodeId";
 
   public static final String XML_ATTR_LIST_NAME = "listName";
+  public static final String XML_ATTR_SCHEME_NAME = "schemeName";
 
   /**
    * This character should not be part of the reserved xpath technical characters. It should also no
@@ -490,7 +491,7 @@ public class PhysicalModel {
       final Map<String, ConceptTreeField> attributeFieldById) {
 
     final String depthStr = StringUtils.leftPad(" ", depth * 4);
-    final String value = conceptField.getValue();
+    final String fieldValue = conceptField.getValue();
     final String fieldId = conceptField.getFieldId();
     logger.debug("PM fieldId={}", fieldId);
 
@@ -513,7 +514,7 @@ public class PhysicalModel {
           .format("Attribute fields should not reach this part of the code, fieldId=%s", fieldId));
     }
     final Map<String, String> attributeNameAndValueMap =
-        determineAttributes(fieldsAndNodes, attributeFieldById, fieldId, fieldMeta);
+        determineAttributes(fieldsAndNodes, attributeFieldById, fieldId, fieldMeta, fieldValue);
 
     // IMPORTANT: !!! The relative xpath of fields can contain intermediary xml elements !!!
     // Example: "cac:PayerParty/cac:PartyIdentification/cbc:ID" contains more than just the field.
@@ -595,8 +596,8 @@ public class PhysicalModel {
     }
 
     // Set value of the field.
-    Validate.notNull(value, "value is null for fieldId=%s", fieldId, "fieldId=" + fieldId);
-    lastFieldElem.setTextContent(value);
+    Validate.notNull(fieldValue, "value is null for fieldId=%s", fieldId, "fieldId=" + fieldId);
+    lastFieldElem.setTextContent(fieldValue);
   }
 
   /**
@@ -607,11 +608,12 @@ public class PhysicalModel {
    * @param fieldId The field ID for the field for which the attributes have to be determined
    * @param fieldMeta The SDK metadata about the field
    * @param attributeFieldById Only used for reading
+   * @param fieldValue The value of the field
    * @return A map with the determined attribute name and value for the passed field
    */
   private static Map<String, String> determineAttributes(final FieldsAndNodes fieldsAndNodes,
       final Map<String, ConceptTreeField> attributeFieldById, final String fieldId,
-      final JsonNode fieldMeta) {
+      final JsonNode fieldMeta, final String fieldValue) {
     // Find attribute field ids of this SDK field.
     final List<String> attributeFieldIds =
         JsonUtils.getListOfStrings(fieldMeta, FieldsAndNodes.ATTRIBUTES);
@@ -631,10 +633,10 @@ public class PhysicalModel {
           // to only pass a fully filled and valid form, which is not easy in the editor demo.
           // We want to set the attributes as those are used in the xpath expressions which are used
           // to locate elements.
-          inferAttribute(sdkAttrMeta, attributeNameAndValues, attrName);
+          inferAttribute(sdkAttrMeta, attributeNameAndValues, attrName, fieldMeta, fieldValue);
         }
       } else {
-        inferAttribute(sdkAttrMeta, attributeNameAndValues, attrName);
+        inferAttribute(sdkAttrMeta, attributeNameAndValues, attrName, fieldMeta, fieldValue);
       }
     }
     return attributeNameAndValues;
@@ -643,9 +645,14 @@ public class PhysicalModel {
   /**
    * Some attributes can be determined automatically. They do not need to be put in the forms (or
    * they could but would need to be hidden).
+   *
+   * @param sdkAttrMeta SDK metadata about the attribute field
+   * @param fieldMeta SDK metadata about the field having the attribute
+   * @param fieldValue The value of the field having the attributes
    */
   private static void inferAttribute(final JsonNode sdkAttrMeta,
-      final Map<String, String> attributeNameAndValues, final String attributeName) {
+      final Map<String, String> attributeNameAndValues, final String attributeName,
+      final JsonNode fieldMeta, final String fieldValue) {
     final Optional<String> presetValueOpt =
         JsonUtils.getTextOpt(sdkAttrMeta, FieldsAndNodes.PRESET_VALUE);
     if (presetValueOpt.isPresent()) {
@@ -655,12 +662,60 @@ public class PhysicalModel {
       final String presetValue = presetValueOpt.get();
       attributeNameAndValues.put(attributeName, presetValue);
     } else {
-      // Maybe infer it? Example: TPO-xyz => "touchpoint" etc. via presetValue and DB tables
-      // listName="touchpoint">TPO-xyz<...
-      // tttt
-      logger.warn("No presetValue: infer attribute? fieldId={}, attrName={}",
-          JsonUtils.getTextStrict(sdkAttrMeta, FieldsAndNodes.ID),
+      logger.info("No presetValue: infer attribute? fieldId={}, fieldValue={}, attrName={}",
+          JsonUtils.getTextStrict(sdkAttrMeta, FieldsAndNodes.ID), fieldValue,
           attributeName);
+      if ("id-ref".equals(JsonUtils.getTextStrict(fieldMeta, FieldsAndNodes.FIELD_TYPE))
+          && StringUtils.isNotBlank(fieldValue)
+          && XML_ATTR_SCHEME_NAME.equals(attributeName)) {
+        // Example:
+        // In some cases for id ref there are two choices, for example ORG or TPO,
+        // the user selects one either ORG or TPO.
+        // Assuming the value in the field is "ORG-0001" or "TPO-0001", we want "ORG" or "TPO".
+        final int indexOfDash = fieldValue.indexOf('-');
+        if (indexOfDash > 0) {
+          // In the database we have the "identifier_scheme".
+          final String idPrefix = fieldValue.substring(0, indexOfDash);
+          logger.info("idPrefix={}", idPrefix);
+          final String attrValue;
+          // HARDCODED until we have that mapping in the SDK.
+          switch (idPrefix) {
+            case "CON":
+              attrValue = "contract";
+              break;
+            case "GLO":
+              attrValue = "LotsGroup";
+              break;
+            case "LOT":
+              attrValue = "Lot";
+              break;
+            case "ORG":
+              attrValue = "organization";
+              break;
+            case "PAR":
+              attrValue = "Part";
+              break;
+            case "RES":
+              attrValue = "result";
+              break;
+            case "TEN":
+              attrValue = "tender";
+              break;
+            case "TPA":
+              attrValue = "tendering-party";
+              break;
+            case "TPO":
+              attrValue = "touchpoint";
+              break;
+            case "UBO":
+              attrValue = "ubo";
+              break;
+            default:
+              throw new RuntimeException(String.format("Unknown id pattern: %s", idPrefix));
+          }
+          attributeNameAndValues.put(attributeName, attrValue);
+        }
+      }
     }
   }
 

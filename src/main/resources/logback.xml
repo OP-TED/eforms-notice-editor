@@ -40,7 +40,7 @@
   <!-- TRACE is extremely verbose. -->
   <!-- <logger name="eu.europa.ted" level="TRACE" /> -->
 
-  <logger name="eu.cec.digit.eulogin.client" level="DEBUG" />
+  <!-- <logger name="eu.cec.digit.eulogin.client" level="DEBUG" /> -->
 
   <root level="INFO">
     <appender-ref ref="STDOUT" />
