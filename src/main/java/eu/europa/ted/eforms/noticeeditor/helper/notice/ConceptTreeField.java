@@ -1,8 +1,9 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 /**
- * Conceptual field. Leaf in the conceptual tree. This holds non-metadata field information and the
- * field id. This is not an SDK field, this only points to an SDK field to reference metadata.
+ * Conceptual field. Leaf in the conceptual tree. This holds non-metadata field information like the
+ * value and the associated SDK field id. This is not an SDK field, this only points to an SDK field
+ * to reference the metadata.
  */
 public class ConceptTreeField extends ConceptTreeItem {
   private final String value;

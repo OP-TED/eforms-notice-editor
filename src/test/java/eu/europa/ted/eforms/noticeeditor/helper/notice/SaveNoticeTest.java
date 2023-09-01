@@ -164,7 +164,7 @@ public abstract class SaveNoticeTest {
           "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension/efac:NoticeSubType/cbc:SubTypeCode/@listName");
       field.put(KEY_XPATH_REL, "efac:NoticeSubType/cbc:SubTypeCode/@listName");
       field.put(KEY_TYPE, TYPE_TEXT);
-      field.put(KEY_ATTRIBUTE_NAME, "listName");
+      field.put(KEY_ATTRIBUTE_NAME, PhysicalModel.XML_ATTR_LIST_NAME);
       field.put(KEY_ATTRIBUTE_OF, ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE);
       field.put(KEY_PRESET_VALUE, CODELIST_NOTICE_SUBTYPE);
       SaveNoticeTest.fieldPutRepeatable(field, false);

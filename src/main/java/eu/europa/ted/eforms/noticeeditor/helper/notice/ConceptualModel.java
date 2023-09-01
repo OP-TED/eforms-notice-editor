@@ -12,16 +12,22 @@ import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
- * The conceptual model (CM) is an intermediary model that is between the visual and the physical
- * model. It holds a tree made of conceptual node and conceptual field instances.
+ * <h1>The Conceptual Model (CM)</h1>
+ *
+ * <p>
+ * An intermediary model that is between the visual and the physical model for the given notice
+ * data. It holds a tree made of conceptual node and conceptual field instances.
+ * </p>
+ *
  * <p>
  * In this model the tree items must reference SDK nodes or fields so that SDK metadata can be
  * retrieved!
  * </p>
+ *
  * <p>
  * There are no tree items which do not point to SDK field or node, so if a visual group is not
- * pointing to a node all the children must be moved to the closes parent which points to a node in
- * the conceptual hierarchy. In other words this is one step closer to the physical representation.
+ * pointing to a node all the children must be moved to the closest parent which points to a node in
+ * the conceptual hierarchy. In other words this is one step closer to the physical model.
  * </p>
  */
 public class ConceptualModel {

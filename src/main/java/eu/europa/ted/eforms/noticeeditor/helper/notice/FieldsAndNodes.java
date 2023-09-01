@@ -17,8 +17,10 @@ import eu.europa.ted.eforms.sdk.SdkConstants;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
- * Holds JSON data of the SDK "fields.json" file. Reuse this after construction. As with all SDK
- * data this is associated with an SDK version.
+ * <p>
+ * Holds the entire JSON data of the SDK "fields.json" file. Reuse this after construction. As with
+ * all SDK data this is associated with an SDK version.
+ * </p>
  */
 public class FieldsAndNodes {
 
@@ -35,6 +37,7 @@ public class FieldsAndNodes {
   public static final String ATTRIBUTE_OF = "attributeOf";
   public static final String ATTRIBUTE_NAME = "attributeName";
 
+  public static final String ID = "id";
   public static final String PRESET_VALUE = "presetValue";
 
   /**

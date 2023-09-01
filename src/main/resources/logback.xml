@@ -32,10 +32,13 @@
   <logger name="org.springframework.security" level="DEBUG" />
   <logger name="org.springframework.web" level="DEBUG" />
 
-  <!-- <logger name="eu.europa.ted" level="INFO" /> -->
+  <logger name="eu.europa.ted" level="INFO" />
 
   <!-- DEBUG is very verbose. -->
   <!-- <logger name="eu.europa.ted" level="DEBUG" /> -->
+
+  <!-- TRACE is extremely verbose. -->
+  <!-- <logger name="eu.europa.ted" level="TRACE" /> -->
 
   <logger name="eu.cec.digit.eulogin.client" level="DEBUG" />
 

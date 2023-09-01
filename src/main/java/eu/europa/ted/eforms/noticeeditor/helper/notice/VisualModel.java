@@ -18,16 +18,18 @@ import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 
 /**
- * Visual model (VM).
+ * <h1>The Visual Model (VM)</h1>
  *
  * <p>
  * Wrapper around the JSON representation of the form data. Vis is be used as a shorthand for
  * visual.
  * </p>
+ *
  * <p>
  * NOTE: the form data hierarchy is supposed to follow the SDK notice-types definitions (.json)
  * hierarchy for the given SDK and notice sub type.
  * </p>
+ *
  * <p>
  * NOTE: the Jackson xyzNode objects are not related to the SDK node concept, it is just that the
  * term "node" is commonly used for items of a tree (tree nodes) and that JSON data is hierarchical.
@@ -59,15 +61,6 @@ public class VisualModel {
    */
   private final JsonNode visRoot;
 
-  @Override
-  public String toString() {
-    try {
-      return JsonUtils.getStandardJacksonObjectMapper().writeValueAsString(visRoot);
-    } catch (JsonProcessingException ex) {
-      throw new RuntimeException(ex);
-    }
-  }
-
   /**
    * @param visRoot The visual model as JSON, usually set from a user interface.
    */
@@ -77,6 +70,15 @@ public class VisualModel {
     Validate.isTrue(expected.equals(rootNodeId), "Visual model root must be %s", expected);
     this.visRoot = visRoot;
     getNoticeSubType(); // This must not crash.
+  }
+
+  @Override
+  public String toString() {
+    try {
+      return JsonUtils.getStandardJacksonObjectMapper().writeValueAsString(visRoot);
+    } catch (JsonProcessingException ex) {
+      throw new RuntimeException(ex);
+    }
   }
 
   private String getNoticeSubType() {
@@ -460,27 +462,6 @@ public class VisualModel {
     return Optional.of(conceptField); // Leaf of tree: just return.
   }
 
-
-  /**
-   * This can be used for visualization of the visual model tree (as a graph). The graphviz dot text
-   * itself is interesting but it makes even more sense when seen inside a tool.
-   */
-  private String toDot(final FieldsAndNodes fieldsAndNodes, final boolean includeFields) {
-
-    final StringBuilder sb = new StringBuilder(1024);
-    final JsonNode root = this.visRoot;
-    toDotRec(fieldsAndNodes, sb, root, includeFields);
-
-    final StringBuilder sbDot = new StringBuilder();
-    final String noticeSubType = this.getNoticeSubType();
-    final String title = "visual_" + noticeSubType; // - is not supported.
-    GraphvizDotTool.appendDiGraph(sb.toString(), sbDot, title, "Visual model of " + noticeSubType,
-        false, true);
-
-    return sbDot.toString();
-  }
-
-
   /**
    * Recursively create DOT format text and append it to the string builder (sb).
    *
@@ -520,6 +501,25 @@ public class VisualModel {
   }
 
   /**
+   * This can be used for visualization of the visual model tree (as a graph). The graphviz dot text
+   * itself is interesting but it makes even more sense when seen inside a tool.
+   */
+  private String toDot(final FieldsAndNodes fieldsAndNodes, final boolean includeFields) {
+
+    final StringBuilder sb = new StringBuilder(1024);
+    final JsonNode root = this.visRoot;
+    toDotRec(fieldsAndNodes, sb, root, includeFields);
+
+    final StringBuilder sbDot = new StringBuilder();
+    final String noticeSubType = this.getNoticeSubType();
+    final String title = "visual_" + noticeSubType; // - is not supported.
+    GraphvizDotTool.appendDiGraph(sb.toString(), sbDot, title, "Visual model of " + noticeSubType,
+        false, true);
+
+    return sbDot.toString();
+  }
+
+  /**
    * Write dot graph file for debugging purposes.
    */
   @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
@@ -538,6 +538,5 @@ public class VisualModel {
       throw new RuntimeException(e);
     }
   }
-
 
 }

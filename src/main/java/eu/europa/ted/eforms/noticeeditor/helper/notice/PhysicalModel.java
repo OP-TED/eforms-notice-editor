@@ -37,9 +37,13 @@ import eu.europa.ted.eforms.sdk.SdkConstants;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
- * The physical model (PM) holds the XML representation. This class also provides static methods to
- * build the physical model from the conceptual model and a method to serialize it to XML text. The
- * SDK version is taken into account.
+ * <h1>The Physical Model (PM)</h1>
+ *
+ * <p>
+ * Holds the XML representation. This class also provides static methods to build the physical model
+ * from the conceptual model and a method to serialize it to XML text. The SDK version is taken into
+ * account.
+ * </p>
  *
  * <p>
  * Note that the XML elements are sorted, reordered, according to information found in the SDK.
@@ -53,11 +57,6 @@ public class PhysicalModel {
   private static final String CBC_ID = "cbc:ID"; // Notice id, related to BT-701-notice.
   private static final String XMLNS = "xmlns";
 
-  /**
-   * A special case that we have to solve. HARDCODED. TODO
-   */
-  static final String NATIONAL = "national";
-
   private static final String NODE_XPATH_RELATIVE = "xpathRelative";
 
   public static final String FIELD_CODE_LIST = "codeList";
@@ -66,6 +65,8 @@ public class PhysicalModel {
   private static final String XML_ATTR_EDITOR_COUNTER_SELF = "editorCounterSelf";
   private static final String XML_ATTR_EDITOR_FIELD_ID = "editorFieldId";
   private static final String XML_ATTR_EDITOR_NODE_ID = "editorNodeId";
+
+  public static final String XML_ATTR_LIST_NAME = "listName";
 
   /**
    * This character should not be part of the reserved xpath technical characters. It should also no
@@ -280,61 +281,66 @@ public class PhysicalModel {
     System.out
         .println(depthStr + " " + xmlNodeElem.getTagName() + ", id=" + conceptElem.getIdUnique());
 
+    //
     // NODES.
+    //
     for (final ConceptTreeNode conceptNode : conceptElem.getConceptNodes()) {
       // The nodes may contain fields ...
       buildNodesAndFields(doc, fieldsAndNodes, conceptNode, xpathInst, xmlNodeElem, debug, depth,
           buildFields);
     }
 
+    if (!buildFields) {
+      return;
+    }
+    //
     // FIELDS.
-    if (buildFields) {
-      // The fields are terminal (tree leaves) and cannot contain nodes.
-      // But we have to deal with element attributes that must be added to some elements.
-      // We want the attribute information available once we reach the element that has them.
-      // This is done in a separator for loop as the attribute fields could appear after the fields
-      // that have the attributes.
-      final Map<String, ConceptTreeField> attributeFieldById = new HashMap<>();
-      final List<ConceptTreeField> conceptFieldsHavingAttributes = new ArrayList<>();
-      final List<ConceptTreeField> conceptFieldsWithoutAttributes = new ArrayList<>();
-      for (final ConceptTreeField conceptField : conceptElem.getConceptFields()) {
-        final String fieldId = conceptField.getFieldId();
-        final JsonNode fieldMeta = fieldsAndNodes.getFieldById(fieldId);
-        // An attribute is an attribute of another field.
-        final Optional<String> attributeOf =
-            JsonUtils.getTextOpt(fieldMeta, FieldsAndNodes.ATTRIBUTE_OF);
-        if (attributeOf.isPresent()) {
-          // This is an attribute field.
-          attributeFieldById.put(fieldId, conceptField);
+    //
+    // The fields are terminal (tree leaves) and cannot contain nodes.
+    // But we have to deal with element attributes that must be added to some elements.
+    // We want the attribute information available once we reach the element that has them.
+    // This is done in a separator for loop as the attribute fields could appear after the fields
+    // that have the attributes.
+    final Map<String, ConceptTreeField> attributeFieldById = new HashMap<>();
+    final List<ConceptTreeField> conceptFieldsHavingAttributes = new ArrayList<>();
+    final List<ConceptTreeField> conceptFieldsWithoutAttributes = new ArrayList<>();
+    for (final ConceptTreeField conceptField : conceptElem.getConceptFields()) {
+      final String fieldId = conceptField.getFieldId();
+      final JsonNode fieldMeta = fieldsAndNodes.getFieldById(fieldId);
+      // An attribute is an attribute of another field.
+      final Optional<String> attributeOf =
+          JsonUtils.getTextOpt(fieldMeta, FieldsAndNodes.ATTRIBUTE_OF);
+      if (attributeOf.isPresent()) {
+        // This is an attribute field.
+        attributeFieldById.put(fieldId, conceptField);
+      } else {
+        if (fieldMeta.has(FieldsAndNodes.ATTRIBUTES)) {
+          conceptFieldsHavingAttributes.add(conceptField);
         } else {
-          if (fieldMeta.has(FieldsAndNodes.ATTRIBUTES)) {
-            conceptFieldsHavingAttributes.add(conceptField);
-          } else {
-            conceptFieldsWithoutAttributes.add(conceptField);
-          }
+          conceptFieldsWithoutAttributes.add(conceptField);
         }
-      }
-
-      //
-      // Handle fields, build field elements and set the attributes.
-      //
-
-      // First: add fields having attributes as other fields may have an xpath referring to the
-      // attribute (sibling fields). For example one field could be some kind of category marker.
-      for (final ConceptTreeField conceptField : conceptFieldsHavingAttributes) {
-        buildFieldElementsAndAttributes(doc, fieldsAndNodes, conceptField, xmlNodeElem, debug,
-            depth, attributeFieldById);
-      }
-
-      // Second: add fields that have no attribute.
-      for (final ConceptTreeField conceptField : conceptFieldsWithoutAttributes) {
-        buildFieldElementsAndAttributes(doc, fieldsAndNodes, conceptField, xmlNodeElem, debug,
-            depth, attributeFieldById);
       }
     }
 
+    //
+    // Build field elements and set the attributes.
+    //
+
+    // First: add fields having attributes as other fields may have an xpath referring to the
+    // attribute (sibling fields). For example one field could be some kind of category marker.
+    for (final ConceptTreeField conceptField : conceptFieldsHavingAttributes) {
+      buildFieldElementsAndAttributes(doc, fieldsAndNodes, conceptField, xmlNodeElem, debug,
+          depth, attributeFieldById);
+    }
+
+    // Second: add fields that have no attribute.
+    for (final ConceptTreeField conceptField : conceptFieldsWithoutAttributes) {
+      buildFieldElementsAndAttributes(doc, fieldsAndNodes, conceptField, xmlNodeElem, debug,
+          depth, attributeFieldById);
+    }
+
     // if (debug) {
-    // Display the XML steps:
+    // Display the XML building steps:
     // System out is used here because it is more readable than the logger lines in the console.
     // This is not a replacement for logger.debug(...)
     // System.out.println("");
@@ -410,14 +416,15 @@ public class PhysicalModel {
         // Sometimes the xpath absolute part already matches the previous element.
         // If there is no special xpath expression, just skip the part.
         // This avoids nesting of the same .../tag/tag/...
-        // TODO this may be fixed by TEDEFO-1466
+        // This may be fixed by ticket TEDEFO-1466, but the problem could come back.
         continue; // Skip this tag.
       }
       foundElements = XmlUtils.evaluateXpathAsNodeList(xpathInst, previousElem, xpathExpr, nodeId);
 
       if (foundElements.getLength() > 0) {
-        assert foundElements.getLength() == 1;
-        // TODO investigate what should be done if more than one is present!?
+        Validate.isTrue(foundElements.getLength() == 1,
+            "Found more than one element: {}, nodeId={}, xpathExpr={}", foundElements, nodeId,
+            xpathExpr);
 
         // Node is a w3c dom node, nothing to do with the SDK node.
         final Node xmlNode = foundElements.item(0);
@@ -449,20 +456,19 @@ public class PhysicalModel {
     // "id" : "ND-RegistrarAddress"
     // "xpathRelative" : "cac:CorporateRegistrationScheme/cac:JurisdictionRegionAddress"
     // The element nodeElem is cac:JurisdictionRegionAddress, so it is the node.
-    final Element nodeElem = partElem;
-    Validate.notNull(nodeElem, "partElem is null, conceptElem=%s", conceptNode.getIdUnique());
+    final Element lastNodeElem = partElem;
+    Validate.notNull(lastNodeElem, "partElem is null, conceptElem=%s", conceptNode.getIdUnique());
 
     // This could make the XML invalid, this is meant to be read by humans.
     if (debug) {
-      nodeElem.setAttribute(XML_ATTR_EDITOR_NODE_ID, nodeId); // SIDE-EFFECT!
-
-      nodeElem.setAttribute(XML_ATTR_EDITOR_COUNTER_SELF,
+      lastNodeElem.setAttribute(XML_ATTR_EDITOR_NODE_ID, nodeId); // SIDE-EFFECT!
+      lastNodeElem.setAttribute(XML_ATTR_EDITOR_COUNTER_SELF,
           Integer.toString(conceptNode.getCounter())); // SIDE-EFFECT!
     }
 
     // Build child nodes recursively.
-    buildPhysicalModelRec(doc, fieldsAndNodes, conceptNode, nodeElem, debug, buildFields, depth + 1,
-        xpathInst);
+    buildPhysicalModelRec(doc, fieldsAndNodes, conceptNode, lastNodeElem, debug, buildFields,
+        depth + 1, xpathInst);
 
     return nodeMetaRepeatable;
   }
@@ -548,26 +554,33 @@ public class PhysicalModel {
       previousElem = partElem;
     } // End of for loop on parts of relative xpath.
 
-    // We arrived at the end of the relative xpath.
-    // By design of the above algorithm the last element is always a leaf: the current field.
-    final Element fieldElem = partElem;
-    Validate.notNull(fieldElem, "fieldElem is null for fieldId=%s, xpathRel=%s", fieldId, xpathRel);
+    // We arrived at the end of the relative xpath of the field.
+    // By design of the above algorithm the last element is always a leaf: the current field element
+    final Element lastFieldElem = partElem;
+    Validate.notNull(lastFieldElem, "fieldElem is null for fieldId=%s, xpathRel=%s", fieldId,
+        xpathRel);
 
     // Set the attributes of this element.
     for (final Entry<String, String> entry : attributeNameAndValueMap.entrySet()) {
+
       final String attributeName = entry.getKey();
-      if (StringUtils.isNotBlank(fieldElem.getAttribute(attributeName))) {
+      if (StringUtils.isNotBlank(lastFieldElem.getAttribute(attributeName))) {
         // If the attribute had already been set this would overwrite the existing value.
         // There is no case for which this is desirable.
         throw new RuntimeException(String.format(
             "Double set: Attribute already set, attributeName=%s, fieldId=%s", attributeName,
             fieldId));
       }
-      String attributeValue = entry.getValue();
-      if (fieldElem.getNodeName().equals("cbc:CapabilityTypeCode")) {
-        attributeValue = "sector"; // This will be fixed in SDK 1.10.
+
+      final String attributeValue;
+      if (XML_ATTR_LIST_NAME.equals("attributeName")
+          && lastFieldElem.getNodeName().equals("cbc:CapabilityTypeCode")) {
+        // HARDCODED: This will be fixed, probably in SDK 1.9 or SDK 1.10.
+        attributeValue = "sector";
+      } else {
+        attributeValue = entry.getValue();
       }
-      fieldElem.setAttribute(attributeName, attributeValue); // SIDE-EFFECT!
+      lastFieldElem.setAttribute(attributeName, attributeValue); // SIDE-EFFECT!
     }
 
     if (debug) {
@@ -575,19 +588,25 @@ public class PhysicalModel {
       // These attributes are also useful in unit tests for easy checking of field by id.
       // This keeps the original visual / conceptual fieldId in the physical model.
       // Another concept could be to set XML comments but this can also be a problem in unit tests.
-      fieldElem.setAttribute(XML_ATTR_EDITOR_FIELD_ID, fieldId);
-      fieldElem.setAttribute(XML_ATTR_EDITOR_COUNTER_SELF,
-          Integer.toString(conceptField.getCounter()));
+      lastFieldElem.setAttribute(XML_ATTR_EDITOR_FIELD_ID, fieldId);
+
+      final String counter = Integer.toString(conceptField.getCounter());
+      lastFieldElem.setAttribute(XML_ATTR_EDITOR_COUNTER_SELF, counter);
     }
 
     // Set value of the field.
     Validate.notNull(value, "value is null for fieldId=%s", fieldId, "fieldId=" + fieldId);
-    fieldElem.setTextContent(value);
+    lastFieldElem.setTextContent(value);
   }
 
   /**
+   * If the passed field has attributes the attribute name and value will be put in a map and return
+   * the map.
+   *
+   * @param fieldsAndNodes Holds SDK field and node metadata
    * @param fieldId The field ID for the field for which the attributes have to be determined
    * @param fieldMeta The SDK metadata about the field
+   * @param attributeFieldById Only used for reading
    * @return A map with the determined attribute name and value for the passed field
    */
   private static Map<String, String> determineAttributes(final FieldsAndNodes fieldsAndNodes,
@@ -615,8 +634,6 @@ public class PhysicalModel {
           inferAttribute(sdkAttrMeta, attributeNameAndValues, attrName);
         }
       } else {
-        logger.warn("TODO: infer attribute? fieldId={}, attributeFieldId={}", fieldId,
-            attributeFieldId);
         inferAttribute(sdkAttrMeta, attributeNameAndValues, attrName);
       }
     }
@@ -628,22 +645,27 @@ public class PhysicalModel {
    * they could but would need to be hidden).
    */
   private static void inferAttribute(final JsonNode sdkAttrMeta,
-      final Map<String, String> attributeNameAndValues, final String attrName) {
-    final Optional<String> presetValueOpt = JsonUtils.getTextOpt(sdkAttrMeta, "presetValue");
+      final Map<String, String> attributeNameAndValues, final String attributeName) {
+    final Optional<String> presetValueOpt =
+        JsonUtils.getTextOpt(sdkAttrMeta, FieldsAndNodes.PRESET_VALUE);
     if (presetValueOpt.isPresent()) {
       // For example:
       // "id" : "OPP-070-notice-List",
       // "presetValue" : "notice-subtype",
       final String presetValue = presetValueOpt.get();
-      attributeNameAndValues.put(attrName, presetValue);
+      attributeNameAndValues.put(attributeName, presetValue);
     } else {
       // Maybe infer it? Example: TPO-xyz => "touchpoint" etc. via presetValue and DB tables
       // listName="touchpoint">TPO-xyz<...
+      // tttt
+      logger.warn("No presetValue: infer attribute? fieldId={}, attrName={}",
+          JsonUtils.getTextStrict(sdkAttrMeta, FieldsAndNodes.ID),
+          attributeName);
     }
   }
 
   /**
-   * Get information about the document type from the SDK.
+   * Gets information about the document type from the SDK.
    *
    * @param noticeInfoBySubtype Map with info about notice metadata by notice sub type
    * @param documentInfoByType Map with info about document metadata by document type
@@ -700,6 +722,7 @@ public class PhysicalModel {
    */
   private static List<String> getXpathPartsArrWithoutPredicates(final String xpath) {
     final StringBuilder sb = new StringBuilder(xpath.length());
+
     int stacked = 0;
     for (int i = 0; i < xpath.length(); i++) {
       final char ch = xpath.charAt(i);
@@ -716,6 +739,7 @@ public class PhysicalModel {
       // If we are inside of a predicate, replace '/' by a temporary replacement.
       sb.append(ch == '/' && stacked > 0 ? XPATH_TEMP_REPLACEMENT : ch);
     }
+
     // The predicates are not split thanks to usage of the temporary replacement.
     final String originalRegex = "/";
     final char originalChar = '/';

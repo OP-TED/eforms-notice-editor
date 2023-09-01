@@ -331,7 +331,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
       field.put(KEY_PARENT_NODE_ID, ND_BUSINESS_CAPABILITY);
       field.put(KEY_XPATH_ABS, "/*/cac:BusinessCapability/cbc:CapabilityTypeCode/@listName");
       field.put(KEY_XPATH_REL, "cac:BusinessCapability/cbc:CapabilityTypeCode/@listName");
-      field.put(KEY_ATTRIBUTE_NAME, "listName");
+      field.put(KEY_ATTRIBUTE_NAME, PhysicalModel.XML_ATTR_LIST_NAME);
       field.put(KEY_ATTRIBUTE_OF, OPP_105_BUSINESS);
       field.put(KEY_PRESET_VALUE, "sector");
       field.put(KEY_TYPE, TYPE_CODE);
@@ -445,7 +445,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
 
     contains(xml, BT_500_BUSINESS + "\"");
     contains(xml, BT_501_BUSINESS_NATIONAL + "\"");
-    contains(xml, BT_501_BUSINESS_NATIONAL + "\" schemeName=\"" + PhysicalModel.NATIONAL + "\"");
+    contains(xml, BT_501_BUSINESS_NATIONAL + "\" schemeName=\"national\"");
 
     contains(xml, BT_501_BUSINESS_EUROPEAN + "\"");
     contains(xml, BT_501_BUSINESS_EUROPEAN + "\" schemeName=\"EU\"");
