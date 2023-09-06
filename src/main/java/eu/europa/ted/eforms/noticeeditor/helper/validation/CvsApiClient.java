@@ -564,8 +564,8 @@ public class CvsApiClient {
         final int indexEnd = part.indexOf(']');
         xmlTag = part.substring(0, indexStart);
         final String instanceCountStr = part.substring(indexStart + 1, indexEnd);
-        final int instanceId = Integer.parseInt(instanceCountStr);
-        pathItem.put("instance", instanceId);
+        final int index = Integer.parseInt(instanceCountStr);
+        pathItem.put("index", index);
       } else {
         xmlTag = part;
       }
