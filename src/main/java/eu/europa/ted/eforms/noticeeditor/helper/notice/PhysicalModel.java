@@ -3,6 +3,10 @@ package eu.europa.ted.eforms.noticeeditor.helper.notice;
 import static eu.europa.ted.eforms.noticeeditor.util.JsonUtils.getTextStrict;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -44,6 +48,9 @@ import eu.europa.ted.eforms.sdk.SdkVersion;
  * </p>
  */
 public class PhysicalModel {
+
+  private static final String EFBC_TRANSMISSION_TIME = "efbc:TransmissionTime";
+  private static final String EFBC_TRANSMISSION_DATE = "efbc:TransmissionDate";
 
   private static final Logger logger = LoggerFactory.getLogger(PhysicalModel.class);
 
@@ -163,7 +170,45 @@ public class PhysicalModel {
    * @return The XML as text.
    */
   public String toXmlText(final boolean indented) {
+
+    // Related to TEDEFO-2596
+    // The back end dynamically adds some information.
+    final Instant now = Instant.now();
+    final LocalDateTime datetime = LocalDateTime.ofInstant(now, ZoneOffset.UTC);
+    {
+      final Node dateElem = XmlUtils.getElementByTagName(domDocument, EFBC_TRANSMISSION_DATE);
+      final String formatted = DateTimeFormatter.ofPattern("yyyy-MM-dd").format(datetime);
+      dateElem.setTextContent(formatted + "Z"); // UTC
+    }
+    {
+      final Node timeElem = XmlUtils.getElementByTagName(domDocument, EFBC_TRANSMISSION_TIME);
+      final String formatted = DateTimeFormatter.ofPattern("HH:mm:ss").format(datetime);
+      timeElem.setTextContent(formatted + "Z"); // UTC
+    }
+
     return EditorXmlUtils.asText(domDocument, indented);
+  }
+
+  private static void addTransmissionDateAndTimeElements(final Document domDocument) {
+    // Notice Dispatch Date eSender (date).
+    // "xpathAbsolute" :
+    // "/*/ext:UBLExtensions/ext:UBLExtension
+    // /ext:ExtensionContent/efext:EformsExtension/efbc:TransmissionDate",
+
+    // Related to TEDEFO-2596
+    // The elements have to be set before the entire XML is sorted.
+    // The values should be set later (at the last moment).
+    final Node eformsExtension = XmlUtils.getElementByTagName(domDocument, "efext:EformsExtension");
+    {
+      final Element transmissionDate = createElemXml(domDocument, EFBC_TRANSMISSION_DATE);
+      // Set no value yet.
+      eformsExtension.appendChild(transmissionDate);
+    }
+    {
+      final Element transmissionTime = createElemXml(domDocument, EFBC_TRANSMISSION_TIME);
+      // Set no value yet.
+      eformsExtension.appendChild(transmissionTime);
+    }
   }
 
   @Override
@@ -233,6 +278,8 @@ public class PhysicalModel {
     final int depth = 0;
     buildPhysicalModelRec(xmlDoc, fieldsAndNodes, conceptualModelTreeRootNode, xmlDocRoot, debug,
         buildFields, depth, onlyIfPriority, xpathInst);
+
+    addTransmissionDateAndTimeElements(xmlDoc);
 
     // Reorder the physical model.
     // The location of the XSDs is given in the SDK and could vary by SDK version.
