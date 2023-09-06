@@ -109,7 +109,8 @@ public class NoticeValidationService {
       final Optional<SdkVersion> csvSdkVersionOverride, final Optional<String> svrlLangA2,
       final Optional<CsvValidationMode> sdkValidationMode) throws IOException {
     logger.info(
-        "Attempting to validate notice using the CVS, notice SDK version={}, eformsSdkVersionOverride={}",
+        "Attempting to validate notice using the CVS, notice SDK version={}, "
+            + "eformsSdkVersionOverride={}",
         noticeSdkVersion, csvSdkVersionOverride);
     Validate.notNull(noticeSdkVersion, "noticeSdkVersion is null");
 

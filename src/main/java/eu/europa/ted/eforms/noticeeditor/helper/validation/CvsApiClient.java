@@ -159,9 +159,11 @@ public class CvsApiClient {
       putIfPresent(jsonPayloadForEntity, "validationMode", validationModeOpt);
 
       if (csvSdkVersionOverride.isPresent()) {
-        jsonPayloadForEntity.put("eFormsSdkVersion", csvSdkVersionOverride.get().toString()); // ????
+        jsonPayloadForEntity.put("eFormsSdkVersion", csvSdkVersionOverride.get().toString());
+        // .toNormalisedString
+        // ????
         // with
-        // patch????
+        // patch ???? or without it?
       }
     }
     return httpPostToCvs(postUrl, requestContentType, responseContentType, jsonPayloadForEntity,
@@ -440,7 +442,6 @@ public class CvsApiClient {
     jsonReport.put("noticeSdkVersion", noticeSdkVersion.toString()); // ???? with patch ????
     if (csvSdkVersion.isPresent()) {
       jsonReport.put("csvSdkVersionOverride", csvSdkVersion.get().toString()); // ???? with patch
-                                                                               // ????
     }
     jsonReport.put("languageTwoLetterCode", languageTwoLetterCode); // ???? with patch ????
 
@@ -464,7 +465,7 @@ public class CvsApiClient {
       // continue;
       // }
 
-      putIfPresent(jsonItem, "flag", failedAssert.getAttribute("flag"));// Example: LAWFULNESS
+      putIfPresent(jsonItem, "flag", failedAssert.getAttribute("flag")); // Example: LAWFULNESS
       putIfPresent(jsonItem, "test", failedAssert.getAttribute("test"));
 
       final Element textElem = XmlUtils.getDirectChild(failedAssert, "svrl:text");
@@ -552,7 +553,7 @@ public class CvsApiClient {
    */
   private static ArrayNode handleXpathParts(final String locationXpath) {
     // Example:
-    // location="/cn:ContractNotice/cac:ProcurementProjectLot[2]/cac:TenderingTerms/cac:CallForTendersDocumentReference[2]/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension/efac:OfficialLanguages/cac:Language/cbc:ID"
+    // location="/cn:ContractNotice/cac:ProcurementProjectLot[2]/cac:TenderingTerms/...
     final List<String> xpathParts = XpathUtils
         .getXpathParts(locationXpath.startsWith("/") ? locationXpath.substring(1) : locationXpath);
     final ArrayNode array = JsonUtils.createArrayNode();
@@ -577,7 +578,7 @@ public class CvsApiClient {
 
   /**
    * @return The text encoded in base 64
-   * @throws UnsupportedEncodingException
+   * @throws UnsupportedEncodingException If the Character Encoding is not supported
    */
   private static String toBase64(final String text) throws UnsupportedEncodingException {
     return new String(Base64.getEncoder().encode(text.getBytes(CHARSET)), CHARSET.toString());
