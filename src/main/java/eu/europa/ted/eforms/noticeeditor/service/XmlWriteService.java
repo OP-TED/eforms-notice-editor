@@ -26,6 +26,7 @@ import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.PhysicalModel;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.VisualModel;
 import eu.europa.ted.eforms.noticeeditor.helper.validation.CsvValidationMode;
+import eu.europa.ted.eforms.noticeeditor.helper.validation.CvsApiException;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.sdk.SdkConstants;
 import eu.europa.ted.eforms.sdk.SdkVersion;
@@ -163,14 +164,19 @@ public class XmlWriteService {
     final Optional<SdkVersion> eformsSdkVersion = Optional.empty(); // Use default.
     final Optional<CsvValidationMode> validationMode = Optional.empty(); // Use default.
 
-    final String svrlXml =
-        noticeValidationService.validateNoticeXmlUsingCvs(noticeSdkVersion, noticeXmlText,
-            eformsSdkVersion, svrlLangA2, validationMode);
+    try {
+      final String svrlAsJson =
+          noticeValidationService.validateNoticeXmlUsingCvs(noticeSdkVersion, noticeXmlText,
+              eformsSdkVersion, svrlLangA2, validationMode);
 
-    if (responseOpt.isPresent()) {
-      final String filenameForDownload =
-          String.format("notice-%s-%s.svrl", noticeSdkVersion, noticeUuid);
-      serveSdkXmlStringAsDownload(responseOpt.get(), svrlXml, filenameForDownload);
+      if (responseOpt.isPresent()) {
+        final String filenameForDownload =
+            String.format("notice-%s-%s-validation.json", noticeSdkVersion, noticeUuid);
+        // serveSdkXmlStringAsDownload(responseOpt.get(), svrlAsJson, filenameForDownload);
+        serveJson(responseOpt.get(), filenameForDownload, true, svrlAsJson);
+      }
+    } catch (CvsApiException cvsEx) {
+      serveJson(responseOpt.get(), "notice-%s-%s-error.json", true, cvsEx.getEntityJson());
     }
   }
 

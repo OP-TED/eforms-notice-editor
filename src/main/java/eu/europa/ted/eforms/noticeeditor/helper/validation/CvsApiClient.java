@@ -25,6 +25,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -50,6 +51,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -113,7 +115,7 @@ public class CvsApiClient {
    *
    * @param noticeSdkVersion The notice SDK version
    * @param noticeXml The notice XML text
-   * @param svrlLangA2 Language to generate the SVRL report, for example "en" for English
+   * @param language Language to generate the SVRL report, for example "en" for English
    * @param csvSdkVersionOverride Specify the eForms SDK version to use for validating the XML
    *        document encoded in base64, if not specified the version contained in the XML will be
    *        used
@@ -123,7 +125,7 @@ public class CvsApiClient {
    * @return The response body, SVRL XML as text in this case
    */
   public String validateNoticeXml(final SdkVersion noticeSdkVersion, final String noticeXml,
-      final Optional<String> svrlLangA2,
+      final Optional<String> language,
       final Optional<SdkVersion> csvSdkVersionOverride,
       final Optional<CsvValidationMode> sdkValidationMode, final Path eformsSdkDir)
       throws IOException {
@@ -145,8 +147,11 @@ public class CvsApiClient {
     // Define the entity.
     final ObjectNode jsonPayloadForEntity = this.objectMapper.createObjectNode();
     {
+      // Required.
       jsonPayloadForEntity.put("notice", noticeInBase64);
-      putIfPresent(jsonPayloadForEntity, "language", svrlLangA2);
+
+      // Optional.
+      putIfPresent(jsonPayloadForEntity, "language", language);
 
       final Optional<String> validationModeOpt =
           sdkValidationMode.isPresent() ? Optional.of(sdkValidationMode.get().getText())
@@ -160,7 +165,7 @@ public class CvsApiClient {
       }
     }
     return httpPostToCvs(postUrl, requestContentType, responseContentType, jsonPayloadForEntity,
-        noticeSdkVersion, svrlLangA2, csvSdkVersionOverride, eformsSdkDir);
+        noticeSdkVersion, language, csvSdkVersionOverride, eformsSdkDir);
   }
 
   private static void putIfPresent(final ObjectNode jsonPayload, final String key,
@@ -183,7 +188,7 @@ public class CvsApiClient {
    */
   private String httpPostToCvs(final String postUrl, final String requestContentType,
       final String responseContentType, final ObjectNode jsonPayloadForEntity,
-      final SdkVersion noticeSdkVersion, final Optional<String> svrlLangA2,
+      final SdkVersion noticeSdkVersion, final Optional<String> language,
       final Optional<SdkVersion> csvSdkVersionOverride, final Path eformsSdkDir)
       throws IOException {
     Validate.notBlank(postUrl);
@@ -212,13 +217,11 @@ public class CvsApiClient {
     // https://docs.ted.europa.eu/api/endpoints/cvs-ted-europa-eu.html#_responses
     final ResponseHandler<String> responseHandler = new ResponseHandler<>() {
       @Override
-      public String handleResponse(final HttpResponse response)
-          throws IOException {
+      public String handleResponse(final HttpResponse response) throws IOException {
         final StatusLine statusLine = response.getStatusLine();
         final int status = statusLine.getStatusCode();
         logger.info("CVS responded with status={}", status);
         final HttpEntity entity = response.getEntity(); // It could be null.
-
         if (status >= HttpStatus.SC_OK && status < HttpStatus.SC_MULTIPLE_CHOICES) {
           final String svrlText = entity != null ? EntityUtils.toString(entity) : null;
           EntityUtils.consumeQuietly(entity);
@@ -234,7 +237,7 @@ public class CvsApiClient {
             final SdkVersion labelsSdkVersion =
                 csvSdkVersionOverride.isPresent() ? csvSdkVersionOverride.get()
                     : noticeSdkVersion;
-            final String langCode = svrlLangA2.isPresent() ? svrlLangA2.get() : "en";
+            final String langCode = language.isPresent() ? language.get() : "en";
             final Map<String, String> translations =
                 SdkService.getTranslations(labelsSdkVersion, eformsSdkDir, labelAssetType,
                     langCode);
@@ -242,25 +245,47 @@ public class CvsApiClient {
             final ObjectNode jsonReport =
                 createJsonReport(doc, langCode, csvSdkVersionOverride, noticeSdkVersion,
                     translations);
-            System.out.println(jsonReport); // tttt
-            // return JsonUtils.marshall(jsonReport);
+            return JsonUtils.marshall(jsonReport);
 
           } catch (ParserConfigurationException e) {
             logger.error(e.toString(), e);
           } catch (SAXException e) {
             logger.error(e.toString(), e);
           }
-
-          return svrlText;
+          // return svrlText;
         }
 
         // There was a problem.
+        // Try to extract information from the response.
+        final Optional<JsonNode> entityOpt;
         if (entity != null) {
+          final String entityText = EntityUtils.toString(entity);
           EntityUtils.consumeQuietly(entity);
+          final Header contentType = response.getFirstHeader("Content-Type");
+          logger.error("Content-Type={}, Response entity: {}", contentType, entityText);
+          if (contentType != null && MIME_TYPE_APPLICATION_JSON.equals(contentType.getValue())) {
+            // There should be a JSON response.
+            final JsonNode responseJson = objectMapper.readTree(entityText);
+            entityOpt = Optional.of(responseJson);
+          } else {
+            entityOpt = Optional.empty();
+          }
+        } else {
+          entityOpt = Optional.empty();
         }
-        final String msg = String.format("CVS POST response error: reason=%s, status=%s",
-            statusLine.getReasonPhrase(), status);
-        throw new CvsApiException(msg, status);
+
+        final String message;
+        if (entityOpt.isPresent()) {
+          final JsonNode errorJson = entityOpt.get();
+          final String msgFromJson = JsonUtils.getTextStrict(errorJson, "message");
+          message = String.format("CVS POST response error: reason=%s, status=%s, message=%s",
+              statusLine.getReasonPhrase(), status, msgFromJson);
+          throw new CvsApiException(message, status, JsonUtils.marshall(errorJson));
+        } else {
+          message = String.format("CVS POST response error: reason=%s, status=%s",
+              statusLine.getReasonPhrase(), status);
+          throw new CvsApiException(message, status, "{}");
+        }
       }
     };
 
@@ -269,6 +294,7 @@ public class CvsApiClient {
     //
     // Execute returns the response object as generated by the response handler.
     logger.info("POST url={}", post.getURI());
+    logger.info("POST language={}, noticeSdkVersion={}", language, noticeSdkVersion);
     logger.info("Posting to CVS: wait ... (could stall if there are network issues, proxy, ...)");
     return this.closeableHttpClient.execute(post, responseHandler);
   }
@@ -346,7 +372,7 @@ public class CvsApiClient {
 
         // By default use this config for all requests going through the client.
         builder.setDefaultRequestConfig(defaultRequestConfig);
-      } catch (@SuppressWarnings("unused") MalformedURLException e) {
+      } catch (MalformedURLException e) {
         throw new RuntimeException(
             "Malformed proxy url (not logging it as it could contain passwords).", e);
       }

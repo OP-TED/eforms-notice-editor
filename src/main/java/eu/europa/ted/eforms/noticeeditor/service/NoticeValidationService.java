@@ -3,6 +3,7 @@ package eu.europa.ted.eforms.noticeeditor.service;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -64,8 +65,13 @@ public class NoticeValidationService {
 
     if (mainXsdPathOpt.isPresent()) {
       final Path mainXsdPath = mainXsdPathOpt.get();
-      final List<SAXParseException> validationExceptions =
-          XsdValidator.validateXml(noticeXmlText, mainXsdPath);
+
+      final List<SAXParseException> validationExceptions = new ArrayList<>();
+      try {
+        validationExceptions.addAll(XsdValidator.validateXml(noticeXmlText, mainXsdPath));
+      } catch (SAXParseException e) {
+        validationExceptions.add(e);
+      }
       xsdReport.put("errorCount", validationExceptions.size());
 
       if (!validationExceptions.isEmpty()) {

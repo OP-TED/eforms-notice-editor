@@ -46,8 +46,6 @@ public class SvrlParserTest {
         CvsApiClient.createJsonReport(svrlDoc, "en", Optional.empty(), sdkVersion,
             translationsForLang);
 
-    System.out.println(report);
-
     final JsonNode failedAssertsNode = report.get("failedAsserts");
     assertNotNull(failedAssertsNode);
 
@@ -84,8 +82,6 @@ public class SvrlParserTest {
         CvsApiClient.createJsonReport(svrlDoc, "en", Optional.empty(), sdkVersion,
             translationsForLang);
 
-    System.out.println(report); // tttt
-
     final JsonNode failedAssertsNode = report.get("failedAsserts");
     assertNotNull(failedAssertsNode);
 
@@ -112,7 +108,6 @@ public class SvrlParserTest {
       assertEquals(2, JsonUtils.getIntStrict(location.get(3), "instance"));
     }
   }
-
 
   private static Optional<JsonNode> findFirstItemByNodeId(final List<JsonNode> list,
       final String nodeId) {

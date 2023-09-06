@@ -9,18 +9,25 @@ import org.apache.http.client.ClientProtocolException;
 public class CvsApiException extends ClientProtocolException {
   private final String message;
   private final int statusCode;
+  private final String entityJson;
 
-  public CvsApiException(final String message, final int statusCode) {
-    this.message = message;
+  public CvsApiException(final String message, final int statusCode, final String entityJson) {
     this.statusCode = statusCode;
+    this.message = message;
+    this.entityJson = entityJson;
   }
 
   @Override
   public String getMessage() {
-    return String.format("Message=%s, statusCode=%s", message, statusCode);
+    return String.format("errorCode=%s, message=%s", statusCode, message);
   }
 
   public int getStatusCode() {
     return statusCode;
   }
+
+  public String getEntityJson() {
+    return entityJson;
+  }
+
 }
