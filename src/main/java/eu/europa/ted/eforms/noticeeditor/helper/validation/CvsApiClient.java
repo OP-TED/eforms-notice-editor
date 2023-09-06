@@ -75,6 +75,10 @@ public class CvsApiClient {
 
   private static final Logger logger = LoggerFactory.getLogger(CvsApiClient.class);
 
+  public static final String CVS_REPORT_LOCATION = "location";
+  public static final String CVS_REPORT_LOCATION_XML = "xml";
+  public static final String CVS_REPORT_LOCATION_INDEX = "index";
+
   private static final Charset CHARSET = StandardCharsets.UTF_8;
   private static final String MIME_TYPE_APPLICATION_JSON = "application/json";
   private static final String DEFAULT_USER_AGENT = "Editor demo (Java-SDK)";
@@ -470,10 +474,10 @@ public class CvsApiClient {
 
       final Element textElem = XmlUtils.getDirectChild(failedAssert, "svrl:text");
 
-      final String locationXpath = failedAssert.getAttribute("location");
+      final String locationXpath = failedAssert.getAttribute(CVS_REPORT_LOCATION);
       if (locationXpath != null) {
         final ArrayNode xpathParts = handleXpathParts(locationXpath);
-        jsonItem.set("location", xpathParts);
+        jsonItem.set(CVS_REPORT_LOCATION, xpathParts);
       }
 
       // Diagnostic ref.
@@ -566,11 +570,11 @@ public class CvsApiClient {
         xmlTag = part.substring(0, indexStart);
         final String instanceCountStr = part.substring(indexStart + 1, indexEnd);
         final int index = Integer.parseInt(instanceCountStr);
-        pathItem.put("index", index);
+        pathItem.put(CVS_REPORT_LOCATION_INDEX, index);
       } else {
         xmlTag = part;
       }
-      pathItem.put("xml", xmlTag);
+      pathItem.put(CVS_REPORT_LOCATION_XML, xmlTag);
       array.add(pathItem);
     }
     return array;

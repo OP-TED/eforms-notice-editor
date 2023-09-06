@@ -27,6 +27,10 @@ public class SvrlParserTest {
 
   private static final SdkVersion SDK_VERSION = new SdkVersion("1.9.0");
 
+  private static final String CVS_REPORT_LOCATION = CvsApiClient.CVS_REPORT_LOCATION;
+  private static final String CVS_REPORT_LOCATION_INDEX = CvsApiClient.CVS_REPORT_LOCATION_INDEX;
+  private static final String CVS_REPORT_LOCATION_XML = CvsApiClient.CVS_REPORT_LOCATION_XML;
+
   @Test
   public void testParseCn24Empty() throws SAXException, IOException, ParserConfigurationException {
     final SdkVersion sdkVersion = SDK_VERSION;
@@ -94,18 +98,21 @@ public class SvrlParserTest {
     assertTrue(first.isPresent());
     if (first.isPresent()) {
       final JsonNode reportItem = first.get();
-      final List<JsonNode> location = JsonUtils.getList(reportItem.get("location"));
+      final List<JsonNode> location = JsonUtils.getList(reportItem.get(CVS_REPORT_LOCATION));
       // location="/cn:ContractNotice/cac:ProcurementProjectLot[1]/cac:ProcurementProject/cac:MainCommodityClassification[2]"
-      assertEquals("cn:ContractNotice", JsonUtils.getTextStrict(location.get(0), "xml"));
+      assertEquals("cn:ContractNotice",
+          JsonUtils.getTextStrict(location.get(0), CVS_REPORT_LOCATION_XML));
 
-      assertEquals("cac:ProcurementProjectLot", JsonUtils.getTextStrict(location.get(1), "xml"));
-      assertEquals(1, JsonUtils.getIntStrict(location.get(1), "instance"));
+      assertEquals("cac:ProcurementProjectLot",
+          JsonUtils.getTextStrict(location.get(1), CVS_REPORT_LOCATION_XML));
+      assertEquals(1, JsonUtils.getIntStrict(location.get(1), CVS_REPORT_LOCATION_INDEX));
 
-      assertEquals("cac:ProcurementProject", JsonUtils.getTextStrict(location.get(2), "xml"));
+      assertEquals("cac:ProcurementProject",
+          JsonUtils.getTextStrict(location.get(2), CVS_REPORT_LOCATION_XML));
 
       assertEquals("cac:MainCommodityClassification",
-          JsonUtils.getTextStrict(location.get(3), "xml"));
-      assertEquals(2, JsonUtils.getIntStrict(location.get(3), "instance"));
+          JsonUtils.getTextStrict(location.get(3), CVS_REPORT_LOCATION_XML));
+      assertEquals(2, JsonUtils.getIntStrict(location.get(3), CVS_REPORT_LOCATION_INDEX));
     }
   }
 
