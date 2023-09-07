@@ -30,7 +30,7 @@ public class XmlRestController implements AsyncConfigurer {
       throws Exception {
     // Enriches the XML for human readability but it becomes invalid.
     // Also adds .dot files in target.
-    final boolean debug = false;
+    final boolean debug = true;
     xmlService.saveNoticeAsXml(Optional.of(response), noticeJson, debug);
   }
 

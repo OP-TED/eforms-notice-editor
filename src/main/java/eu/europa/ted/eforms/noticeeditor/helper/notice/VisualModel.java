@@ -39,6 +39,11 @@ public class VisualModel {
 
   private static final Logger logger = LoggerFactory.getLogger(VisualModel.class);
 
+  /**
+   * This is used in the front-end, where the visual model is created.
+   */
+  private static final String NOTICE_METADATA = "notice-metadata";
+
   public static final String VIS_SDK_VERSION = "sdkVersion";
   public static final String VIS_NOTICE_UUID = "noticeUuid";
   private static final String VIS_NOTICE_SUB_TYPE = "noticeSubType";
@@ -151,7 +156,7 @@ public class VisualModel {
       final ObjectNode metadata = mapper.createObjectNode();
       visRootChildren.add(metadata);
       putGroupDef(metadata);
-      metadata.put(VIS_CONTENT_ID, "notice-metadata");
+      metadata.put(VIS_CONTENT_ID, NOTICE_METADATA);
       final ArrayNode metadataChildren = metadata.putArray(VIS_CHILDREN);
 
       // Notice sub type.
@@ -206,26 +211,30 @@ public class VisualModel {
    * @param fieldsAndNodes SDK meta info
    * @param closestParentNode This is the closest parent node we have in the model
    * @param cn The current conceptual node
+   * @param fieldId The id of the content for which this was started
    */
   private static void addIntermediaryNonRepeatingNodesRec(final FieldsAndNodes fieldsAndNodes,
-      final ConceptTreeNode closestParentNode, final ConceptTreeNode cn) {
+      final ConceptTreeNode closestParentNode, final ConceptTreeNode cn, final String fieldId) {
 
-    if (closestParentNode.getNodeId().equals(cn.getNodeId())) {
+    final String currentNodeId = cn.getNodeId();
+    if (closestParentNode.getNodeId().equals(currentNodeId)) {
       // cn is the closest parent, stop.
       return;
     }
 
-    if (ConceptualModel.ND_ROOT.equals(cn.getNodeId())) {
+    if (ConceptualModel.ND_ROOT.equals(currentNodeId)) {
+      // Went as far as possible.
       return;
     }
 
-    final JsonNode nodeMeta = fieldsAndNodes.getNodeById(cn.getNodeId());
+    final JsonNode nodeMeta = fieldsAndNodes.getNodeById(currentNodeId);
     final String nodeParentId =
         JsonUtils.getTextStrict(nodeMeta, FieldsAndNodes.NODE_PARENT_NODE_ID);
     if (nodeParentId.equals(closestParentNode.getNodeId())) {
       // The closestParent is the parent, just attach it and stop.
       // -> closestParent -> cn
       closestParentNode.addConceptNode(cn, false);
+      logger.debug("Added intermediary concept tree node, id={}", cn.getIdUnique());
       return;
     }
 
@@ -234,8 +243,10 @@ public class VisualModel {
       // The SDK says the desired parentNodeId is repeatable and is missing in the
       // visual model, thus we have a serious problem!
       final String msg =
-          String.format("Problem in visual node hierarchy, unexpected missing repeatable nodeId=%s",
-              nodeParentId);
+          String.format(
+              "Problem in visual node hierarchy, unexpected missing repeatable nodeId=%s, "
+                  + "contentId=%s",
+              nodeParentId, fieldId);
       System.err.println(msg);
       // throw new RuntimeException(msg);
     }
@@ -246,9 +257,10 @@ public class VisualModel {
     final ConceptTreeNode cnNew =
         new ConceptTreeNode(nodeParentId + SUFFIX_GENERATED, nodeParentId, 1, isRepeatable);
     cnNew.addConceptNode(cn, false);
+    logger.debug("Added intermediary concept tree node, id={}", cn.getIdUnique());
 
     // There may be more to add, recursion:
-    addIntermediaryNonRepeatingNodesRec(fieldsAndNodes, closestParentNode, cnNew);
+    addIntermediaryNonRepeatingNodesRec(fieldsAndNodes, closestParentNode, cnNew, fieldId);
   }
 
   /**
@@ -269,7 +281,8 @@ public class VisualModel {
     // VISUAL FIELD.
     //
     if (isField(visualType)) {
-      // What we call a field is some kind of form field which has a value.
+      // What we call a field is some kind of form field which has a value. The value came from an
+      // input, textarea, combobox, ...
       final JsonNode counterJson = jsonItem.get(VIS_CONTENT_COUNT);
       Validate.notNull(counterJson, "visual count is null for %s", visContentId);
       final int counter = jsonItem.get(VIS_CONTENT_COUNT).asInt(-1);
@@ -396,15 +409,19 @@ public class VisualModel {
     }
   }
 
+  /**
+   * @param jsonItem The current visual json item
+   * @param sdkFieldId The SDK field id for the current visual json item
+   */
   private static Optional<ConceptTreeItem> handleVisualField(final FieldsAndNodes fieldsAndNodes,
-      final JsonNode jsonItem, final ConceptTreeNode closestParentNode, final String contentId,
-      final int counter) {
+      final JsonNode jsonItem, final ConceptTreeNode closestParentNode,
+      final String sdkFieldId, final int counter) {
 
     // This is a visual field (leaf of the tree).
-    // Every field points to an SDK field for the SDK metadata.
-    final String sdkFieldId = contentId;
+    // Every visual field points to an SDK field for the SDK metadata.
     final ConceptTreeField conceptField =
-        new ConceptTreeField(contentId, sdkFieldId, jsonItem.get(VIS_VALUE).asText(null), counter);
+        new ConceptTreeField(sdkFieldId, sdkFieldId, jsonItem.get(VIS_VALUE).asText(null),
+            counter);
 
     final JsonNode sdkFieldMeta = fieldsAndNodes.getFieldById(sdkFieldId);
 
@@ -415,14 +432,13 @@ public class VisualModel {
 
     if (!closestParentNode.getNodeId().equals(sdkParentNodeId)) {
       // The parents do not match.
-
       final boolean isRepeatable = fieldsAndNodes.isNodeRepeatable(sdkParentNodeId);
       if (isRepeatable) {
         // The SDK says the desired parentNodeId is repeatable and is missing in the visual model,
         // thus we have a serious problem!
         final String msg = String.format(
             "Problem in visual node hierarchy, fieldId=%s is not included"
-                + " in the correct parent. Expecting %s but found %s",
+                + " in the correct parent. Expecting nodeId=%s but found nodeId=%s",
             sdkFieldId, sdkParentNodeId, closestParentNode.getNodeId());
         System.err.println(msg);
         // throw new RuntimeException(msg);
@@ -451,7 +467,7 @@ public class VisualModel {
 
         // See unit test about filling to fully understand this.
         // closestParentNode.addConceptNode(cn); // NO: there may be more items to fill in.
-        addIntermediaryNonRepeatingNodesRec(fieldsAndNodes, closestParentNode, cn);
+        addIntermediaryNonRepeatingNodesRec(fieldsAndNodes, closestParentNode, cn, sdkFieldId);
       }
 
       // Always add the current field.

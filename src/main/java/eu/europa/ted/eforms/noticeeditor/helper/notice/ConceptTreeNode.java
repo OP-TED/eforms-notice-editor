@@ -104,6 +104,7 @@ public class ConceptTreeNode extends ConceptTreeItem {
             conceptNode.getIdUnique(), conceptNode.getNodeId(), this.getIdUnique()));
       }
       conceptNodes.add(conceptNode);
+
     } else if (!contained) {
       // Non-strict.
       // Add if not contained. Do not complain if already contained.

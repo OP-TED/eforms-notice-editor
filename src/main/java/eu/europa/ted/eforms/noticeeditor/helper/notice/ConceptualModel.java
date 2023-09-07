@@ -169,9 +169,7 @@ public class ConceptualModel {
 
       final String childId = childNode.getIdUnique() + "_" + childNode.getNodeId();
       GraphvizDotTool.appendEdge("", color,
-
           cnIdUnique, childId, // concept node -> concept node
-
           sb);
 
       toDotRec(fieldsAndNodes, sb, childNode, includeFields);
@@ -182,9 +180,7 @@ public class ConceptualModel {
       // This makes the tree a lot more bushy and can be hard to read.
       for (final ConceptTreeField cf : cn.getConceptFields()) {
         GraphvizDotTool.appendEdge(edgeLabel, GraphvizDotTool.COLOR_BLUE,
-
             cnIdUnique, cf.getIdUnique() + "=" + cf.getValue(), // node -> field
-
             sb);
       }
     }

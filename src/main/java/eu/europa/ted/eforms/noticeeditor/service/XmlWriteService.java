@@ -173,9 +173,14 @@ public class XmlWriteService {
   }
 
   /**
+   * Goes from the visual model to the physical model of a notice. The conceptual model is a hidden
+   * intermediary step.
+   *
+   * @param visualRoot The root of the visual model of the notice, this is the main input
+   * @param sdkVersion The SDK version of the notice
    * @param debug Adds special debug info to the XML, useful for humans and unit tests. Not for
    *        production
-   * @return The physical model
+   * @return The physical model of the notice as the output
    */
   private PhysicalModel buildPhysicalModel(final JsonNode visualRoot, final SdkVersion sdkVersion,
       final UUID noticeUuid, final boolean debug)
@@ -183,44 +188,47 @@ public class XmlWriteService {
     Validate.notNull(visualRoot);
     Validate.notNull(noticeUuid);
 
-    final FieldsAndNodes fieldsAndNodes = readFieldsAndNodes(sdkVersion);
+    final FieldsAndNodes sdkFieldsAndNodes = readSdkFieldsAndNodes(sdkVersion);
     final VisualModel visualModel = new VisualModel(visualRoot);
 
     if (debug) {
-      visualModel.writeDotFile(fieldsAndNodes);
+      visualModel.writeDotFile(sdkFieldsAndNodes);
     }
 
     final JsonNode noticeTypesJson = sdkService.readNoticeTypesJson(sdkVersion);
-
-    final Map<String, JsonNode> noticeInfoBySubtype = new HashMap<>(512);
-    {
-      // TODO add noticeSubTypes to the SDK constants.
-      // SdkResource.NOTICE_SUB_TYPES
-      final JsonNode noticeSubTypes = noticeTypesJson.get("noticeSubTypes");
-      for (final JsonNode item : noticeSubTypes) {
-        // TODO add subTypeId to the SDK constants.
-        final String subTypeId = JsonUtils.getTextStrict(item, "subTypeId");
-        noticeInfoBySubtype.put(subTypeId, item);
-      }
-    }
-
+    final Map<String, JsonNode> noticeInfoBySubtype = loadSdkNoticeTypeInfo(noticeTypesJson);
     final Map<String, JsonNode> documentInfoByType = parseDocumentTypes(noticeTypesJson);
 
     // Go from visual model to conceptual model.
-    final ConceptualModel conceptModel = visualModel.toConceptualModel(fieldsAndNodes);
+    final ConceptualModel conceptModel = visualModel.toConceptualModel(sdkFieldsAndNodes);
 
     // Build physical model.
     final boolean buildFields = true;
     final Path sdkRootFolder = sdkService.getSdkRootFolder();
     final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptModel,
-        fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields, sdkRootFolder);
+        sdkFieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields,
+        sdkRootFolder);
+
     return physicalModel;
   }
 
-  public FieldsAndNodes readFieldsAndNodes(final SdkVersion sdkVersion) {
+  private static Map<String, JsonNode> loadSdkNoticeTypeInfo(
+      final JsonNode noticeTypesJson) {
+    final Map<String, JsonNode> noticeInfoBySubtype = new HashMap<>(512);
+    // TODO add "noticeSubTypes" to the SDK constants.
+    // SdkResource.NOTICE_SUB_TYPES
+    final JsonNode noticeSubTypes = noticeTypesJson.get("noticeSubTypes");
+    for (final JsonNode item : noticeSubTypes) {
+      // TODO add "subTypeId" to the SDK constants.
+      final String subTypeId = JsonUtils.getTextStrict(item, "subTypeId");
+      noticeInfoBySubtype.put(subTypeId, item);
+    }
+    return noticeInfoBySubtype;
+  }
+
+  public FieldsAndNodes readSdkFieldsAndNodes(final SdkVersion sdkVersion) {
     final JsonNode fieldsJson = sdkService.readSdkFieldsJson(sdkVersion);
-    final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldsJson, sdkVersion);
-    return fieldsAndNodes;
+    return new FieldsAndNodes(fieldsJson, sdkVersion);
   }
 
   public static Map<String, JsonNode> parseDocumentTypes(final JsonNode noticeTypesJson) {
@@ -228,7 +236,7 @@ public class XmlWriteService {
     final JsonNode documentTypes =
         noticeTypesJson.get(SdkConstants.NOTICE_TYPES_JSON_DOCUMENT_TYPES_KEY);
     for (final JsonNode item : documentTypes) {
-      // TODO add document type id to the SDK constants.
+      // TODO add document type "id" to the SDK constants. Maybe DOCUMENT_TYPE_ID.
       final String id = JsonUtils.getTextStrict(item, "id");
       documentInfoByType.put(id, item);
     }
