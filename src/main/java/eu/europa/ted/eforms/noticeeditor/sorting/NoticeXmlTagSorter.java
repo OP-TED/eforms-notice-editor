@@ -221,7 +221,6 @@ public class NoticeXmlTagSorter {
     Validate.notNull(fieldOrNode);
 
     final String id = JsonUtils.getTextStrict(fieldOrNode, FieldsAndNodes.FIELD_OR_NODE_ID_KEY);
-    logger.debug("Sorting children of id={}", id);
     final String xpathAbsolute =
         JsonUtils.getTextStrict(fieldOrNode, FieldsAndNodes.XPATH_ABSOLUTE);
 
@@ -233,6 +232,7 @@ public class NoticeXmlTagSorter {
     if (childItems == null) {
       return; // Nothing to sort.
     }
+    logger.debug("Sorting children of id={}", id);
 
     // Get sort order of child items for the current node id.
     final List<OrderItem> orderItemsForParent = new ArrayList<>(childItems.size());
@@ -259,7 +259,7 @@ public class NoticeXmlTagSorter {
         final OrderItem orderItem = new OrderItem(fieldOrNodeId, key, order);
         orderItemsForParent.add(orderItem);
       } else {
-        logger.info("parentId={}, itemId={} has no {}", id, fieldOrNodeId,
+        logger.warn("parentId={}, itemId={} has no {}", id, fieldOrNodeId,
             FieldsAndNodes.XSD_SEQUENCE_ORDER_KEY);
         // Ideally we want this to throw, but some tests are using dummy data that is missing the
         // sort order and the tests are not about the order.

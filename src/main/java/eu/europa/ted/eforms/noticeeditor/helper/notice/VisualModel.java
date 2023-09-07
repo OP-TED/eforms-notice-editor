@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.UUID;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,14 +68,24 @@ public class VisualModel {
   private final JsonNode visRoot;
 
   /**
+   * This can be used for debugging, setting values only on items of interest
+   */
+  private final boolean skipIfNoValue;
+
+  /**
    * @param visRoot The visual model as JSON, usually set from a user interface.
    */
-  public VisualModel(final JsonNode visRoot) {
+  public VisualModel(final JsonNode visRoot, final boolean skipIfNoValue) {
     final String rootNodeId = JsonUtils.getTextStrict(visRoot, VIS_NODE_ID);
     final String expected = ConceptualModel.ND_ROOT;
     Validate.isTrue(expected.equals(rootNodeId), "Visual model root must be %s", expected);
     this.visRoot = visRoot;
+    this.skipIfNoValue = skipIfNoValue;
     getNoticeSubType(); // This must not crash.
+  }
+
+  public VisualModel(final JsonNode visRoot) {
+    this(visRoot, false);
   }
 
   @Override
@@ -196,7 +207,7 @@ public class VisualModel {
 
     // This is located in this class as most of the code is about reading the visual model.
     final Optional<ConceptTreeItem> conceptItemOpt =
-        parseVisualModelRec(fieldsAndNodes, visRoot, null);
+        parseVisualModelRec(fieldsAndNodes, visRoot, null, skipIfNoValue);
     if (!conceptItemOpt.isPresent()) {
       throw new RuntimeException("Expecting concept item at root level.");
     }
@@ -234,7 +245,8 @@ public class VisualModel {
       // The closestParent is the parent, just attach it and stop.
       // -> closestParent -> cn
       closestParentNode.addConceptNode(cn, false);
-      logger.debug("Added intermediary concept tree node, id={}", cn.getIdUnique());
+      logger.debug("Added intermediary concept tree node, conceptNodeId={}, fieldId={}",
+          cn.getIdUnique(), fieldId);
       return;
     }
 
@@ -257,7 +269,8 @@ public class VisualModel {
     final ConceptTreeNode cnNew =
         new ConceptTreeNode(nodeParentId + SUFFIX_GENERATED, nodeParentId, 1, isRepeatable);
     cnNew.addConceptNode(cn, false);
-    logger.debug("Added intermediary concept tree node, id={}", cn.getIdUnique());
+    logger.debug("Added intermediary concept tree node, conceptNodeId={}, fieldId={}",
+        cn.getIdUnique(), fieldId);
 
     // There may be more to add, recursion:
     addIntermediaryNonRepeatingNodesRec(fieldsAndNodes, closestParentNode, cnNew, fieldId);
@@ -271,7 +284,8 @@ public class VisualModel {
    *         otherwise no action should be taken in the caller
    */
   private static Optional<ConceptTreeItem> parseVisualModelRec(final FieldsAndNodes fieldsAndNodes,
-      final JsonNode jsonItem, final ConceptTreeNode closestParentNode) {
+      final JsonNode jsonItem, final ConceptTreeNode closestParentNode,
+      final boolean skipIfNoValue) {
     Validate.notNull(jsonItem, "jsonNode is null, jsonNode=%s", jsonItem);
 
     final String visContentId = getContentId(jsonItem);
@@ -286,14 +300,16 @@ public class VisualModel {
       final JsonNode counterJson = jsonItem.get(VIS_CONTENT_COUNT);
       Validate.notNull(counterJson, "visual count is null for %s", visContentId);
       final int counter = jsonItem.get(VIS_CONTENT_COUNT).asInt(-1);
-      return handleVisualField(fieldsAndNodes, jsonItem, closestParentNode, visContentId, counter);
+      return handleVisualField(fieldsAndNodes, jsonItem, closestParentNode, visContentId, counter,
+          skipIfNoValue);
     }
 
     //
     // VISUAL NON-FIELD (group, ...)
     //
     if (isNonField(visualType)) {
-      return handleVisualGroup(fieldsAndNodes, jsonItem, closestParentNode, visContentId);
+      return handleVisualGroup(fieldsAndNodes, jsonItem, closestParentNode, visContentId,
+          skipIfNoValue);
     }
 
     throw new RuntimeException(String.format("Unsupported visual type '%s'", visualType));
@@ -320,7 +336,8 @@ public class VisualModel {
   }
 
   private static Optional<ConceptTreeItem> handleVisualGroup(final FieldsAndNodes fieldsAndNodes,
-      final JsonNode jsonItem, final ConceptTreeNode closestParentNode, final String contentId) {
+      final JsonNode jsonItem, final ConceptTreeNode closestParentNode, final String contentId,
+      final boolean skipIfNoValue) {
 
     // This is a group (with or without nodeId).
     final Optional<String> nodeIdOpt = getNodeIdOpt(jsonItem);
@@ -332,7 +349,7 @@ public class VisualModel {
     // We could call this a purely visual group.
     //
     if (nodeIdOpt.isEmpty()) {
-      handleGroupWithNodeId(fieldsAndNodes, jsonItem, closestParentNode);
+      handleGroupWithNodeId(fieldsAndNodes, jsonItem, closestParentNode, skipIfNoValue);
       return Optional.empty(); // Cannot return anything to append to as it was removed.
     }
 
@@ -343,7 +360,10 @@ public class VisualModel {
     // This group must be kept in the conceptual model.
     //
     final ConceptTreeNode conceptNode =
-        handleGroupWithoutNodeId(fieldsAndNodes, jsonItem, contentId, nodeIdOpt);
+        handleGroupWithoutNodeId(fieldsAndNodes, jsonItem, contentId, nodeIdOpt, skipIfNoValue);
+    if (skipIfNoValue && conceptNode.getConceptNodes().isEmpty()) {
+      return Optional.empty();
+    }
     return Optional.of(conceptNode);
   }
 
@@ -352,7 +372,8 @@ public class VisualModel {
   }
 
   private static ConceptTreeNode handleGroupWithoutNodeId(final FieldsAndNodes fieldsAndNodes,
-      final JsonNode jsonItem, final String contentId, final Optional<String> nodeIdOpt) {
+      final JsonNode jsonItem, final String contentId, final Optional<String> nodeIdOpt,
+      final boolean skipIfNoValue) {
 
     final String sdkNodeId = nodeIdOpt.get();
     fieldsAndNodes.getNodeById(sdkNodeId); // Just for the checks.
@@ -370,7 +391,7 @@ public class VisualModel {
       final ArrayNode visChildren = (ArrayNode) maybeNull;
       for (final JsonNode visChild : visChildren) {
         final Optional<ConceptTreeItem> itemToAppendOpt =
-            parseVisualModelRec(fieldsAndNodes, visChild, conceptNode);
+            parseVisualModelRec(fieldsAndNodes, visChild, conceptNode, skipIfNoValue);
         if (itemToAppendOpt.isPresent()) {
           // Append field or node.
           conceptNode.addConceptItem(itemToAppendOpt.get());
@@ -381,7 +402,8 @@ public class VisualModel {
   }
 
   private static void handleGroupWithNodeId(final FieldsAndNodes fieldsAndNodes,
-      final JsonNode jsonItem, final ConceptTreeNode closestParentNode) {
+      final JsonNode jsonItem, final ConceptTreeNode closestParentNode,
+      final boolean skipIfNoValue) {
 
     // The conceptual model must ignore this group but keep the contained content.
     // In that case we want the children to be moved up to the nearest conceptual parent node.
@@ -400,7 +422,7 @@ public class VisualModel {
     final ArrayNode visChildren = (ArrayNode) maybeNull;
     for (final JsonNode visChild : visChildren) {
       final Optional<ConceptTreeItem> itemToAppendOpt =
-          parseVisualModelRec(fieldsAndNodes, visChild, closestParentNode);
+          parseVisualModelRec(fieldsAndNodes, visChild, closestParentNode, skipIfNoValue);
       if (itemToAppendOpt.isPresent()) {
         final ConceptTreeItem item = itemToAppendOpt.get();
         Validate.notNull(closestParentNode, "closestParentNode is null for %s", item.getIdUnique());
@@ -412,16 +434,21 @@ public class VisualModel {
   /**
    * @param jsonItem The current visual json item
    * @param sdkFieldId The SDK field id for the current visual json item
+   * @param skipIfNoValue Skip if there is no value
    */
   private static Optional<ConceptTreeItem> handleVisualField(final FieldsAndNodes fieldsAndNodes,
       final JsonNode jsonItem, final ConceptTreeNode closestParentNode,
-      final String sdkFieldId, final int counter) {
+      final String sdkFieldId, final int counter, final boolean skipIfNoValue) {
 
     // This is a visual field (leaf of the tree).
     // Every visual field points to an SDK field for the SDK metadata.
+    final String value = jsonItem.get(VIS_VALUE).asText(null);
+    if (skipIfNoValue && StringUtils.isBlank(value)) {
+      // This helps when debugging, in case only one value has been set, ti
+      return Optional.empty();
+    }
     final ConceptTreeField conceptField =
-        new ConceptTreeField(sdkFieldId, sdkFieldId, jsonItem.get(VIS_VALUE).asText(null),
-            counter);
+        new ConceptTreeField(sdkFieldId, sdkFieldId, value, counter);
 
     final JsonNode sdkFieldMeta = fieldsAndNodes.getFieldById(sdkFieldId);
 

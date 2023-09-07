@@ -56,10 +56,11 @@ public class XmlWriteService {
    * @param noticeJson The notice as JSON as built by the front-end form.
    * @param debug Adds special debug info to the XML, useful for humans and unit tests. Not for
    *        production
+   * @param skipIfNoValue Ignore if there is no value
    */
   public void saveNoticeAsXml(final Optional<HttpServletResponse> responseOpt,
-      final String noticeJson, final boolean debug) throws Exception {
-    final PhysicalModel physicalModel = buildPhysicalModel(noticeJson, debug);
+      final String noticeJson, final boolean debug, final boolean skipIfNoValue) throws Exception {
+    final PhysicalModel physicalModel = buildPhysicalModel(noticeJson, debug, skipIfNoValue);
     final UUID noticeUuid = physicalModel.getNoticeId();
     final SdkVersion sdkVersion = physicalModel.getSdkVersion();
     try {
@@ -90,7 +91,7 @@ public class XmlWriteService {
    */
   public void validateUsingXsd(final Optional<HttpServletResponse> responseOpt,
       final String noticeJson, final boolean debug) throws Exception {
-    final PhysicalModel physicalModel = buildPhysicalModel(noticeJson, debug);
+    final PhysicalModel physicalModel = buildPhysicalModel(noticeJson, debug, false);
     final SdkVersion sdkVersion = physicalModel.getSdkVersion();
     final UUID noticeUuid = physicalModel.getNoticeId();
     try {
@@ -118,7 +119,8 @@ public class XmlWriteService {
     }
   }
 
-  public PhysicalModel buildPhysicalModel(final String noticeJson, final boolean debug)
+  public PhysicalModel buildPhysicalModel(final String noticeJson, final boolean debug,
+      final boolean skipIfNoValue)
       throws Exception {
     final ObjectMapper mapper = JsonUtils.getStandardJacksonObjectMapper();
     final JsonNode visualRoot = mapper.readTree(noticeJson);
@@ -126,7 +128,7 @@ public class XmlWriteService {
     final UUID noticeUuid = parseNoticeUuid(visualRoot);
     try {
       logger.info("Attempting to transform visual model into physical model as XML.");
-      return buildPhysicalModel(visualRoot, sdkVersion, noticeUuid, debug);
+      return buildPhysicalModel(visualRoot, sdkVersion, noticeUuid, debug, skipIfNoValue);
     } catch (final Exception e) {
       // Catch any error, log some useful context and rethrow.
       logger.error("Error for notice uuid={}, sdkVersion={}", noticeUuid,
@@ -148,7 +150,7 @@ public class XmlWriteService {
       final String noticeJson, final boolean debug) throws Exception {
     Validate.notBlank(noticeJson, "noticeJson is blank");
 
-    final PhysicalModel physicalModel = buildPhysicalModel(noticeJson, debug);
+    final PhysicalModel physicalModel = buildPhysicalModel(noticeJson, debug, false);
     final UUID noticeUuid = physicalModel.getNoticeId();
     final SdkVersion sdkVersion = physicalModel.getSdkVersion();
 
@@ -180,16 +182,17 @@ public class XmlWriteService {
    * @param sdkVersion The SDK version of the notice
    * @param debug Adds special debug info to the XML, useful for humans and unit tests. Not for
    *        production
+   * @param skipIfNoValue Skip items if there is no value, this can help with debugging
    * @return The physical model of the notice as the output
    */
   private PhysicalModel buildPhysicalModel(final JsonNode visualRoot, final SdkVersion sdkVersion,
-      final UUID noticeUuid, final boolean debug)
+      final UUID noticeUuid, final boolean debug, final boolean skipIfNoValue)
       throws ParserConfigurationException, SAXException, IOException {
     Validate.notNull(visualRoot);
     Validate.notNull(noticeUuid);
 
     final FieldsAndNodes sdkFieldsAndNodes = readSdkFieldsAndNodes(sdkVersion);
-    final VisualModel visualModel = new VisualModel(visualRoot);
+    final VisualModel visualModel = new VisualModel(visualRoot, skipIfNoValue);
 
     if (debug) {
       visualModel.writeDotFile(sdkFieldsAndNodes);
@@ -200,7 +203,8 @@ public class XmlWriteService {
     final Map<String, JsonNode> documentInfoByType = parseDocumentTypes(noticeTypesJson);
 
     // Go from visual model to conceptual model.
-    final ConceptualModel conceptModel = visualModel.toConceptualModel(sdkFieldsAndNodes);
+    final ConceptualModel conceptModel =
+        visualModel.toConceptualModel(sdkFieldsAndNodes);
 
     // Build physical model.
     final boolean buildFields = true;
@@ -354,4 +358,5 @@ public class XmlWriteService {
       throw new RuntimeException("IOException writing JSON to output stream.", ex);
     }
   }
+
 }

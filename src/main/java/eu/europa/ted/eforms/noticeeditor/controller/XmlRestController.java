@@ -28,10 +28,18 @@ public class XmlRestController implements AsyncConfigurer {
       produces = SdkService.MIME_TYPE_XML, consumes = SdkService.MIME_TYPE_JSON)
   public void saveNotice(final HttpServletResponse response, final @RequestBody String noticeJson)
       throws Exception {
-    // Enriches the XML for human readability but it becomes invalid.
+
+    // debug = true, Enriches the XML for human readability but it becomes invalid.
     // Also adds .dot files in target.
     final boolean debug = true;
-    xmlService.saveNoticeAsXml(Optional.of(response), noticeJson, debug);
+
+    // Skips items if there is no value set.
+    // This can help reduce the noise (empty fields ...) in the generated items.
+    // This is especially useful with an empty form when setting only some values of interest.
+    // This simplifies the XML files and the conceptual .dot file (assuming debug = true).
+    final boolean skipIfNoValue = false;
+
+    xmlService.saveNoticeAsXml(Optional.of(response), noticeJson, debug, skipIfNoValue);
   }
 
   /**

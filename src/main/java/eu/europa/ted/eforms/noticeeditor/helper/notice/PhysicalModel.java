@@ -40,9 +40,9 @@ import eu.europa.ted.eforms.sdk.SdkVersion;
  * <h1>The Physical Model (PM)</h1>
  *
  * <p>
- * Holds the XML representation. This class also provides static methods to build the physical model
- * from the conceptual model and a method to serialize it to XML text. The SDK version is taken into
- * account.
+ * Holds the XML document representation. This class also provides static methods to build the
+ * physical model from the conceptual model and a method to serialize it to XML text. The SDK
+ * version is taken into account.
  * </p>
  *
  * <p>
@@ -208,7 +208,6 @@ public class PhysicalModel {
     logger.info("XML DOM validating={}", safeDocBuilder.isValidating());
 
     final Document xmlDoc = safeDocBuilder.newDocument();
-    xmlDoc.setXmlStandalone(true);
 
     final DocumentTypeInfo docTypeInfo =
         getDocumentTypeInfo(noticeInfoBySubtype, documentInfoByType, conceptModel);
