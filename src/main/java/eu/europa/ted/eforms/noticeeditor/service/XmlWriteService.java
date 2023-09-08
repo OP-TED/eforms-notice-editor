@@ -57,10 +57,14 @@ public class XmlWriteService {
    * @param debug Adds special debug info to the XML, useful for humans and unit tests. Not for
    *        production
    * @param skipIfNoValue Ignore if there is no value
+   * @param sortXml Sort the XML elements, setting false can be used for development / debugging
+   *        purposes
    */
   public void saveNoticeAsXml(final Optional<HttpServletResponse> responseOpt,
-      final String noticeJson, final boolean debug, final boolean skipIfNoValue) throws Exception {
-    final PhysicalModel physicalModel = buildPhysicalModel(noticeJson, debug, skipIfNoValue);
+      final String noticeJson, final boolean debug, final boolean skipIfNoValue,
+      final boolean sortXml) throws Exception {
+    final PhysicalModel physicalModel =
+        buildPhysicalModel(noticeJson, debug, skipIfNoValue, sortXml);
     final UUID noticeUuid = physicalModel.getNoticeId();
     final SdkVersion sdkVersion = physicalModel.getSdkVersion();
     try {
@@ -91,7 +95,10 @@ public class XmlWriteService {
    */
   public void validateUsingXsd(final Optional<HttpServletResponse> responseOpt,
       final String noticeJson, final boolean debug) throws Exception {
-    final PhysicalModel physicalModel = buildPhysicalModel(noticeJson, debug, false);
+    final boolean skipIfNoValue = false;
+    final boolean sortXml = true;
+    final PhysicalModel physicalModel =
+        buildPhysicalModel(noticeJson, debug, skipIfNoValue, sortXml);
     final SdkVersion sdkVersion = physicalModel.getSdkVersion();
     final UUID noticeUuid = physicalModel.getNoticeId();
     try {
@@ -120,7 +127,7 @@ public class XmlWriteService {
   }
 
   public PhysicalModel buildPhysicalModel(final String noticeJson, final boolean debug,
-      final boolean skipIfNoValue)
+      final boolean skipIfNoValue, final boolean sortXml)
       throws Exception {
     final ObjectMapper mapper = JsonUtils.getStandardJacksonObjectMapper();
     final JsonNode visualRoot = mapper.readTree(noticeJson);
@@ -128,7 +135,7 @@ public class XmlWriteService {
     final UUID noticeUuid = parseNoticeUuid(visualRoot);
     try {
       logger.info("Attempting to transform visual model into physical model as XML.");
-      return buildPhysicalModel(visualRoot, sdkVersion, noticeUuid, debug, skipIfNoValue);
+      return buildPhysicalModel(visualRoot, sdkVersion, noticeUuid, debug, skipIfNoValue, sortXml);
     } catch (final Exception e) {
       // Catch any error, log some useful context and rethrow.
       logger.error("Error for notice uuid={}, sdkVersion={}", noticeUuid,
@@ -150,7 +157,10 @@ public class XmlWriteService {
       final String noticeJson, final boolean debug) throws Exception {
     Validate.notBlank(noticeJson, "noticeJson is blank");
 
-    final PhysicalModel physicalModel = buildPhysicalModel(noticeJson, debug, false);
+    final boolean skipIfNoValue = false;
+    final boolean sortXml = true;
+    final PhysicalModel physicalModel =
+        buildPhysicalModel(noticeJson, debug, skipIfNoValue, sortXml);
     final UUID noticeUuid = physicalModel.getNoticeId();
     final SdkVersion sdkVersion = physicalModel.getSdkVersion();
 
@@ -183,10 +193,12 @@ public class XmlWriteService {
    * @param debug Adds special debug info to the XML, useful for humans and unit tests. Not for
    *        production
    * @param skipIfNoValue Skip items if there is no value, this can help with debugging
+   * @param sortXml Sorts the XML if true, false otherwise. This can be used for debugging or
+   *        development purposes
    * @return The physical model of the notice as the output
    */
   private PhysicalModel buildPhysicalModel(final JsonNode visualRoot, final SdkVersion sdkVersion,
-      final UUID noticeUuid, final boolean debug, final boolean skipIfNoValue)
+      final UUID noticeUuid, final boolean debug, final boolean skipIfNoValue, boolean sortXml)
       throws ParserConfigurationException, SAXException, IOException {
     Validate.notNull(visualRoot);
     Validate.notNull(noticeUuid);
@@ -211,7 +223,7 @@ public class XmlWriteService {
     final Path sdkRootFolder = sdkService.getSdkRootFolder();
     final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptModel,
         sdkFieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields,
-        sdkRootFolder);
+        sdkRootFolder, sortXml);
 
     return physicalModel;
   }

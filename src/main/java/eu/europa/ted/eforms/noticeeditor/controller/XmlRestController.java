@@ -39,7 +39,11 @@ public class XmlRestController implements AsyncConfigurer {
     // This simplifies the XML files and the conceptual .dot file (assuming debug = true).
     final boolean skipIfNoValue = false;
 
-    xmlService.saveNoticeAsXml(Optional.of(response), noticeJson, debug, skipIfNoValue);
+    // Default should be true, use false for development or debugging purposes only.
+    // Not sorting will obviously create problems with XSD validation as it expects a given order.
+    final boolean sortXml = true;
+
+    xmlService.saveNoticeAsXml(Optional.of(response), noticeJson, debug, skipIfNoValue, sortXml);
   }
 
   /**

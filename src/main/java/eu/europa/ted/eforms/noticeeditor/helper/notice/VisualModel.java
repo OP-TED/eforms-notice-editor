@@ -239,18 +239,26 @@ public class VisualModel {
     }
 
     final JsonNode nodeMeta = fieldsAndNodes.getNodeById(currentNodeId);
-    final String nodeParentId =
+    final String cnParentIdInSdk =
         JsonUtils.getTextStrict(nodeMeta, FieldsAndNodes.NODE_PARENT_NODE_ID);
-    if (nodeParentId.equals(closestParentNode.getNodeId())) {
-      // The closestParent is the parent, just attach it and stop.
+    if (cnParentIdInSdk.equals(closestParentNode.getNodeId())) {
+      // The closestParent is the parent of cn (desired), just attach it and stop.
       // -> closestParent -> cn
-      closestParentNode.addConceptNode(cn, false);
-      logger.debug("Added intermediary concept tree node, conceptNodeId={}, fieldId={}",
-          cn.getIdUnique(), fieldId);
+      final boolean strict = false;
+      final boolean added = closestParentNode.addConceptNode(cn, strict);
+      if (added) {
+        logger.debug(
+            "Case A: true Added intermediary concept tree node, conceptNodeId={}, fieldId={}",
+            cn.getIdUnique(), fieldId);
+      } else {
+        logger.debug(
+            "Case A: false Added intermediary concept tree node, conceptNodeId={}, fieldId={}",
+            cn.getIdUnique(), fieldId);
+      }
       return;
     }
 
-    final boolean isRepeatable = fieldsAndNodes.isNodeRepeatable(nodeParentId);
+    final boolean isRepeatable = fieldsAndNodes.isNodeRepeatable(cnParentIdInSdk);
     if (isRepeatable) {
       // The SDK says the desired parentNodeId is repeatable and is missing in the
       // visual model, thus we have a serious problem!
@@ -258,7 +266,7 @@ public class VisualModel {
           String.format(
               "Problem in visual node hierarchy, unexpected missing repeatable nodeId=%s, "
                   + "contentId=%s",
-              nodeParentId, fieldId);
+              cnParentIdInSdk, fieldId);
       System.err.println(msg);
       // throw new RuntimeException(msg);
     }
@@ -267,10 +275,18 @@ public class VisualModel {
     // Try to create an intermediary node in the conceptual model.
     // -> closestParent -> cnNew -> cn
     final ConceptTreeNode cnNew =
-        new ConceptTreeNode(nodeParentId + SUFFIX_GENERATED, nodeParentId, 1, isRepeatable);
-    cnNew.addConceptNode(cn, false);
-    logger.debug("Added intermediary concept tree node, conceptNodeId={}, fieldId={}",
-        cn.getIdUnique(), fieldId);
+        new ConceptTreeNode(cnParentIdInSdk + SUFFIX_GENERATED, cnParentIdInSdk, 1, isRepeatable);
+    final boolean strict = false;
+    final boolean added = cnNew.addConceptNode(cn, strict);
+    if (added) {
+      logger.debug(
+          "Case B: true Added intermediary concept tree node, conceptNodeId={}, fieldId={}",
+          cn.getIdUnique(), fieldId);
+    } else {
+      logger.debug(
+          "Case B: false Added intermediary concept tree node, conceptNodeId={}, fieldId={}",
+          cn.getIdUnique(), fieldId);
+    }
 
     // There may be more to add, recursion:
     addIntermediaryNonRepeatingNodesRec(fieldsAndNodes, closestParentNode, cnNew, fieldId);

@@ -241,10 +241,11 @@ public abstract class SaveNoticeTest {
     //
     final boolean debug = true; // Adds field ids in the XML, making it easier to test the output.
     final boolean buildFields = true;
+    final boolean sortXml = true;
 
     final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptualModel,
         fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields,
-        sdkRootFolder);
+        sdkRootFolder, sortXml);
 
     return physicalModel;
   }

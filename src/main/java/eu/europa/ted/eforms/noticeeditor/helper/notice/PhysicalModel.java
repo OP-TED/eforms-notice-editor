@@ -90,7 +90,8 @@ public class PhysicalModel {
    * @param xpathInst Used for xpath evaluation
    * @param fieldsAndNodes Holds SDK field and node metadata
    * @param mainXsdPathOpt Path to the main XSD file to use, may be empty if the feature is not
-   *        supported in an older SDK
+   *        supported in an older SDK. This can be used later for XSD validation of the physical
+   *        model
    */
   public PhysicalModel(final Document document, final XPath xpathInst,
       final FieldsAndNodes fieldsAndNodes, final Optional<Path> mainXsdPathOpt) {
@@ -186,6 +187,7 @@ public class PhysicalModel {
    *        production
    * @param buildFields Allows to disable field building, for debugging purposes. Note that if xpath
    *        relies on the presence of fields or attribute of fields this could be problematic
+   * @param sortXml
    *
    * @return The physical model as an object containing the XML with a few extras
    */
@@ -196,7 +198,8 @@ public class PhysicalModel {
       final FieldsAndNodes fieldsAndNodes, final Map<String, JsonNode> noticeInfoBySubtype,
       final Map<String, JsonNode> documentInfoByType, final boolean debug,
       final boolean buildFields,
-      final Path sdkRootFolder)
+      final Path sdkRootFolder,
+      final boolean sortXml)
       throws ParserConfigurationException, SAXException, IOException {
 
     logger.info("Attempting to build physical model.");
@@ -234,14 +237,16 @@ public class PhysicalModel {
 
     // Reorder / sort the physical model.
     // The location of the XSDs is given in the SDK and could vary by SDK version.
-    logger.info("Attempting to sort physical model.");
     final SdkVersion sdkVersion = fieldsAndNodes.getSdkVersion();
     final Path pathToSpecificSdk = sdkRootFolder.resolve(sdkVersion.toStringWithoutPatch());
     final NoticeXmlTagSorter sorter =
         new NoticeXmlTagSorter(xpathInst, docTypeInfo, pathToSpecificSdk,
             fieldsAndNodes);
     try {
-      sorter.sortXml(xmlDocRoot);
+      if (sortXml) {
+        logger.info("Attempting to sort physical model.");
+        sorter.sortXml(xmlDocRoot);
+      }
       final Optional<Path> mainXsdPathOpt = sorter.getMainXsdPathOpt();
       if (mainXsdPathOpt.isPresent()) {
         Validate.isTrue(mainXsdPathOpt.get().toFile().exists(),
