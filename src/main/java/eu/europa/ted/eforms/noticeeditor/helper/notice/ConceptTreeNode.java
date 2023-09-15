@@ -1,7 +1,6 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.Validate;
