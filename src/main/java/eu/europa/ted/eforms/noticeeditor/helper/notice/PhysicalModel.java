@@ -2,6 +2,7 @@ package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 import static eu.europa.ted.eforms.noticeeditor.util.JsonUtils.getTextStrict;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -9,9 +10,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
@@ -30,6 +31,7 @@ import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
 import eu.europa.ted.eforms.noticeeditor.helper.VersionHelper;
 import eu.europa.ted.eforms.noticeeditor.sorting.NoticeXmlTagSorter;
 import eu.europa.ted.eforms.noticeeditor.util.EditorXmlUtils;
+import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.noticeeditor.util.XmlUtils;
 import eu.europa.ted.eforms.noticeeditor.util.XpathUtils;
@@ -187,7 +189,8 @@ public class PhysicalModel {
    *        production
    * @param buildFields Allows to disable field building, for debugging purposes. Note that if xpath
    *        relies on the presence of fields or attribute of fields this could be problematic
-   * @param sortXml
+   * @param sortXml Sorts the XML according to the SDK xsdSequenceOrder if true, else keeps the raw
+   *        order
    *
    * @return The physical model as an object containing the XML with a few extras
    */
@@ -217,7 +220,8 @@ public class PhysicalModel {
     final String rootElementType = docTypeInfo.getRootElementTagName();
 
     // Create the root element, top level element.
-    final Element xmlDocRoot = createElemXml(xmlDoc, rootElementType);
+    final StringBuilder sb = new StringBuilder(512);
+    final Element xmlDocRoot = createElemXml(xmlDoc, rootElementType, debug, "", sb);
     xmlDoc.appendChild(xmlDocRoot);
 
     // TEDEFO-1426
@@ -232,7 +236,7 @@ public class PhysicalModel {
     final ConceptTreeNode conceptualModelTreeRootNode = conceptModel.getTreeRootNode();
     final int depth = 0;
     buildPhysicalModelRec(xmlDoc, fieldsAndNodes, conceptualModelTreeRootNode, xmlDocRoot, debug,
-        buildFields, depth, xpathInst);
+        buildFields, depth, sb, xpathInst);
     logger.info("Done building unsorted physical model.");
 
     // Reorder / sort the physical model.
@@ -253,6 +257,12 @@ public class PhysicalModel {
             "File does not exist: mainXsdPath=%s",
             mainXsdPathOpt);
       }
+      if (debug) {
+        final Path path = Path.of("target", "debug");
+        Files.createDirectories(path);
+        JavaTools.writeTextFile(path.resolve("physical.txt"), sb.toString());
+      }
+
       return new PhysicalModel(xmlDoc, xpathInst, fieldsAndNodes, mainXsdPathOpt);
     } catch (final Exception e) {
       final String xmlAsText = EditorXmlUtils.asText(xmlDoc, true);
@@ -275,7 +285,7 @@ public class PhysicalModel {
   private static void buildPhysicalModelRec(final Document doc, final FieldsAndNodes fieldsAndNodes,
       final ConceptTreeNode conceptElem, final Element xmlNodeElem, final boolean debug,
       final boolean buildFields, final int depth,
-      final XPath xpathInst) {
+      final StringBuilder sb, final XPath xpathInst) {
     Validate.notNull(conceptElem, "conceptElem is null");
     Validate.notNull(xmlNodeElem, "xmlElem is null, conceptElem=%s", conceptElem.getIdUnique());
 
@@ -286,21 +296,27 @@ public class PhysicalModel {
     System.out
         .println(depthStr + " " + xmlNodeElem.getTagName() + ", id=" + conceptElem.getIdUnique());
 
+    // FIELDS.
+    // Put fields first because some nodes xpath predicates may depend on the presence of a field,
+    // like ID fields, for example something like:
+    // <cbc:ID schemeName="Lot">LOT-0001</cbc:ID>
+    if (buildFields) {
+      buildFields(doc, fieldsAndNodes, conceptElem, xmlNodeElem, debug, depth, sb);
+    }
+
     //
     // NODES.
     //
     for (final ConceptTreeNode conceptNode : conceptElem.getConceptNodes()) {
       // The nodes may contain fields ...
       buildNodesAndFields(doc, fieldsAndNodes, conceptNode, xpathInst, xmlNodeElem, debug, depth,
-          buildFields);
+          sb, buildFields);
     }
+  }
 
-    if (!buildFields) {
-      return;
-    }
-    //
-    // FIELDS.
-    //
+  private static void buildFields(final Document doc, final FieldsAndNodes fieldsAndNodes,
+      final ConceptTreeNode conceptElem, final Element xmlNodeElem, final boolean debug,
+      final int depth, final StringBuilder sb) {
     // The fields are terminal (tree leaves) and cannot contain nodes.
     // But we have to deal with element attributes that must be added to some elements.
     // We want the attribute information available once we reach the element that has them.
@@ -335,13 +351,13 @@ public class PhysicalModel {
     // attribute (sibling fields). For example one field could be some kind of category marker.
     for (final ConceptTreeField conceptField : conceptFieldsHavingAttributes) {
       buildFieldElementsAndAttributes(doc, fieldsAndNodes, conceptField, xmlNodeElem, debug,
-          depth, attributeFieldById);
+          depth, sb, attributeFieldById);
     }
 
     // Second: add fields that have no attribute.
     for (final ConceptTreeField conceptField : conceptFieldsWithoutAttributes) {
       buildFieldElementsAndAttributes(doc, fieldsAndNodes, conceptField, xmlNodeElem, debug,
-          depth, attributeFieldById);
+          depth, sb, attributeFieldById);
     }
 
     // if (debug) {
@@ -368,7 +384,7 @@ public class PhysicalModel {
    */
   private static boolean buildNodesAndFields(final Document doc,
       final FieldsAndNodes fieldsAndNodes, final ConceptTreeNode conceptNode, final XPath xpathInst,
-      final Element xmlNodeElem, final boolean debug, final int depth,
+      final Element xmlNodeElem, final boolean debug, final int depth, final StringBuilder sb,
       final boolean buildFields) {
 
     final String depthStr = StringUtils.leftPad(" ", depth * 4);
@@ -387,7 +403,7 @@ public class PhysicalModel {
 
     // xpathRelative can contain many XML elements. We must build the hierarchy.
     // Split the XPATH into parts.
-    final List<String> xpathParts = getXpathPartsArrWithoutPredicates(xpathRel);
+    final List<String> xpathParts = getXpathParts(xpathRel);
     if (debug) {
       // System out is used here because it is more readable than the logger lines.
       // This is not a replacement for logger.debug(...)
@@ -413,10 +429,6 @@ public class PhysicalModel {
         System.out.println(depthStr + " tag=" + tag);
         System.out.println(depthStr + " xmlTag=" + xmlNodeElem.getTagName());
       }
-
-      // Find existing elements in the context of the previous element.
-      final NodeList foundElements;
-
       if (previousElem.getTagName().equals(tag) && xpathExpr.equals(tag)) {
         // Sometimes the xpath absolute part already matches the previous element.
         // If there is no special xpath expression, just skip the part.
@@ -424,30 +436,42 @@ public class PhysicalModel {
         // This may be fixed by ticket TEDEFO-1466, but the problem could come back.
         continue; // Skip this tag.
       }
-      foundElements = XmlUtils.evaluateXpathAsNodeList(xpathInst, previousElem, xpathExpr, nodeId);
 
-      if (foundElements.getLength() > 0) {
-        Validate.isTrue(foundElements.getLength() == 1,
-            "Found more than one element: {}, nodeId={}, xpathExpr={}", foundElements, nodeId,
-            xpathExpr);
-
-        // Node is a w3c dom node, nothing to do with the SDK node.
-        final Node xmlNode = foundElements.item(0);
-        System.out.println(depthStr + " " + "Found elements: " + foundElements.getLength());
-        if (Node.ELEMENT_NODE == xmlNode.getNodeType()) {
-          // An existing element was found, reuse it.
-          partElem = (Element) xmlNode;
-        } else {
-          throw new RuntimeException(String.format("NodeType=%s not an Element", xmlNode));
-        }
-
-      } else {
+      if (nodeMetaRepeatable) {
         // Create an XML element for the node.
         if (debug) {
           final String msg = String.format("%s, xml=%s", nodeId, tag);
           System.out.println(depthStr + " " + msg);
         }
-        partElem = createElemXml(doc, tag);
+        partElem = createElemXml(doc, tag, debug, depthStr, sb);
+
+      } else {
+        // Find existing elements in the context of the previous element.
+        final NodeList foundElements =
+            XmlUtils.evaluateXpathAsNodeList(xpathInst, previousElem, xpathExpr, nodeId);
+        if (foundElements.getLength() > 0) {
+          Validate.isTrue(foundElements.getLength() == 1,
+              "Found more than one element: {}, nodeId={}, xpathExpr={}", foundElements, nodeId,
+              xpathExpr);
+
+          // Node is a w3c dom node, nothing to do with the SDK node.
+          final Node xmlNode = foundElements.item(0);
+          System.out.println(depthStr + " " + "Found elements: " + foundElements.getLength());
+          if (Node.ELEMENT_NODE == xmlNode.getNodeType()) {
+            // An existing element was found, reuse it.
+            partElem = (Element) xmlNode;
+          } else {
+            throw new RuntimeException(String.format("NodeType=%s not an Element", xmlNode));
+          }
+
+        } else {
+          // Create an XML element for the node.
+          if (debug) {
+            final String msg = String.format("%s, xml=%s", nodeId, tag);
+            System.out.println(depthStr + " " + msg);
+          }
+          partElem = createElemXml(doc, tag, debug, depthStr, sb);
+        }
       }
 
       previousElem.appendChild(partElem); // SIDE-EFFECT! Adding item to the tree.
@@ -473,7 +497,7 @@ public class PhysicalModel {
 
     // Build child nodes recursively.
     buildPhysicalModelRec(doc, fieldsAndNodes, conceptNode, lastNodeElem, debug, buildFields,
-        depth + 1, xpathInst);
+        depth + 1, sb, xpathInst);
 
     return nodeMetaRepeatable;
   }
@@ -491,7 +515,7 @@ public class PhysicalModel {
   private static void buildFieldElementsAndAttributes(final Document doc,
       final FieldsAndNodes fieldsAndNodes,
       final ConceptTreeField conceptField, final Element xmlNodeElem,
-      final boolean debug, final int depth,
+      final boolean debug, final int depth, final StringBuilder sb,
       final Map<String, ConceptTreeField> attributeFieldById) {
 
     final String depthStr = StringUtils.leftPad(" ", depth * 4);
@@ -532,7 +556,7 @@ public class PhysicalModel {
     Element previousElem = xmlNodeElem;
     Element partElem = null;
 
-    final List<String> parts = getXpathPartsArrWithoutPredicates(xpathRel);
+    final List<String> parts = getXpathParts(xpathRel);
     if (debug) {
       System.out.println(depthStr + " FIELD PARTS SIZE: " + parts.size());
       System.out.println(depthStr + " FIELD PARTS: " + listToString(parts));
@@ -542,7 +566,7 @@ public class PhysicalModel {
     for (final String partXpath : parts) {
 
       final PhysicalXpathPart px = buildXpathPart(partXpath);
-      // final Optional<String> schemeNameOpt = px.getSchemeNameOpt();
+      // final String xpathExpr = px.getXpathExpr();
       final String tagOrAttr = px.getTagOrAttribute();
 
       // Example:
@@ -551,8 +575,7 @@ public class PhysicalModel {
       Validate.isTrue(!isAttributePart, "An attribute should not appear here! fieldId=%s", fieldId);
 
       // Create an XML element.
-      logger.debug(depthStr + " Creating tag=" + tagOrAttr);
-      partElem = createElemXml(doc, tagOrAttr);
+      partElem = createElemXml(doc, tagOrAttr, debug, depthStr, sb);
       // partElem.setAttribute(attrTemp, attrTemp);
 
       previousElem.appendChild(partElem); // SIDE-EFFECT! Adding item to the XML doc tree.
@@ -777,9 +800,39 @@ public class PhysicalModel {
 
   /**
    * @param xpath A valid xpath string
-   * @return The xpath string split by slash but with predicates ignored.
+   * @return The xpath string split by slash, the predicates are present in the output
    */
-  private static List<String> getXpathPartsArrWithoutPredicates(final String xpath) {
+  public static List<String> getXpathParts(final String xpath) {
+    final StringBuilder sb = new StringBuilder(xpath.length());
+    int stacked = 0;
+    for (int i = 0; i < xpath.length(); i++) {
+      final char ch = xpath.charAt(i);
+      if (ch == '[') {
+        stacked++;
+      } else if (ch == ']') {
+        stacked--;
+        Validate.isTrue(stacked >= 0, "stacked is < 0 for %s", xpath);
+      }
+      // If we are inside of a predicate, replace '/' by a temporary replacement.
+      sb.append(ch == '/' && stacked > 0 ? XPATH_TEMP_REPLACEMENT : ch);
+    }
+
+    // The predicates are not split thanks to usage of the temporary replacement.
+    final String originalRegex = "/";
+    final char originalChar = '/';
+    final String[] split = sb.toString().split(originalRegex);
+
+    // Inside each part, put back the original character.
+    return Arrays.stream(split)
+        .map(item -> item.replace(XPATH_TEMP_REPLACEMENT, originalChar))
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * @param xpath A valid xpath string
+   * @return The xpath string split by slash, the predicates are removed before the split
+   */
+  public static List<String> getXpathPartsWithoutPredicates(final String xpath) {
     final StringBuilder sb = new StringBuilder(xpath.length());
 
     int stacked = 0;
@@ -796,7 +849,9 @@ public class PhysicalModel {
         Validate.isTrue(stacked >= 0, "stacked is < 0 for %s", xpath);
       }
       // If we are inside of a predicate, replace '/' by a temporary replacement.
-      sb.append(ch == '/' && stacked > 0 ? XPATH_TEMP_REPLACEMENT : ch);
+      if (stacked == 0 && ch != ']') {
+        sb.append(ch);
+      }
     }
 
     // The predicates are not split thanks to usage of the temporary replacement.
@@ -826,9 +881,15 @@ public class PhysicalModel {
       tagName = tagName.substring(0, tagName.indexOf('['));
     }
 
-    Validate.notBlank(xpathPart, "xpathExpr is blank for tag=%s, partParam=%s", tagName,
-        xpathPart);
-    return new PhysicalXpathPart(xpathPart, tagName);
+    if (tagName.indexOf(XPATH_TEMP_REPLACEMENT) >= 0) {
+      tagName = tagName.substring(0, tagName.indexOf(XPATH_TEMP_REPLACEMENT));
+    }
+
+    // For the xpath expression keep the original param, only do the replacement.
+    final String xpathExpr = xpathPart.replace(XPATH_TEMP_REPLACEMENT, '/');
+    Validate.notBlank(xpathExpr, "xpathExpr is blank for tag=%s, partParam=%s", tagName,
+        xpathExpr);
+    return new PhysicalXpathPart(xpathExpr, tagName);
   }
 
   /**
@@ -838,13 +899,18 @@ public class PhysicalModel {
    *
    * @return A W3C DOM element (note that it is not attached to the DOM yet)
    */
-  private static final Element createElemXml(final Document doc, final String tagName) {
+  private static final Element createElemXml(final Document doc, final String tagName,
+      final boolean debug, final String depthStr, final StringBuilder sb) {
     // This removes the xmlns="" that Saxon adds.
     try {
       if (tagName.startsWith("@")) {
         throw new RuntimeException(
             String.format("Expecting a tag but this is an attribute: %s", tagName));
       }
+      if (debug) {
+        sb.append(depthStr).append(" creating: ").append(tagName).append('\n');
+      }
+      logger.debug("Creating element: {}", tagName);
       return doc.createElementNS("", tagName);
     } catch (org.w3c.dom.DOMException ex) {
       logger.error("Problem creating element with tagName={}", tagName);

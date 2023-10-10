@@ -230,16 +230,19 @@ public abstract class SaveNoticeTest {
 
     final Map<String, JsonNode> documentInfoByType = DummySdk.buildDocInfoByType(sdkVersion);
 
+    // debug: Adds field ids in the XML, making it easier to test the output.
+    // It may also add several additional text files in the output to help debugging.
+    final boolean debug = true;
+
     //
     // BUILD CONCEPTUAL MODEL.
     //
     final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldById, nodeById, sdkVersion);
-    final ConceptualModel conceptualModel = visModel.toConceptualModel(fieldsAndNodes);
+    final ConceptualModel conceptualModel = visModel.toConceptualModel(fieldsAndNodes, debug);
 
     //
     // BUILD PHYSICAL MODEL.
     //
-    final boolean debug = true; // Adds field ids in the XML, making it easier to test the output.
     final boolean buildFields = true;
     final boolean sortXml = true;
 

@@ -36,16 +36,17 @@ public class ConceptTreeNode extends ConceptTreeItem {
 
   /**
    * @param item The item to add.
+   * @param sb
    */
   @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = "ITC_INHERITANCE_TYPE_CHECKING",
       justification = "Spotbugs is confused, the check is done on the passed item, not the class.")
-  public final boolean addConceptItem(final ConceptTreeItem item) {
+  public final boolean addConceptItem(final ConceptTreeItem item, final StringBuilder sb) {
     if (item instanceof ConceptTreeNode) {
       final boolean strict = true;
-      return addConceptNode((ConceptTreeNode) item, strict);
+      return addConceptNode((ConceptTreeNode) item, strict, sb);
     }
     if (item instanceof ConceptTreeField) {
-      return addConceptField((ConceptTreeField) item);
+      return addConceptField((ConceptTreeField) item, sb);
     }
     throw new RuntimeException(
         String.format("Unexpected item type for concept item=%s", item.getIdUnique()));
@@ -76,20 +77,24 @@ public class ConceptTreeNode extends ConceptTreeItem {
     return idInSdkFieldsJson;
   }
 
-  public final boolean addConceptField(final ConceptTreeField conceptField) {
+  public final boolean addConceptField(final ConceptTreeField conceptField,
+      final StringBuilder sb) {
     Validate.notNull(conceptField);
     conceptFields.add(conceptField);
     logger.debug("Added concept uniqueId={} to uniqueId={}", conceptField.getFieldId(),
         this.getIdUnique(),
         conceptField.getIdUnique());
+    sb.append("Added concept field: ").append(conceptField.getIdUnique()).append('\n');
     return true;
   }
 
   /**
    * @param cn The concept node to add
    * @param strictAdd When true, if the item is already contained it will fail, set to true
+   * @param sb A string builder passed for debugging purposes
    */
-  public final boolean addConceptNode(final ConceptTreeNode cn, final boolean strictAdd) {
+  public final boolean addConceptNode(final ConceptTreeNode cn, final boolean strictAdd,
+      final StringBuilder sb) {
     Validate.notNull(cn);
     final String nodeIdToAdd = cn.getNodeId();
     final String nodeIdSelf = getNodeId();
@@ -102,6 +107,7 @@ public class ConceptTreeNode extends ConceptTreeItem {
     if (cn.isRepeatable()) {
       // It is repeatable, meaning it can exist multiple times, just add it.
       conceptNodes.add(cn);
+      sb.append("Added concept node (repeatable): ").append(cn.getIdUnique()).append('\n');
       return true;
     }
 
@@ -119,6 +125,7 @@ public class ConceptTreeNode extends ConceptTreeItem {
             cn.getIdUnique(), cn.getNodeId(), this.getIdUnique()));
       }
       conceptNodes.add(cn);
+      sb.append("Added concept node (not repeatable): ").append(cn.getIdUnique()).append('\n');
       return true;
     }
 
@@ -151,9 +158,9 @@ public class ConceptTreeNode extends ConceptTreeItem {
         // X could be already contained, but some child item like Y may not be there yet.
         final ConceptTreeNode existingCn = conceptNodes.get(indexOfCn);
         // We know that the branches uni-dimensional (flat), so a simple for loop with return should
-        // work. At least for the known case this works.
+        // work. At least for the known cases this works.
         for (ConceptTreeNode cn2 : cn.getConceptNodes()) {
-          if (existingCn.addConceptNode(cn2, strictAdd)) {
+          if (existingCn.addConceptNode(cn2, strictAdd, sb)) {
             return true;
           }
         }
@@ -161,10 +168,9 @@ public class ConceptTreeNode extends ConceptTreeItem {
     } else {
       // Not contained yet, add it.
       conceptNodes.add(cn);
+      sb.append("Added concept node: ").append(cn.getIdUnique()).append('\n');
     }
     return true;
-    // }
-    // return false;
   }
 
   public List<ConceptTreeField> getConceptFields() {

@@ -29,6 +29,8 @@ public class XmlRestController implements AsyncConfigurer {
   public void saveNotice(final HttpServletResponse response, final @RequestBody String noticeJson)
       throws Exception {
 
+    // Booleans that control the XML generation can be set here.
+
     // debug = true, Enriches the XML for human readability but it becomes invalid.
     // Also adds .dot files in target.
     final boolean debug = true;

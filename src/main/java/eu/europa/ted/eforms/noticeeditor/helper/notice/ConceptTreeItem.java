@@ -38,6 +38,10 @@ public abstract class ConceptTreeItem {
     return idUnique;
   }
 
+  public String getIdInSdkFieldsJson() {
+    return idInSdkFieldsJson;
+  }
+
   public int getCounter() {
     return counter;
   }

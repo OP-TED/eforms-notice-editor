@@ -85,11 +85,14 @@ public class ConceptualModel {
   public final String getNoticeSubType() {
     // HARDCODED LOGIC.
     final List<ConceptTreeNode> conceptNodes = treeRootNode.getConceptNodes();
+    Validate.notEmpty(conceptNodes, "conceptNodes list is empty!");
+
     final Optional<ConceptTreeNode> rootExtOpt = conceptNodes.stream()
         .filter(item -> ND_ROOT_EXTENSION.equals(item.getNodeId())).findFirst();
     if (rootExtOpt.isEmpty()) {
       throw new RuntimeException(String.format("Conceptual model: Expecting to find root extension "
-          + "in conceptual model! Missing important nodeId=%s", ND_ROOT_EXTENSION));
+          + "in conceptual model! Missing important nodeId=%s, conceptNodes=%s", ND_ROOT_EXTENSION,
+          conceptNodes));
     }
 
     final ConceptTreeNode rootExtension = rootExtOpt.get();

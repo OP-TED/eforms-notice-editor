@@ -198,7 +198,8 @@ public class XmlWriteService {
    * @return The physical model of the notice as the output
    */
   private PhysicalModel buildPhysicalModel(final JsonNode visualRoot, final SdkVersion sdkVersion,
-      final UUID noticeUuid, final boolean debug, final boolean skipIfNoValue, boolean sortXml)
+      final UUID noticeUuid, final boolean debug, final boolean skipIfNoValue,
+      final boolean sortXml)
       throws ParserConfigurationException, SAXException, IOException {
     Validate.notNull(visualRoot);
     Validate.notNull(noticeUuid);
@@ -216,7 +217,7 @@ public class XmlWriteService {
 
     // Go from visual model to conceptual model.
     final ConceptualModel conceptModel =
-        visualModel.toConceptualModel(sdkFieldsAndNodes);
+        visualModel.toConceptualModel(sdkFieldsAndNodes, debug);
 
     // Build physical model.
     final boolean buildFields = true;
