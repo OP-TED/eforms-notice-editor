@@ -149,16 +149,16 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
       node.put(KEY_NODE_PARENT_ID, ND_ROOT);
       node.put(KEY_XPATH_ABS, "/*/a");
       node.put(KEY_XPATH_REL, "a");
-      SaveNoticeTest.fieldPutRepeatable(node, false);
+      SaveNoticeTest.nodePutRepeatable(node, true);
     }
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_B, node);
       node.put(KEY_NODE_ID, ND_B);
-      node.put(KEY_NODE_PARENT_ID, ND_ROOT);
+      node.put(KEY_NODE_PARENT_ID, ND_A);
       node.put(KEY_XPATH_ABS, "/*/a/b");
       node.put(KEY_XPATH_REL, "b");
-      SaveNoticeTest.fieldPutRepeatable(node, false);
+      SaveNoticeTest.nodePutRepeatable(node, true);
     }
     return Collections.unmodifiableMap(nodeById);
   }

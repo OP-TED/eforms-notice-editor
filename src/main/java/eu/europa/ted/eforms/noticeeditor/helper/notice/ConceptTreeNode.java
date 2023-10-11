@@ -81,7 +81,7 @@ public class ConceptTreeNode extends ConceptTreeItem {
       final StringBuilder sb) {
     Validate.notNull(conceptField);
     conceptFields.add(conceptField);
-    logger.debug("Added concept uniqueId={} to uniqueId={}", conceptField.getFieldId(),
+    logger.debug("Added concept field uniqueId={} to fieldId={}", conceptField.getFieldId(),
         this.getIdUnique(),
         conceptField.getIdUnique());
     sb.append("Added concept field: ").append(conceptField.getIdUnique()).append('\n');
@@ -107,7 +107,10 @@ public class ConceptTreeNode extends ConceptTreeItem {
     if (cn.isRepeatable()) {
       // It is repeatable, meaning it can exist multiple times, just add it.
       conceptNodes.add(cn);
-      sb.append("Added concept node (repeatable): ").append(cn.getIdUnique()).append('\n');
+      sb.append("Added concept node (repeatable): ").append(cn.getIdUnique()).append(" to ")
+          .append(this.getIdUnique()).append('\n');
+      logger.debug("Added concept node uniqueId={} to nodeId={}", cn.getIdUnique(),
+          this.getNodeId());
       return true;
     }
 
@@ -125,7 +128,10 @@ public class ConceptTreeNode extends ConceptTreeItem {
             cn.getIdUnique(), cn.getNodeId(), this.getIdUnique()));
       }
       conceptNodes.add(cn);
-      sb.append("Added concept node (not repeatable): ").append(cn.getIdUnique()).append('\n');
+      sb.append("Added concept node (not repeatable): ").append(cn.getIdUnique()).append(" to ")
+          .append(this.getIdUnique()).append('\n');
+      logger.debug("Added concept node uniqueId={} to nodeId={}", cn.getIdUnique(),
+          this.getNodeId());
       return true;
     }
 
@@ -159,8 +165,9 @@ public class ConceptTreeNode extends ConceptTreeItem {
         final ConceptTreeNode existingCn = conceptNodes.get(indexOfCn);
         // We know that the branches uni-dimensional (flat), so a simple for loop with return should
         // work. At least for the known cases this works.
-        for (ConceptTreeNode cn2 : cn.getConceptNodes()) {
+        for (final ConceptTreeNode cn2 : cn.getConceptNodes()) {
           if (existingCn.addConceptNode(cn2, strictAdd, sb)) {
+            logger.debug("Fusion for uniqueId={}", cn2.getIdUnique());
             return true;
           }
         }
@@ -168,7 +175,11 @@ public class ConceptTreeNode extends ConceptTreeItem {
     } else {
       // Not contained yet, add it.
       conceptNodes.add(cn);
-      sb.append("Added concept node: ").append(cn.getIdUnique()).append('\n');
+      sb.append("Added concept node (not repeatable)(bis): ").append(cn.getIdUnique())
+          .append(" to ")
+          .append(this.getIdUnique()).append('\n');
+      logger.debug("Added concept node uniqueId={} to nodeId={}", cn.getIdUnique(),
+          this.getNodeId());
     }
     return true;
   }

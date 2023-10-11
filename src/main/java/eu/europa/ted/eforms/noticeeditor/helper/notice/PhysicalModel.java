@@ -221,7 +221,7 @@ public class PhysicalModel {
 
     // Create the root element, top level element.
     final StringBuilder sb = new StringBuilder(512);
-    final Element xmlDocRoot = createElemXml(xmlDoc, rootElementType, debug, "", sb);
+    final Element xmlDocRoot = createElemXml(xmlDoc, rootElementType, debug, "", sb, "node");
     xmlDoc.appendChild(xmlDocRoot);
 
     // TEDEFO-1426
@@ -229,7 +229,10 @@ public class PhysicalModel {
     final XPath xpathInst = setXmlNamespaces(docTypeInfo, xmlDocRoot);
 
     if (debug) {
+      // Write dot file about conceptual model.
       conceptModel.writeDotFile(fieldsAndNodes);
+      JavaTools.writeTextFile(Path.of("target", "debug", "conceptual-model.json"),
+          conceptModel.toString());
     }
 
     // Recursion: start with the concept root.
@@ -260,7 +263,7 @@ public class PhysicalModel {
       if (debug) {
         final Path path = Path.of("target", "debug");
         Files.createDirectories(path);
-        JavaTools.writeTextFile(path.resolve("physical.txt"), sb.toString());
+        JavaTools.writeTextFile(path.resolve("physical-model.txt"), sb.toString());
       }
 
       return new PhysicalModel(xmlDoc, xpathInst, fieldsAndNodes, mainXsdPathOpt);
@@ -409,6 +412,8 @@ public class PhysicalModel {
       // This is not a replacement for logger.debug(...)
       System.out.println(depthStr + " NODE PARTS SIZE: " + xpathParts.size());
       System.out.println(depthStr + " NODE PARTS: " + listToString(xpathParts));
+
+      sb.append(depthStr).append("nodeId=").append(nodeId).append('\n');
     }
 
     // In SDK 1.9:
@@ -434,6 +439,7 @@ public class PhysicalModel {
         // If there is no special xpath expression, just skip the part.
         // This avoids nesting of the same .../tag/tag/...
         // This may be fixed by ticket TEDEFO-1466, but the problem could come back.
+        logger.warn("Same tag, skipping tag: {}", tag);
         continue; // Skip this tag.
       }
 
@@ -443,7 +449,7 @@ public class PhysicalModel {
           final String msg = String.format("%s, xml=%s", nodeId, tag);
           System.out.println(depthStr + " " + msg);
         }
-        partElem = createElemXml(doc, tag, debug, depthStr, sb);
+        partElem = createElemXml(doc, tag, debug, depthStr, sb, "node");
 
       } else {
         // Find existing elements in the context of the previous element.
@@ -470,7 +476,7 @@ public class PhysicalModel {
             final String msg = String.format("%s, xml=%s", nodeId, tag);
             System.out.println(depthStr + " " + msg);
           }
-          partElem = createElemXml(doc, tag, debug, depthStr, sb);
+          partElem = createElemXml(doc, tag, debug, depthStr, sb, "node");
         }
       }
 
@@ -526,6 +532,8 @@ public class PhysicalModel {
     if (debug) {
       System.out.println("");
       System.out.println(depthStr + " fieldId=" + fieldId);
+
+      sb.append(depthStr).append("fieldId=").append(fieldId).append('\n');
     }
 
     // Get the field meta-data from the SDK.
@@ -575,7 +583,7 @@ public class PhysicalModel {
       Validate.isTrue(!isAttributePart, "An attribute should not appear here! fieldId=%s", fieldId);
 
       // Create an XML element.
-      partElem = createElemXml(doc, tagOrAttr, debug, depthStr, sb);
+      partElem = createElemXml(doc, tagOrAttr, debug, depthStr, sb, "field");
       // partElem.setAttribute(attrTemp, attrTemp);
 
       previousElem.appendChild(partElem); // SIDE-EFFECT! Adding item to the XML doc tree.
@@ -896,11 +904,12 @@ public class PhysicalModel {
    * Builds a W3C DOM element.
    *
    * @param tagName The XML element tag name
+   * @param type
    *
    * @return A W3C DOM element (note that it is not attached to the DOM yet)
    */
   private static final Element createElemXml(final Document doc, final String tagName,
-      final boolean debug, final String depthStr, final StringBuilder sb) {
+      final boolean debug, final String depthStr, final StringBuilder sb, final String type) {
     // This removes the xmlns="" that Saxon adds.
     try {
       if (tagName.startsWith("@")) {
@@ -908,9 +917,12 @@ public class PhysicalModel {
             String.format("Expecting a tag but this is an attribute: %s", tagName));
       }
       if (debug) {
-        sb.append(depthStr).append(" creating: ").append(tagName).append('\n');
+        sb.append(depthStr).append(" creating: ")
+            .append(tagName)
+            .append(" with type=").append(type)
+            .append('\n');
       }
-      logger.debug("Creating element: {}", tagName);
+      logger.debug("Creating element: {} for {}", tagName, type);
       return doc.createElementNS("", tagName);
     } catch (org.w3c.dom.DOMException ex) {
       logger.error("Problem creating element with tagName={}", tagName);

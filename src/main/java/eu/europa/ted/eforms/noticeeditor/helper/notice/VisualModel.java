@@ -91,7 +91,8 @@ public class VisualModel {
   @Override
   public String toString() {
     try {
-      return JsonUtils.getStandardJacksonObjectMapper().writeValueAsString(visRoot);
+      return JsonUtils.getStandardJacksonObjectMapper().writerWithDefaultPrettyPrinter()
+          .writeValueAsString(visRoot);
     } catch (JsonProcessingException ex) {
       throw new RuntimeException(ex);
     }
@@ -222,7 +223,17 @@ public class VisualModel {
       final Path path = Path.of("target", "debug");
       try {
         Files.createDirectories(path);
-        JavaTools.writeTextFile(path.resolve("conceptual.txt"), sb.toString());
+        JavaTools.writeTextFile(path.resolve("visual-model.json"), this.toString());
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    if (debug) {
+      final Path path = Path.of("target", "debug");
+      try {
+        Files.createDirectories(path);
+        JavaTools.writeTextFile(path.resolve("conceptual-model.txt"), sb.toString());
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
@@ -290,17 +301,22 @@ public class VisualModel {
       final String msg =
           String.format(
               "Problem in visual node hierarchy, unexpected missing repeatable nodeId=%s, "
-                  + "contentId=%s",
+                  + "visContentId=%s",
               cnParentIdInSdk, fieldOrNodeId);
       System.err.println(msg);
       // throw new RuntimeException(msg);
     }
 
+    final String uniqueId = cnParentIdInSdk + SUFFIX_GENERATED;
+    sb.append("Adding intermediary node(s)")
+        .append(uniqueId)
+        .append(" for ").append(currentNodeId)
+        .append('\n');
     // The parent is not the closest parent we know about and it is not repeatable.
     // Try to create an intermediary node in the conceptual model.
     // -> closestParent -> cnNew -> cn
     final ConceptTreeNode cnNew =
-        new ConceptTreeNode(cnParentIdInSdk + SUFFIX_GENERATED, cnParentIdInSdk, 1, isRepeatable);
+        new ConceptTreeNode(uniqueId, cnParentIdInSdk, 1, isRepeatable);
     final boolean strict = false;
     final boolean added = cnNew.addConceptNode(cn, strict, sb);
     if (added) {
@@ -330,7 +346,8 @@ public class VisualModel {
   private static void parseVisualModelRec(final FieldsAndNodes fieldsAndNodes,
       final JsonNode jsonItem, final ConceptTreeNode closestParentNode,
       final boolean skipIfNoValue, final StringBuilder sb) {
-    Validate.notNull(jsonItem, "jsonNode is null, jsonNode=%s", jsonItem);
+    Validate.notNull(closestParentNode, "closestParentNode is null, jsonItem=%s", jsonItem);
+    Validate.notNull(jsonItem, "jsonNode is null, closestParentNode=%s", closestParentNode);
 
     final String visContentId = getContentId(jsonItem);
     final String visualType = getContentType(jsonItem);
@@ -394,6 +411,7 @@ public class VisualModel {
       final String sdkId, final String sdkParentNodeId, final StringBuilder sb) {
     if (sdkParentNodeId == null) {
       // Special case for the root.
+      sb.append("CASE OF ROOT").append('\n');
       closestParentNode.addConceptItem(conceptItem, sb);
       return;
     }
@@ -402,8 +420,7 @@ public class VisualModel {
       final boolean isRepeatable = fieldsAndNodes.isNodeRepeatable(sdkParentNodeId);
       if (isRepeatable) {
         // The SDK says the desired parentNodeId is repeatable and is missing in the visual
-        // model,
-        // thus we have a serious problem!
+        // model, thus we have a serious problem!
         final String msg = String.format(
             "Problem in visual node hierarchy, fieldId=%s is not included"
                 + " in the correct parent. Expecting nodeId=%s but found nodeId=%s",
@@ -420,11 +437,15 @@ public class VisualModel {
       // ND-Root -> ... -> ... -> otherConceptualNode -> The field (leaf)
       final Optional<ConceptTreeNode> cnOpt =
           closestParentNode.findFirstByConceptNodeId(sdkParentNodeId);
-      final ConceptTreeNode cn;
+      ConceptTreeNode cn;
       if (cnOpt.isPresent()) {
         // Reuse existing conceptual node.
         cn = cnOpt.get();
       } else {
+        sb.append("Concept node not sdkParentNodeId=")
+            .append(sdkParentNodeId).append(" not present in closestParentNode=")
+            .append(closestParentNode)
+            .append('\n');
         // Create and add the missing conceptual node.
         // Generate missing conceptual node.
         // IDEA what if more than one intermediary nodes are missing? For now we will assume
@@ -432,12 +453,14 @@ public class VisualModel {
         // this is not the case.
         // ND-Root -> ... -> closestParentNode -> newConceptNode -> ... -> field
         // By convention we will add a suffix to these generated concept nodes.
-        cn = new ConceptTreeNode(sdkParentNodeId + SUFFIX_GENERATED, sdkParentNodeId, 1,
+        final String idUnique = sdkParentNodeId + SUFFIX_GENERATED;
+        cn = new ConceptTreeNode(idUnique, sdkParentNodeId, 1,
             isRepeatable);
 
         // See unit test about filling to fully understand this.
         // closestParentNode.addConceptNode(cn); // NO: there may be more items to fill in.
-        addIntermediaryNonRepeatingNodesRec(fieldsAndNodes, closestParentNode, cn, sdkId, sb);
+        cn = addIntermediaryNonRepeatingNodesRec(fieldsAndNodes, closestParentNode, cn, sdkId,
+            sb);
       }
 
       // Always add the current item.
@@ -489,7 +512,7 @@ public class VisualModel {
     // We could call this a purely visual group.
     //
     if (visualNodeIdOpt.isEmpty()) {
-      sb.append("No visual node id").append('\n');
+      sb.append("Visual node id: none").append('\n');
       handleGroupWithoutNodeId(fieldsAndNodes, visualItem, closestParentNode, skipIfNoValue, sb);
     } else {
       sb.append("Visual node id: ").append(visualNodeIdOpt.get()).append('\n');
@@ -509,13 +532,12 @@ public class VisualModel {
   }
 
   private static void handleGroupWithNodeId(final FieldsAndNodes fieldsAndNodes,
-      final JsonNode visualItem, final ConceptTreeNode closestParentNode, final String contentId,
+      final JsonNode visualItem, final ConceptTreeNode closestParentNode, final String visContentId,
       final String sdkNodeId, final boolean skipIfNoValue, final StringBuilder sb) {
-    Validate.notBlank(sdkNodeId, "sdkNodeId is blank for contentId=%s", contentId);
+    Validate.notBlank(sdkNodeId, "sdkNodeId is blank for visContentId=%s", visContentId);
 
     final boolean isRepeatable = fieldsAndNodes.isNodeRepeatable(sdkNodeId);
-
-    final ConceptTreeNode conceptNodeNew = new ConceptTreeNode(contentId, sdkNodeId,
+    final ConceptTreeNode conceptNodeNew = new ConceptTreeNode(visContentId, sdkNodeId,
         visualItem.get(VIS_CONTENT_COUNT).asInt(-1), isRepeatable);
 
     final JsonNode sdkNodeMeta = fieldsAndNodes.getNodeById(sdkNodeId);
@@ -536,11 +558,12 @@ public class VisualModel {
     //
     // The children array could be null depending on how the JSON is serialized (not present in the
     // JSON at all means null, or empty []).
-    final JsonNode maybeNull = VisualModel.getChildren(visualItem);
-    if (maybeNull == null) {
+    final JsonNode childrenMaybeNull = VisualModel.getChildren(visualItem);
+    if (childrenMaybeNull == null) {
+      sb.append("Found no visual child items for ").append(visContentId).append('\n');
       return; // Cannot return anything to append to.
     }
-    final ArrayNode visChildren = (ArrayNode) maybeNull;
+    final ArrayNode visChildren = (ArrayNode) childrenMaybeNull;
     for (final JsonNode visChild : visChildren) {
       parseVisualModelRec(fieldsAndNodes, visChild, conceptNodeNew, skipIfNoValue, sb);
     }
@@ -678,7 +701,7 @@ public class VisualModel {
       // Visualizing it can help understand how it works or find problems.
       final boolean includeFields = true;
       final String dotText = this.toDot(fieldsAndNodes, includeFields);
-      final Path pathToFolder = Path.of("target/dot/");
+      final Path pathToFolder = Path.of("target", "dot");
       Files.createDirectories(pathToFolder);
       final Path pathToFile = pathToFolder.resolve(this.getNoticeSubType() + "-visual.dot");
       JavaTools.writeTextFile(pathToFile, dotText);

@@ -6,9 +6,11 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.Validate;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import eu.europa.ted.eforms.noticeeditor.util.GraphvizDotTool;
 import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
+import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
@@ -108,7 +110,13 @@ public class ConceptualModel {
 
   @Override
   public String toString() {
-    return "ConceptualModel [rootNode=" + treeRootNode + "]";
+    try {
+      return JsonUtils.getStandardJacksonObjectMapper()
+          .writerWithDefaultPrettyPrinter()
+          .writeValueAsString(this.treeRootNode);
+    } catch (JsonProcessingException ex) {
+      throw new RuntimeException(ex);
+    }
   }
 
   /**
@@ -141,7 +149,7 @@ public class ConceptualModel {
       // Visualizing it can help understand how it works or find problems.
       final boolean includeFields = true;
       final String dotText = this.toDot(fieldsAndNodes, includeFields);
-      final Path pathToFolder = Path.of("target/dot/");
+      final Path pathToFolder = Path.of("target", "dot");
       Files.createDirectories(pathToFolder);
       final Path pathToFile = pathToFolder.resolve(this.getNoticeSubType() + "-concept.dot");
       JavaTools.writeTextFile(pathToFile, dotText);
