@@ -301,7 +301,7 @@ public class VisualModel {
       final String msg =
           String.format(
               "Problem in visual node hierarchy, unexpected missing repeatable nodeId=%s, "
-                  + "visContentId=%s",
+                  + "sdkId=%s",
               cnParentIdInSdk, fieldOrNodeId);
       System.err.println(msg);
       // throw new RuntimeException(msg);
@@ -322,11 +322,11 @@ public class VisualModel {
     final boolean added = cnNew.addConceptNode(cn, strict, sb);
     if (added) {
       logger.debug(
-          "Case B: true Added intermediary concept tree node, conceptNodeId={}, fieldId={}",
+          "Case B: true Added intermediary concept tree node, conceptNodeId={}, sdkId={}",
           cn.getIdUnique(), fieldOrNodeId);
     } else {
       logger.debug(
-          "Case B: false Added intermediary concept tree node, conceptNodeId={}, fieldId={}",
+          "Case B: false Added intermediary concept tree node, conceptNodeId={}, sdkId={}",
           cn.getIdUnique(), fieldOrNodeId);
     }
 
