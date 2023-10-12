@@ -181,4 +181,18 @@ public class XmlUtils {
     }
     return sb.toString();
   }
+
+  /**
+   * Removes XML comments from the document using xpath.
+   */
+  public static void removeXmlComments(final XPath xpath, final Document doc) {
+    final Element element = doc.getDocumentElement();
+    final String xpathFindComments = "//comment()";
+    final NodeList comments =
+        evaluateXpathAsNodeList(xpath, element, xpathFindComments, xpathFindComments);
+    for (int i = 0; i < comments.getLength(); i++) {
+      final Node comment = comments.item(i);
+      comment.getParentNode().removeChild(comment);
+    }
+  }
 }

@@ -13,15 +13,14 @@ import org.xml.sax.SAXException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import eu.europa.ted.eforms.noticeeditor.helper.VersionHelper;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
-import eu.europa.ted.eforms.sdk.SdkConstants;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
  * Abstract, common code for testing the save notice to XML feature.
  */
 public abstract class SaveNoticeTest {
-  // IDEA: reuse some common constants even with notice saver.
 
   //
   // UI FORM RELATED.
@@ -51,10 +50,12 @@ public abstract class SaveNoticeTest {
 
   static final String KEY_PARENT_NODE_ID = "parentNodeId";
   static final String KEY_NODE_PARENT_ID = "parentId";
+  static final String KEY_NODE_ID = "id";
 
   static final String KEY_XPATH_REL = "xpathRelative";
   static final String KEY_XPATH_ABS = "xpathAbsolute";
 
+  static final String KEY_FIELD_ID = "id";
   static final String KEY_FIELD_REPEATABLE = "repeatable";
   static final String KEY_NODE_REPEATABLE = "repeatable";
   static final String KEY_VALUE = FieldsAndNodes.VALUE;
@@ -64,7 +65,6 @@ public abstract class SaveNoticeTest {
   static final String TYPE_URL = "url";
   static final String TYPE_CODE = "code";
   static final String TYPE_ID = "id";
-
 
   static final void contains(final String xml, final String text) {
     assertTrue(xml.contains(text), text);
@@ -97,19 +97,21 @@ public abstract class SaveNoticeTest {
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_ROOT, node);
+      node.put(KEY_NODE_ID, ND_ROOT);
       node.put(KEY_XPATH_ABS, "/*");
       node.put(KEY_XPATH_REL, "/*");
-      SaveNoticeTest.fieldPutRepeatable(node, false);
+      SaveNoticeTest.nodePutRepeatable(node, false);
     }
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_ROOT_EXTENSION, node);
+      node.put(KEY_NODE_ID, ND_ROOT_EXTENSION);
       node.put(KEY_NODE_PARENT_ID, ND_ROOT);
       node.put(KEY_XPATH_ABS,
           "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension");
       node.put(KEY_XPATH_REL,
           "ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension");
-      SaveNoticeTest.fieldPutRepeatable(node, false);
+      SaveNoticeTest.nodePutRepeatable(node, false);
     }
     return nodeById;
   }
@@ -126,6 +128,7 @@ public abstract class SaveNoticeTest {
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(ConceptualModel.FIELD_ID_SDK_VERSION, field);
+      field.put(KEY_FIELD_ID, ConceptualModel.FIELD_ID_SDK_VERSION);
       field.put(KEY_PARENT_NODE_ID, ND_ROOT);
       field.put(KEY_XPATH_ABS, "/*/cbc:CustomizationID");
       field.put(KEY_XPATH_REL, "cbc:CustomizationID");
@@ -135,6 +138,7 @@ public abstract class SaveNoticeTest {
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE, field);
+      field.put(KEY_FIELD_ID, ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE);
       field.put(KEY_PARENT_NODE_ID, ND_ROOT_EXTENSION);
       field.put(KEY_XPATH_ABS,
           "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension/efac:NoticeSubType/cbc:SubTypeCode");
@@ -146,6 +150,7 @@ public abstract class SaveNoticeTest {
     {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(ConceptualModel.FIELD_NOTICE_ID, field);
+      field.put(KEY_FIELD_ID, ConceptualModel.FIELD_NOTICE_ID);
       field.put(KEY_PARENT_NODE_ID, ND_ROOT);
       field.put(KEY_XPATH_ABS, "/*/cbc:ID[@schemeName='notice-id']");
       field.put(KEY_XPATH_REL, "cbc:ID[@schemeName='notice-id']");
@@ -158,7 +163,7 @@ public abstract class SaveNoticeTest {
   @SuppressWarnings("static-method")
   protected VisualModel setupVisualModel(final ObjectMapper mapper, final SdkVersion sdkVersion,
       final String noticeSubTypeForTest) {
-    final String prefixedSdkVersion = FieldsAndNodes.EFORMS_SDK_PREFIX + sdkVersion.toString();
+    final String prefixedSdkVersion = VersionHelper.prefixSdkVersionWithoutPatch(sdkVersion);
 
     // Setup root of the visual model.
     final ObjectNode visRoot = mapper.createObjectNode();
@@ -167,7 +172,8 @@ public abstract class SaveNoticeTest {
   }
 
   protected PhysicalModel setupPhysicalModel(final ObjectMapper mapper, final String noticeSubType,
-      final String documentType, final VisualModel visModel, final SdkVersion sdkVersion)
+      final String documentType, final VisualModel visModel, final Path sdkRootFolder,
+      final SdkVersion sdkVersion)
       throws ParserConfigurationException, IOException, SAXException {
 
     //
@@ -214,9 +220,9 @@ public abstract class SaveNoticeTest {
     final boolean debug = true; // Adds field ids in the XML, making it easier to test the output.
     final boolean buildFields = true;
 
-    final Path sdkRootFolder = SdkConstants.DEFAULT_SDK_ROOT;
     final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptualModel,
-        fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields, sdkRootFolder);
+        fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields,
+        sdkRootFolder);
 
     return physicalModel;
   }
