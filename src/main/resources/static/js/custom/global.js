@@ -70,13 +70,22 @@ export const Constants = {
     VIS_TYPE_NON_FIELD: "non-field",
 
     NTD_LABEL: "_label",
-
+    
     ContentType: {
         FIELD: "field",
         GROUP: "group",
         DATA_CONTAINER: "notice-data",
         METADATA_CONTAINER: "notice-metadata",
         ROOT: "notice"
+    },
+    
+    DisplayType: {
+        COMBOBOX: "COMBOBOX",
+        CHECKBOX: "CHECKBOX",
+        GROUP: "GROUP",
+        TEXTAREA: "TEXTAREA",
+        TEXTBOX: "TEXTBOX",
+        RADIO: "RADIO"
     },
 
     // TODO: HARDCODED => These should be added to the SDK.

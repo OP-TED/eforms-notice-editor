@@ -181,3 +181,5 @@ You will encounter these terms in the code and code comments:
 * **Visual Model**: Representation of the form used to fill in a notice, found in the `notice-types` folder of SDK
 * **Conceptual Model**: An intermediate representation made of fields and nodes, based on the SDK `fields.json`
 * **Physical Model**: The representation of a notice in XML, see "XML Generation"
+* **UI**: User Interface, in the editor demo this means the forms, buttons, links in the browser
+* **metadata**: In the editor demo this is generally SDK data

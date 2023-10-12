@@ -17,8 +17,10 @@ import eu.europa.ted.eforms.sdk.SdkConstants;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
- * Holds JSON data of the SDK "fields.json" file. Reuse this after construction. As with all SDK
- * data this is associated with an SDK version.
+ * <p>
+ * Holds the entire JSON data of the SDK "fields.json" file. Reuse this after construction. As with
+ * all SDK data this is associated with an SDK version.
+ * </p>
  */
 public class FieldsAndNodes {
 
@@ -31,10 +33,20 @@ public class FieldsAndNodes {
   public static final String XPATH_RELATIVE = "xpathRelative";
   public static final String XPATH_ABSOLUTE = "xpathAbsolute";
 
+  public static final String ATTRIBUTES = "attributes";
+  public static final String ATTRIBUTE_OF = "attributeOf";
+  public static final String ATTRIBUTE_NAME = "attributeName";
+
+  public static final String ID = "id";
+  public static final String FIELD_TYPE = "type";
+  public static final String PRESET_VALUE = "presetValue";
+
   /**
    * Sort order.
    *
-   * <p>Since SDK 1.7, but data is only correct since SDK 1.8</p>
+   * <p>
+   * Since SDK 1.7, but data is only correct since SDK 1.8
+   * </p>
    */
   public static final String XSD_SEQUENCE_ORDER_KEY = "xsdSequenceOrder";
 
@@ -46,8 +58,8 @@ public class FieldsAndNodes {
   public static final String FIELD_PARENT_NODE_ID = "parentNodeId";
   public static final String NODE_PARENT_NODE_ID = "parentId";
 
-  private static final String FIELD_REPEATABLE = "repeatable";
-  private static final String NODE_REPEATABLE = "repeatable";
+  public static final String FIELD_REPEATABLE = "repeatable";
+  public static final String NODE_REPEATABLE = "repeatable";
 
   private final Map<String, JsonNode> fieldById;
   private final Map<String, JsonNode> nodeById;

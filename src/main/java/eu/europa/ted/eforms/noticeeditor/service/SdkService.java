@@ -363,6 +363,12 @@ public class SdkService {
 
   /**
    * Common SDK folder logic for reading JSON files.
+   *
+   * <p>
+   * PERFORMANCE: To simplify we serve the entire JSON, it is possible that the application does not
+   * everything or that some information could be filtered before it is served to reduce the passed
+   * data. We do not go this far in the editor demo.
+   * </p>
    */
   public void serveSdkJsonFile(final HttpServletResponse response, final SdkVersion sdkVersion,
       final PathResource resourceType, final String filenameForDownload) {
@@ -567,6 +573,12 @@ public class SdkService {
     return readSdkJsonFile(sdkVersion, SdkResource.NOTICE_TYPES, SdkService.SDK_NOTICE_TYPES_JSON);
   }
 
+  /**
+   * PERFORMANCE: we serve the entire JSON for simplicity in the editor demo, but note that some
+   * data may not be used at all in the front-end. This could be optimised by removing this data
+   * here before sending the response. Some information could also be retrieved dynamically on
+   * demand later (case by case).
+   */
   JsonNode readSdkFieldsJson(final SdkVersion sdkVersion) {
     return readSdkJsonFile(sdkVersion, SdkResource.FIELDS, SdkService.SDK_FIELDS_JSON);
   }

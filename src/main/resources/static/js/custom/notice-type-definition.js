@@ -10,8 +10,8 @@ import { MandatoryProperty, ForbiddenProperty, RepeatableProperty, PatternProper
  * Base class for all elements found in a Notice Type Definition file.
  * NTD elements are either display-groups or input-fields.
  * 
- * The general idea is that NTD data come from the backend through the [@link ServiceClient} class.
- * These data are then turned into NoticeTypeDefinitionElements through the {@link NoticeTypeDefinitionElement.create} 
+ * The general idea is that NTD data comes from the backend through the [@link ServiceClient} class.
+ * This data is then turned into NoticeTypeDefinitionElements through the {@link NoticeTypeDefinitionElement.create} 
  * factory method, which instantiates the appropriate NoticeTypeDefinitionElement subclass depending the contentType of the element.
  * 
  * The NoticeTypeDefinitionElement, creates and adds as child to itself, the actual UI that corresponds to the NTD element, 
@@ -30,6 +30,64 @@ export class NoticeTypeDefinitionElement extends DocumentFragment {
       case Constants.ContentType.METADATA_CONTAINER: return new RootLevelGroup(content, level); // Used for the root-level "metadata" and "contents" sections.
       case Constants.ContentType.DATA_CONTAINER: return new RootLevelGroup(content, level); // Used for the root-level "metadata" and "contents" sections.
       default: throw new Error("Unsupported contentType for NTD element: " + content?.contentType);
+    }
+  }
+  
+  detectAndAddNtdAttributeFields(content) {
+    const level = this.level;
+    
+    if (content.contentType === "field") {
+      const sdkField = SdkServiceClient.fields[content.id];
+      
+      // NOTE: for type "id-ref" we want to automate the attribute value choice either on the front or back.
+      // Example: TPO = touchpoint, ORG = organization, ... no need for the user to do it.
+      if (sdkField.attributes && sdkField.type !== "id-ref") {
+      
+        // There are associated attributes.
+        for (const attrId of sdkField.attributes) {
+          const sdkAttr = SdkServiceClient.fields[attrId];
+          if (sdkAttr == null) {
+            throw new Error("Attribute field not found by id: " + attrId);
+          }
+          
+          if (sdkAttr["xpathAbsolute"].endsWith("/@listName")) {
+            console.debug("Attribute already present: " + sdkAttr.id);
+          	continue;
+          }
+          
+          if (sdkAttr.presetValue) {
+            // Skip if there is a presetValue, this attribute field can be handled later in the back-end.
+            // Assuming the associated field has a value, the attribute preset value could be set automatically.
+            continue;
+          }
+
+					// If there is no presetValue, it means the user can make a choice in the UI.
+					// Add a form field for the attribute value choice (usually a code selector).
+          // We do not have NTD content for this attribute.
+          // Create the NTD content dynamically to do as if it was there in the NTD:
+
+          const contentAttr = {};
+          contentAttr["id"] = sdkAttr.id;
+          contentAttr["description"] = sdkAttr.name;
+          contentAttr["contentType"] = Constants.ContentType.FIELD;
+          contentAttr["displayType"] = sdkAttr.type === "code" ? Constants.DisplayType.COMBOBOX : Constants.DisplayType.TEXTBOX;
+          contentAttr["readOnly"] = false;
+          contentAttr["hidden"] = false;
+          
+          if (sdkAttr.repeatable) {
+            contentAttr["_repeatable"] = sdkAttr.repeatable.value;
+          }
+          contentAttr["_label"] = "field|name|" + sdkAttr.id; // Label id.
+          
+          console.debug("Adding attribute field: " + sdkAttr.id + ", displayType=" + contentAttr["displayType"]);
+          if (sdkAttr.codeList) {
+            console.debug(sdkAttr.id + " " + sdkAttr.codeList.value.id);
+          }
+          
+          const vme = NoticeTypeDefinitionElement.create(contentAttr, level);
+          this.htmlElement.appendChild(vme);
+        }
+      }
     }
   }
 
@@ -51,6 +109,11 @@ export class NoticeTypeDefinitionElement extends DocumentFragment {
     if (this.content.readOnly) {
       this.container.classList.add("read-only");
     }
+    
+    //if (this.content.disabled) {
+    //  this.container.classList.add("disabled");
+    //  this.formElement.setAttribute("disabled", "disabled");
+    //}
 
     if (this.content.content) {
       // Load sub items.
@@ -58,6 +121,10 @@ export class NoticeTypeDefinitionElement extends DocumentFragment {
         // Recursion on sub content.
         const vme = NoticeTypeDefinitionElement.create(contentSub, this.level + 1);
         this.htmlElement.appendChild(vme);
+        
+        // Are there attributes for which the user may have to do a choice (like a currency...)?
+        // If this is the case and the attribute is not already present, add the attribute.
+        this.detectAndAddNtdAttributeFields(contentSub);
       }
     }
   }
@@ -451,10 +518,19 @@ export class CodeInputField extends InputField {
 
   async populate(sdkVersion, language) {
 
-    const response = await fetch("sdk/" + sdkVersion + "/codelists/" + this.getCodelist().filename + "/lang/" + language);
+    const url = SdkServiceClient.codelistUrl(sdkVersion, this.getCodelist().filename, language);
+    console.debug(url);
+    const response = await fetch(url);
     const json = await response.json();
 
-    this.formElement.populate(json.codes.map((code) => [code.codeValue, code[language]]), true);
+		if (this.formElement.populate) {
+      this.formElement.populate(json.codes.map((code) => [code.codeValue, code[language]]), true);
+		} else {
+		  //throw new Error(msg);
+		  var msg = "this.formElement.populate not found for field id=" + this.formElement.fieldId;
+		  msg += ", expecting displayType " + Constants.DisplayType.COMBOBOX + " but found " + this.formElement.displayType;
+		  console.warn(msg);
+		}
 
     // After the select options have been set, an option can be selected.
     // Special case for some of the metadata fields.
@@ -483,7 +559,6 @@ export class DateInputField extends InputField {
     super(content, level);
     this.container.classList.add("date");
     this.htmlElement.setAttribute("type", "date"); // Nice to have but not required.
-
   }
 }
 
