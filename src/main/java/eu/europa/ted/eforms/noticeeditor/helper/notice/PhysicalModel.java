@@ -147,20 +147,48 @@ public class PhysicalModel {
   }
 
   /**
-   * This is provided for convenience for the unit tests.
+   * This is provided for convenience for the unit tests. This should only be used on elements (not
+   * attributes).
    *
    * <p>
    * Evaluates xpath and returns a nodelist. Note: this works when the required notice values are
    * present as some xpath may rely on their presence (codes, indicators, ...).
    * </p>
    *
-   * @param contextElem The XML context element in which the xpath is evaluated
-   * @param xpathExpr The XPath expression relative to the passed context
+   * @param xpathExpr The XPath expression used to find elements
    * @param idForError An identifier which is shown in case of errors
-   * @return The result of evaluating the XPath expression as a list of elements
+   *
+   * @return The result of evaluating the XPath expression as a list of elements (does not work for
+   *         attributes)
    */
   List<Element> evaluateXpathForTests(final String xpathExpr, String idForError) {
     return XmlUtils.evaluateXpathAsElemList(this.xpathInst, this.getDomDocument(), xpathExpr,
+        idForError);
+  }
+
+  /**
+   * This is provided for convenience for the unit tests. This works on elements and attributes.
+   *
+   * @param xpathExpr The XPath expression used to find elements
+   * @param idForError An identifier which is shown in case of errors
+   *
+   * @return The result of evaluating the XPath expression as a NodeList (works for attributes)
+   */
+  NodeList evaluateXpathForTestsAsNodeList(final String xpathExpr, String idForError) {
+    return XmlUtils.evaluateXpathAsNodeList(this.xpathInst, this.getDomDocument(), xpathExpr,
+        idForError);
+  }
+
+  /**
+   * This is provided for convenience for the unit tests. This works on elements and attributes.
+   *
+   * @param xpathExpr The XPath expression used to find elements
+   * @param idForError An identifier which is shown in case of errors
+   *
+   * @return The result of evaluating the XPath expression as a List of Node
+   */
+  List<Node> evaluateXpathForTestsAsListOfNode(final String xpathExpr, String idForError) {
+    return XmlUtils.evaluateXpathAsListOfNode(this.xpathInst, this.getDomDocument(), xpathExpr,
         idForError);
   }
 
@@ -254,6 +282,7 @@ public class PhysicalModel {
         logger.info("Attempting to sort physical model.");
         sorter.sortXml(xmlDocRoot);
       }
+
       final Optional<Path> mainXsdPathOpt = sorter.getMainXsdPathOpt();
       if (mainXsdPathOpt.isPresent()) {
         Validate.isTrue(mainXsdPathOpt.get().toFile().exists(),

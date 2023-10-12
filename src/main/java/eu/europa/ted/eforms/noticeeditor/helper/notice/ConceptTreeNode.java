@@ -84,7 +84,10 @@ public class ConceptTreeNode extends ConceptTreeItem {
     logger.debug("Added concept field uniqueId={} to fieldId={}", conceptField.getFieldId(),
         this.getIdUnique(),
         conceptField.getIdUnique());
-    sb.append("Added concept field: ").append(conceptField.getIdUnique()).append('\n');
+    sb.append("Added concept field: ")
+        .append(conceptField.getIdUnique())
+        .append(" to ").append(this.getIdUnique())
+        .append('\n');
     return true;
   }
 

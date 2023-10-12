@@ -58,8 +58,8 @@ public class FieldsAndNodes {
   public static final String FIELD_PARENT_NODE_ID = "parentNodeId";
   public static final String NODE_PARENT_NODE_ID = "parentId";
 
-  private static final String FIELD_REPEATABLE = "repeatable";
-  private static final String NODE_REPEATABLE = "repeatable";
+  public static final String FIELD_REPEATABLE = "repeatable";
+  public static final String NODE_REPEATABLE = "repeatable";
 
   private final Map<String, JsonNode> fieldById;
   private final Map<String, JsonNode> nodeById;

@@ -70,7 +70,6 @@ public class XmlRestController implements AsyncConfigurer {
       produces = SdkService.MIME_TYPE_XML, consumes = SdkService.MIME_TYPE_JSON)
   public void saveNoticeAndCvsValidate(final HttpServletResponse response,
       final @RequestBody String noticeJson) throws Exception {
-    final boolean debug = false;
     xmlService.validateUsingCvs(Optional.of(response), noticeJson, debug);
   }
 }

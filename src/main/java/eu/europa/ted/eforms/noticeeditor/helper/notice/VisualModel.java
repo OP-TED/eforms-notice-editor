@@ -308,10 +308,11 @@ public class VisualModel {
     }
 
     final String uniqueId = cnParentIdInSdk + SUFFIX_GENERATED;
-    sb.append("Adding intermediary node(s)")
+    sb.append("Adding intermediary node=")
         .append(uniqueId)
         .append(" for ").append(currentNodeId)
         .append('\n');
+
     // The parent is not the closest parent we know about and it is not repeatable.
     // Try to create an intermediary node in the conceptual model.
     // -> closestParent -> cnNew -> cn
@@ -442,7 +443,7 @@ public class VisualModel {
         // Reuse existing conceptual node.
         cn = cnOpt.get();
       } else {
-        sb.append("Concept node not sdkParentNodeId=")
+        sb.append("Concept node sdkParentNodeId=")
             .append(sdkParentNodeId).append(" not present in closestParentNode=")
             .append(closestParentNode)
             .append('\n');
@@ -459,7 +460,8 @@ public class VisualModel {
 
         // See unit test about filling to fully understand this.
         // closestParentNode.addConceptNode(cn); // NO: there may be more items to fill in.
-        cn = addIntermediaryNonRepeatingNodesRec(fieldsAndNodes, closestParentNode, cn, sdkId,
+        // cn = addIntermediaryNonRepeatingNodesRec( // NO !
+        addIntermediaryNonRepeatingNodesRec(fieldsAndNodes, closestParentNode, cn, sdkId,
             sb);
       }
 

@@ -128,7 +128,7 @@ public class SaveNoticeNodeFillingTest extends SaveNoticeTest {
     // IDEA it would be more maintainable to use xpath to check the XML instead of pure text.
     // physicalModel.evaluateXpathForTests("/", "test2");
 
-    checkCommon(prefixedSdkVersion, noticeSubType, xml);
+    checkCommon(prefixedSdkVersion, noticeSubType, xml, physicalModel);
 
     // Verify nodes.
 
@@ -139,6 +139,9 @@ public class SaveNoticeNodeFillingTest extends SaveNoticeTest {
     // x
     count(xml, 1, "<x"); // 1 in total
     count(xml, 1, "editorNodeId=\"ND_X\"");
+
+    // Check nesting. x -> y (y is inside of x).
+    assertCount(physicalModel, 1, "//*[local-name()='x']/*[local-name()='y']");
   }
 
 }

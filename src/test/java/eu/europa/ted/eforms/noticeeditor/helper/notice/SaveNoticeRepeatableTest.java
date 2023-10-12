@@ -176,7 +176,7 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     final ObjectNode field = mapper.createObjectNode();
     fieldById.put(BT_FIELD_DUMMY_C_REP, field);
     field.put(KEY_FIELD_ID, BT_FIELD_DUMMY_C_REP);
-    field.put(KEY_PARENT_NODE_ID, ND_B);
+    field.put(KEY_FIELD_PARENT_NODE_ID, ND_B);
     field.put(KEY_XPATH_ABS, "/*/a/b/c");
     field.put(KEY_XPATH_REL, "c");
     field.put(KEY_TYPE, TYPE_TEXT);
@@ -202,21 +202,19 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     final String xml = physicalModel.toXmlText(false); // Not indented to avoid line breaks.
     logger.info(physicalModel.toXmlText(true));
 
-    // IDEA it would be more maintainable to use xpath to check the XML instead of pure text.
-    // physicalModel.evaluateXpathForTests("/", "test2");
-
-    checkCommon(prefixedSdkVersion, noticeSubType, xml);
-
-    count(xml, 1, "<cbc:CustomizationID");
-    count(xml, 1, "<cbc:SubTypeCode");
+    checkCommon(prefixedSdkVersion, noticeSubType, xml, physicalModel);
 
     // Verify repeatable nodes at top level.
     count(xml, 2, "<a");
     count(xml, 2, "editorNodeId=\"ND_A\"");
+    assertCount(physicalModel, 2, "//*[local-name()='a']");
 
     // Verify nested repeatable nodes.
     count(xml, 3, "<b"); // 3 in total
     count(xml, 3, "editorNodeId=\"ND_B\""); // 3 in total
+    assertCount(physicalModel, 3, "//*[local-name()='b']");
+    assertCount(physicalModel, 3, "//*[local-name()='a']/*[local-name()='b']"); // Checks nesting.
+
     count(xml, 2, "editorCounterSelf=\"1\" editorNodeId=\"ND_B\"");
     count(xml, 1, "editorCounterSelf=\"2\" editorNodeId=\"ND_B\"");
     count(xml, 1, "<b editorCounterSelf=\"1\" editorNodeId=\"ND_B\">");
