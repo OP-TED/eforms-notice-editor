@@ -30,13 +30,13 @@ Build the editor demo:
 mvn clean install
 ```
 
+You may run into proxy issues if you are behind a proxy.
+
 ### Execution
 
 1. Start the application as a standalone Spring Boot powered server, running on embedded Jetty (e.g., for 0.0.1-SNAPSHOT):
 
-   ```
-   java -jar editor-app/target/notice-editor-app-0.0.1-SNAPSHOT.jar
-   ```
+   `java -jar editor-app/target/notice-editor-app-0.0.1-SNAPSHOT.jar`
 
 2. Open a browser at and go to: `localhost:8080/`
 
@@ -49,6 +49,8 @@ mvn clean install
 
 * Configuration related: application.yaml
 * Java at server start: EformsNoticeEditorApp.java (runs before the UI is available)
+
+In the folder `editor-core` you can run:
 
 ```
 mvn compile exec:java -Dexec.mainClass="eu.europa.ted.eforms.noticeeditor.EformsNoticeEditorApp"
