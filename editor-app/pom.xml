@@ -7,14 +7,14 @@
   <parent>
     <groupId>eu.europa.ted.eforms</groupId>
     <artifactId>notice-editor-parent</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2-SNAPSHOT</version>
   </parent>
 
   <artifactId>notice-editor-app</artifactId>
   <packaging>jar</packaging>
 
   <name>eForms notice editor application</name>
-  <description>Spring Boot demo application</description>
+  <description>Editor demo application (the server)</description>
 
   <dependencies>
     <!-- eForms -->
@@ -22,6 +22,8 @@
       <groupId>eu.europa.ted.eforms</groupId>
       <artifactId>eforms-core-java</artifactId>
     </dependency>
+
+    <!-- eForms editor demo modules -->
     <dependency>
       <groupId>eu.europa.ted.eforms</groupId>
       <artifactId>notice-editor-core</artifactId>
@@ -73,19 +75,11 @@
       <scope>runtime</scope>
     </dependency>
     <dependency>
-      <!-- Use Jetty instead of Tomcat. -->
+      <!-- Use Jetty instead of Tomcat for demo purposes (you can adapt this to your needs ...) -->
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-jetty</artifactId>
       <scope>runtime</scope>
     </dependency>
-
-    <dependency>
-      <!-- For the unit tests. -->
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot</artifactId>

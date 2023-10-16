@@ -7,14 +7,14 @@
   <parent>
     <groupId>eu.europa.ted.eforms</groupId>
     <artifactId>notice-editor-parent</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2-SNAPSHOT</version>
   </parent>
 
   <artifactId>notice-editor-core</artifactId>
   <packaging>jar</packaging>
 
   <name>eForms notice editor core</name>
-  <description>Core component of Spring Boot demo</description>
+  <description>Core component of notice editor demo (mostly Java code)</description>
 
   <dependencies>
     <!-- eForms -->
@@ -22,6 +22,9 @@
       <groupId>eu.europa.ted.eforms</groupId>
       <artifactId>eforms-core-java</artifactId>
     </dependency>
+
+    <!-- eForms editor demo modules -->
+    <!-- None -->
 
     <!-- Apache Commons -->
     <dependency>
