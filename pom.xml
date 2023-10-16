@@ -6,11 +6,11 @@
 
   <groupId>eu.europa.ted.eforms</groupId>
   <artifactId>notice-editor-parent</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.0.2-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>eForms notice editor parent</name>
-  <description>Parent POM for Spring Boot demo project</description>
+  <description>Parent POM for Editor demo project</description>
 
   <url>https://docs.ted.europa.eu/eforms/latest/</url>
 
@@ -99,6 +99,8 @@
         <artifactId>eforms-core-java</artifactId>
         <version>${version.eforms-core}</version>
       </dependency>
+
+      <!-- eForms Editor demo modules (in this project) -->
       <dependency>
         <groupId>eu.europa.ted.eforms</groupId>
         <artifactId>notice-editor-core</artifactId>
