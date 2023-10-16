@@ -223,6 +223,12 @@ public class XmlWriteService {
     return fieldsAndNodes;
   }
 
+  public static FieldsAndNodes readFieldsAndNodesForUnitTests(final SdkVersion sdkVersion) {
+    final JsonNode fieldsJson = SdkService.readSdkFieldsJsonForUnitTests(sdkVersion);
+    final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldsJson, sdkVersion);
+    return fieldsAndNodes;
+  }
+
   public static Map<String, JsonNode> parseDocumentTypes(final JsonNode noticeTypesJson) {
     final Map<String, JsonNode> documentInfoByType = new HashMap<>();
     final JsonNode documentTypes =

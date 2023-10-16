@@ -389,7 +389,24 @@ public class SdkService {
       final String filenameForDownload) {
     Validate.notNull(sdkVersion, "Undefined SDK version");
     try {
-      final Path path = readSdkPath(sdkVersion, resourceType, filenameForDownload);
+      final Path path =
+          readSdkPath(sdkVersion, resourceType, filenameForDownload, Path.of(eformsSdkPath));
+      final ObjectMapper mapper = new ObjectMapper();
+      return mapper.readTree(path.toFile());
+    } catch (IOException ex) {
+      logger.error(ex.toString(), ex);
+      throw new RuntimeException(
+          String.format("Exception reading JSON file %s", filenameForDownload), ex);
+    }
+  }
+
+  public static JsonNode readSdkJsonFileForUnitTests(final SdkVersion sdkVersion,
+      final PathResource resourceType,
+      final String filenameForDownload, final Path eformsSdkPathStatic) {
+    Validate.notNull(sdkVersion, "Undefined SDK version");
+    try {
+      final Path path =
+          readSdkPath(sdkVersion, resourceType, filenameForDownload, eformsSdkPathStatic);
       final ObjectMapper mapper = new ObjectMapper();
       return mapper.readTree(path.toFile());
     } catch (IOException ex) {
@@ -402,14 +419,14 @@ public class SdkService {
   /**
    * SDK resouce as a Path.
    */
-  public Path readSdkPath(final SdkVersion sdkVersion, final PathResource resourceType,
-      final String filenameForDownload) {
+  public static Path readSdkPath(final SdkVersion sdkVersion, final PathResource resourceType,
+      final String filenameForDownload, final Path eformsSdkPathStatic) {
     Validate.notNull(sdkVersion, "SDK version is null");
     // For the moment the way the folders work is that the folder "1.1.2" would be in folder "1.1",
     // if "1.1.3" exists it would overwrite "1.1.2", but the folder would still be "1.1".
     final String sdkVersionNoPatch = VersionHelper.buildSdkVersionWithoutPatch(sdkVersion);
     return SdkResourceLoader.getResourceAsPath(new SdkVersion(sdkVersionNoPatch), resourceType,
-        filenameForDownload, Path.of(eformsSdkPath));
+        filenameForDownload, eformsSdkPathStatic);
   }
 
   /**
@@ -571,8 +588,19 @@ public class SdkService {
     return readSdkJsonFile(sdkVersion, SdkResource.FIELDS, SdkService.SDK_FIELDS_JSON);
   }
 
+  static JsonNode readSdkFieldsJsonForUnitTests(final SdkVersion sdkVersion) {
+    return readSdkJsonFileForUnitTests(sdkVersion, SdkResource.FIELDS, SdkService.SDK_FIELDS_JSON,
+        getSdkRootFolderForUnitTests());
+  }
+
   public Path getSdkRootFolder() {
     return Path.of(this.eformsSdkPath);
+  }
+
+  public static final Path getSdkRootFolderForUnitTests() {
+    // Hardcoded here for unit tests, avoid loading Spring Boot
+    // Context for every test just to have this.
+    return Path.of("eforms-sdks");
   }
 
 }
