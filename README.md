@@ -70,7 +70,7 @@ See:
 * Configuration related: application.yaml
 * Java at server start: EformsNoticeEditorApp.java (runs before the UI is available)
 
-In the folder `editor-core` you can run:
+In the folder `editor-app` you can run:
 
 ```
 mvn compile exec:java -Dexec.mainClass="eu.europa.ted.eforms.noticeeditor.EformsNoticeEditorApp"
