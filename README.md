@@ -98,16 +98,21 @@ There are multiple ways to implement this, we propose one way to do it and it wi
 * [General guidelines](https://docs.ted.europa.eu/eforms/latest/guide/xml-generation.html)
 * In this project see `ConceptualModel.java` and `PhysicalModel.java`
 * XML generation is equivalent to saving a notice to XML, so look for Java files starting with `SaveNotice`, it is recommended to look into the various unit tests
-* There are plans to add more unit tests and to have 
+* There are plans to add more unit tests about specific parts of the XML generation 
 
 ### Sorting of XML elements
 
-In `fields.json` since SDK 1.8.x you have the `xsdSequenceOrder`, avoid using it using SDK 1.7.x as it is incomplete!
+#### Since SDK 1.8.x
+
+In `fields.json` since SDK 1.8.x you have the `xsdSequenceOrder`.
 Search for it in [SDK field docs](https://docs.ted.europa.eu/eforms/latest/fields/index.html#_static_properties)
 In the editor demo look at the unit test: `NoticeXmlTagSorterTest.java`
+The provided algorithm is one way to do it, let us know if you have ideas on how to improve this.
 
-NOTE: 
-Before 1.8.x the XML sorting in the editor demo relied only on XSD data, you can still find the older algorithms in the git history of `NoticeXmlTagSorter.java`. Note that this was moved into a new folder when we added modules to the project so accessing history may be difficult. You can try to find one of the older commits on the file like this one:
+#### Before SDK 1.8.x
+
+Avoid using `xsdSequenceOrder` using SDK 1.7.x as it is incomplete! Before SDK 1.7.x it did not even exist.
+Before 1.8.x the XML sorting in the editor demo relied only on 'schemas' XSD data, you can still find the older XSD based algorithms in the git history of `NoticeXmlTagSorter.java`. This was moved into a new folder when we added modules to the project, you can try to find one of the older commits of the Java file like this one:
 `https://github.com/OP-TED/eforms-notice-editor/commit/cc9421f4736d0878679af5bf337108d07301ee41`
 
 ## Validation using CVS
@@ -120,7 +125,7 @@ Configuration is found in the `application.yaml` file, see `proxy` and `client.c
 mvn checkstyle:checkstyle
 ```
 
-See pom.xml for checkstyle xml rules (Google code style subset).
+See `pom.xml` for checkstyle xml rules (Google code style subset).
 
 ## Running spotbugs
 
@@ -136,7 +141,7 @@ See `spotbugs.xml` under the `target` folder.
 
 `@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value="OCP_OVERLY_CONCRETE_PARAMETER", justification="We want a specific type")`
 
-Other exclusions: see `spotbugs-exclude.xml`
+For general exclusions see `spotbugs-exclude.xml`
 
 ### Visitors and detectors
 
@@ -144,9 +149,18 @@ Other exclusions: see `spotbugs-exclude.xml`
 
 [For contrib rules](http://fb-contrib.sourceforge.net/bugdescriptions.html)
 
-## Github discussions
+## For questions and issues
 
-You can use the eForms-SDK discussions to ask about XML generation or other editor demo related questions.
+You can use the [eForms-SDK discussions on GitHub](https://github.com/OP-TED/eForms-SDK/discussions) to ask about XML generation or other editor demo related questions.
+
+Please always provide, if applicable: 
+
+* the used SDK version (x.y.z)
+* the used branch of the editor version (if not develop)
+* the notice sub type
+* the visual model json and the generated XML
+* used browser and version in case of UI problems
+* a Java stacktrace of browser console trace
 
 ### Save notice
 
@@ -164,16 +178,21 @@ For further reference, please consider the following sections:
 
 ## Glossary
 
-You will encounter these terms in the code and code comments:
+You will encounter these terms in the documentation, the code and code comments:
 
 * **BT**: Business Term
 * **CVS**: Central Validation Service (TEDCVS)
 * **SVRL**:	Schematron Validation Reporting Language
 * **NTD**: Notice Type Definition, found in the `notice-types` folder of SDK, represents the **Visual Model**
-* **Node**: found in the `xmlStructure` of the SDK `fields.json`, it can be confusing at times as other tree structures can have elements called Node (XML, JSON, ...). The root node has no parent.
-* **Field**: found in the `fields` of the SDK `fields.json`, fields must have a parent node. In the NTDs, form fields reference fields.
-* **Attribute**: in standands for XML attributes, since SDK 1.9 XML attributes are always associated with fields
-* **Sort order**: found in the `xsdSequenceOrder` of the SDK `fields.json`, there may be order to other things, but in general we mean the XML element order, see section about "Sorting of XML elements"
+* **XSD**: The SDK schemas (.xsd files)
+* **labels**: The SDK translations
+* **genericode**: The .gc files about codelists
+* **code**: In general we mean the Java or JavaScript code unless the context is about codelists codes ...
+* **Nodes**: found in the `xmlStructure` of the SDK `fields.json`, it can be confusing at times as other tree structures can have elements called Node (XML, JSON, ...). The root node has no parent.
+* **Fields**: found in the `fields` of the SDK `fields.json`, fields must have a parent node. In the NTDs, form fields reference fields.
+* **Attributes**: it stands for XML attributes, since SDK 1.9 XML attributes are always associated with fields (see `attributeOf` in fields.json)
+* **Sort order**: found in the `xsdSequenceOrder` of the SDK `fields.json`, there may be order to other things, but in general we mean the XML element order as defined by the schema, see section about "Sorting of XML elements"
 * **Visual Model**: Representation of the form used to fill in a notice, found in the `notice-types` folder of SDK
 * **Conceptual Model**: An intermediate representation made of fields and nodes, based on the SDK `fields.json`
 * **Physical Model**: The representation of a notice in XML, see "XML Generation"
+* **Save Notice**: A notice is saved to XML so this is equivalent to "XML Generation"
