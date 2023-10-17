@@ -24,7 +24,7 @@ public class XmlAndXpathTest {
   @SuppressWarnings("static-method")
   @Test
   public void xpathWithNamespaceTest() throws ParserConfigurationException, IOException {
-    testXpathWithNamespaces(new SdkVersion("1.6.0"));
+    testXpathWithNamespaces(new SdkVersion("1.8.0"));
   }
 
   private static void testXpathWithNamespaces(final SdkVersion sdkVersion)
