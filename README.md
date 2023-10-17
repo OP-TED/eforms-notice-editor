@@ -1,8 +1,11 @@
 # eForms Notice Editor Demo
 
 This is a demo application which can create and edit notices (basic).
-For creation of forms it reads eForms SDK notice type files (json files in `notice-types`).
+For creation of forms it reads the eForms SDK notice type files (json files in `notice-types`).
 For edition it reads a notice file (xml) and the corresponding notice type file (json).
+
+It uses Java for the back-end and HTML/CSS/JavaScript for the front-end.
+Maven is used for the building, see section about installation.
 
 ## SDK version support
 
@@ -11,10 +14,9 @@ Supported SDK versions are downloaded at start of the application.
 The editor demo code only supports one version of the SDK, it may not work with older versions.
 It usually lags behind the latest SDK version. For older versions you can go back in the git history.
 
-
 ## Layout
 
-The project is split in three modules:
+The project is split into three modules:
 
 - editor-core: The main component with server-side code and utilities.
 - editor-ui: The frontend component with static files (HTML/CSS/Javascript/Typescript).
@@ -24,13 +26,25 @@ The project is split in three modules:
 
 ### Installation
 
-Build the editor demo:
+Build the editor demo using Maven:
 
 ```
 mvn clean install
 ```
 
-You may run into proxy issues if you are behind a proxy.
+#### Proxy issues
+
+You may run into problems if you are behind a proxy due to download of packages for the UI:
+
+```
+[INFO] --- exec-maven-plugin:3.1.0:exec (exec-install-dependencies) @ notice-editor-ui ---
+Internal Error: Error when performing the request to https://repo.yarnpkg.com/...
+    at ClientRequest.<anonymous> (...\eforms-notice-editor\editor-ui\.node\node_modules\corepack\dist\lib\corepack.cjs:39007:14)
+    at ClientRequest.emit (node:events:526:28)
+    at TLSSocket.socketErrorListener (node:_http_client:442:9)
+```
+
+Look into how to setup a proxy, use of `HTTP_PROXY`.
 
 ### Execution
 
@@ -40,8 +54,14 @@ You may run into proxy issues if you are behind a proxy.
 
 2. Open a browser at and go to: `localhost:8080/`
 
-   **NOTE**: The port might differ, depending on the configuration under editor-app/src/main/resources/application.yaml (property `"server.port"`).
+   **NOTE**: The port might differ, depending on the configuration under `editor-app/src/main/resources/application.yaml` (property `"server.port"`).
 
+### NPM, Yarn, TypeScript
+
+See: 
+* `pom.xml` in the `notice-editor-ui` folder
+* `tsconfig.json` (TypeScript config)
+* `package.json` (Yarn, package manager for JavaScript)
 
 ## Important files
 
@@ -58,35 +78,41 @@ mvn compile exec:java -Dexec.mainClass="eu.europa.ted.eforms.noticeeditor.Eforms
 
 ### editor-core
 
-* Java REST API: SdkRestController.java (Handles the XHR API calls)
-* Java business logic: SdkService.java (Business logic once it runs)
+* Java REST API: `SdkRestController.java` (Handles the XHR API calls)
+* Java business logic: `SdkService.java` (Business logic once it runs)
 * Configuration related: `application.properties` (supported SDK versions, ...)
 * Java at server start: `EformsNoticeEditorApp.java` (runs before the UI is available)
 * Java REST API: `SdkRestController.java` (Handles the XHR API calls)
 * Java XML generation: `PhysicalModel.java` 
 
-
 ### editor-ui
-* Home page HTML: index.html
-* JavaScript: editor.js (dynamic creation of HTML elements, XHR API calls)
-* CSS: editor.css (styling)
+* Home page HTML: `index.html`
+* JavaScript: `editor.js` (dynamic creation of HTML elements, XHR API calls)
+* CSS: `editor.css` (styling)
+* TypeScript: `tsconfig.json` ("outDir" determines where the js files will end up)
 
 ## XML Generation
 
+There are multiple ways to implement this, we propose one way to do it and it will be updated as the SDK evolves (with some lag behind the SDK).
+
 * [General guidelines](https://docs.ted.europa.eu/eforms/latest/guide/xml-generation.html)
 * In this project see `ConceptualModel.java` and `PhysicalModel.java`
+* XML generation is equivalent to saving a notice to XML, so look for Java files starting with `SaveNotice`, it is recommended to look into the various unit tests
+* There are plans to add more unit tests and to have 
 
 ### Sorting of XML elements
 
-In `fields.json` since 1.8 you have `xsdSequenceOrder` (see [SDK field docs](https://docs.ted.europa.eu/eforms/latest/fields/xml-structure.html))
+In `fields.json` since SDK 1.8.x you have the `xsdSequenceOrder`, avoid using it using SDK 1.7.x as it is incomplete!
+Search for it in [SDK field docs](https://docs.ted.europa.eu/eforms/latest/fields/index.html#_static_properties)
+In the editor demo look at the unit test: `NoticeXmlTagSorterTest.java`
 
-In the editor look at the unit test: `NoticeXmlTagSorterTest.java`
-
-Note that before 1.8 the XML sorting relied only on XSD data, you can still find the older algorithms in the git history of `NoticeXmlTagSorter.java`.
+NOTE: 
+Before 1.8.x the XML sorting in the editor demo relied only on XSD data, you can still find the older algorithms in the git history of `NoticeXmlTagSorter.java`. Note that this was moved into a new folder when we added modules to the project so accessing history may be difficult. You can try to find one of the older commits on the file like this one:
+`https://github.com/OP-TED/eforms-notice-editor/commit/cc9421f4736d0878679af5bf337108d07301ee41`
 
 ## Validation using CVS
 
-Configuration is found in `application.yaml`: `proxy` and `client.cvs`.
+Configuration is found in the `application.yaml` file, see `proxy` and `client.cvs`.
 
 ## Running checkstyle
 
@@ -120,10 +146,13 @@ Other exclusions: see `spotbugs-exclude.xml`
 
 ## Github discussions
 
+You can use the eForms-SDK discussions to ask about XML generation or other editor demo related questions.
+
 ### Save notice
 
-[Saving a notice](https://github.com/OP-TED/eForms-SDK/discussions/126)
+Here are some existing questions which can be of interest:
 
+* [Saving a notice](https://github.com/OP-TED/eForms-SDK/discussions/126)
 
 ## Reference Documentation
 
