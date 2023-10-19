@@ -21,11 +21,11 @@ server:
 
 eforms:
   sdk:
-    # Path to eForms SDK
+    # Path to eForms SDK (automatically downloaded there), do not commit this!
     path: eforms-sdks
 
     # Comma-separated list of the supported major versions of eForms SDK
-    versions: 1.0,1.1,1.2,1.3,1.4,1.5 #,1.6
+    versions: 1.8 #,1.9
 
 
 proxy:

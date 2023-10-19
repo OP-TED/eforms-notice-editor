@@ -9,11 +9,14 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.xml.sax.SAXException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import eu.europa.ted.eforms.noticeeditor.helper.VersionHelper;
+import eu.europa.ted.eforms.noticeeditor.service.SdkService;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
@@ -32,6 +35,9 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
   private static final String ND_B = "ND_B";
 
   private static final String BT_FIELD_DUMMY_C_REP = "BT-field-c";
+
+  @Autowired
+  protected SdkService sdkService;
 
   @Override
   protected VisualModel setupVisualModel(final ObjectMapper mapper, final SdkVersion sdkVersion,
@@ -137,6 +143,7 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_A, node);
+      node.put(KEY_NODE_ID, ND_A);
       node.put(KEY_NODE_PARENT_ID, ND_ROOT);
       node.put(KEY_XPATH_ABS, "/*/a");
       node.put(KEY_XPATH_REL, "a");
@@ -145,6 +152,7 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_B, node);
+      node.put(KEY_NODE_ID, ND_B);
       node.put(KEY_NODE_PARENT_ID, ND_ROOT);
       node.put(KEY_XPATH_ABS, "/*/a/b");
       node.put(KEY_XPATH_REL, "b");
@@ -165,6 +173,7 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     // Add a repeatable field to also cover field repeatability.
     final ObjectNode field = mapper.createObjectNode();
     fieldById.put(BT_FIELD_DUMMY_C_REP, field);
+    field.put(KEY_FIELD_ID, BT_FIELD_DUMMY_C_REP);
     field.put(KEY_PARENT_NODE_ID, ND_B);
     field.put(KEY_XPATH_ABS, "/*/a/b/c");
     field.put(KEY_XPATH_REL, "c");
@@ -177,15 +186,16 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
   @Test
   public final void test() throws ParserConfigurationException, IOException, SAXException {
     final ObjectMapper mapper = new ObjectMapper();
-    // A dummy 1.5.0, not real 1.5.0
-    final SdkVersion sdkVersion = new SdkVersion("1.5.0");
-    final String prefixedSdkVersion = FieldsAndNodes.EFORMS_SDK_PREFIX + sdkVersion.toString();
-    final String noticeSubType = "X02"; // A dummy X02, not the real X02 of 1.5.0
+    // A dummy 1.8.0, not real 1.8.0
+    final SdkVersion sdkVersion = new SdkVersion("1.8.0");
+    final String prefixedSdkVersion = VersionHelper.prefixSdkVersionWithoutPatch(sdkVersion);
+    final String noticeSubType = "X02"; // A dummy X02, not the real X02 of 1.8.0
 
     final VisualModel visualModel = setupVisualModel(mapper, sdkVersion, noticeSubType);
 
     final PhysicalModel physicalModel =
-        setupPhysicalModel(mapper, noticeSubType, NOTICE_DOCUMENT_TYPE, visualModel, sdkVersion);
+        setupPhysicalModel(mapper, noticeSubType, NOTICE_DOCUMENT_TYPE, visualModel,
+            SdkService.getSdkRootFolderForUnitTests(), sdkVersion);
 
     final String xml = physicalModel.toXmlText(false); // Not indented to avoid line breaks.
     logger.info(physicalModel.toXmlText(true));

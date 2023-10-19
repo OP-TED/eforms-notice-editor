@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>eu.europa.ted.eforms</groupId>
   <artifactId>notice-editor-parent</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.0.2-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>eForms notice editor parent</name>
-  <description>Parent POM for Spring Boot demo project</description>
+  <description>Parent POM for Editor demo project</description>
 
   <url>https://docs.ted.europa.eu/eforms/latest/</url>
 
@@ -52,7 +54,7 @@
     <maven.compiler.target>${java.version}</maven.compiler.target>
 
     <!-- Versions - eForms -->
-    <version.eforms-core>1.0.1</version.eforms-core>
+    <version.eforms-core>1.0.5</version.eforms-core>
 
     <!-- Versions - Third-party libraries -->
     <version.checkstyle>9.0</version.checkstyle> <!-- NOTE: versions before 8 something got confused by lambdas, luckily 9 solves this. -->
@@ -97,6 +99,8 @@
         <artifactId>eforms-core-java</artifactId>
         <version>${version.eforms-core}</version>
       </dependency>
+
+      <!-- eForms Editor demo modules (in this project) -->
       <dependency>
         <groupId>eu.europa.ted.eforms</groupId>
         <artifactId>notice-editor-core</artifactId>

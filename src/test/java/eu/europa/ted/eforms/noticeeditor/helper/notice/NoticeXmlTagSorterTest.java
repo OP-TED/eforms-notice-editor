@@ -14,6 +14,8 @@ import org.apache.commons.lang3.Validate;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
@@ -30,6 +32,7 @@ import eu.europa.ted.eforms.sdk.SdkVersion;
 /**
  * Testing the sorting algorithm against examples.
  */
+@SpringBootTest
 public class NoticeXmlTagSorterTest {
 
   private static final Logger logger = LoggerFactory.getLogger(NoticeXmlTagSorterTest.class);
@@ -39,7 +42,9 @@ public class NoticeXmlTagSorterTest {
    */
   private static final SdkVersion SDK_VERSION = new SdkVersion("1.8.0");
 
-  @SuppressWarnings("static-method")
+  @Autowired
+  private XmlWriteService xmlWriteService;
+
   @Test
   public void testXmlSortingAndValidateSmallX02Xml()
       throws IOException, ParserConfigurationException, SAXException {
@@ -78,7 +83,6 @@ public class NoticeXmlTagSorterTest {
     sortAndCompare(sdkVersion, xpathInst, docTypeInfo, docUnsorted1, docReference, true);
   }
 
-  @SuppressWarnings("static-method")
   @Test
   public void testXmlSortingAndValidateT01PrtXml()
       throws IOException, ParserConfigurationException, SAXException {
@@ -103,7 +107,6 @@ public class NoticeXmlTagSorterTest {
     sortAndCompare(sdkVersion, xpathInst, docTypeInfo, docUnsorted1, docReference, false);
   }
 
-  @SuppressWarnings("static-method")
   @Test
   public void testXmlSortingAndValidateContractModificationXml()
       throws IOException, ParserConfigurationException, SAXException {
@@ -128,7 +131,6 @@ public class NoticeXmlTagSorterTest {
     sortAndCompare(sdkVersion, xpathInst, docTypeInfo, docUnsorted1, docReference, false);
   }
 
-  @SuppressWarnings("static-method")
   @Test
   public void testXmlSortingAndValidateLargeXml()
       throws IOException, ParserConfigurationException, SAXException {
@@ -153,15 +155,14 @@ public class NoticeXmlTagSorterTest {
     sortAndCompare(sdkVersion, xpathInst, docTypeInfo, docUnsorted1, docReference, false);
   }
 
-  private static void sortAndCompare(final SdkVersion sdkVersion,
+  private void sortAndCompare(final SdkVersion sdkVersion,
       final XPath xpathInst,
       final DocumentTypeInfo docTypeInfo,
       final Document docUnsorted,
       final Document docReference,
       final boolean validate) throws SAXException, IOException {
 
-    final FieldsAndNodes fieldsAndNodes =
-        XmlWriteService.readFieldsAndNodesForUnitTests(sdkVersion);
+    final FieldsAndNodes fieldsAndNodes = xmlWriteService.readFieldsAndNodes(sdkVersion);
     final Path pathToSpecificSdk = DummySdk.buildDummySdkPath(sdkVersion);
     final NoticeXmlTagSorter sorter = new NoticeXmlTagSorter(xpathInst, docTypeInfo,
         pathToSpecificSdk, fieldsAndNodes);
@@ -192,7 +193,7 @@ public class NoticeXmlTagSorterTest {
     // Ensure it is sorted by comparing to the reference example.
     if (!textReference.equals(textUnsortedAfterSort)) {
       logger.error("Reference length: {}", textReference.length());
-      logger.error("Output length: {}", textUnsortedAfterSort.length());
+      logger.error("Output    length: {}", textUnsortedAfterSort.length());
       // Show diff for debugging convenience.
       logger.error(textUnsortedAfterSort);
 

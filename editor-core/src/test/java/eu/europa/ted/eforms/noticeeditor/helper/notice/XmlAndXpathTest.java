@@ -24,8 +24,7 @@ public class XmlAndXpathTest {
   @SuppressWarnings("static-method")
   @Test
   public void xpathWithNamespaceTest() throws ParserConfigurationException, IOException {
-    testXpathWithNamespaces(new SdkVersion("1.5.0"));
-    testXpathWithNamespaces(DocumentTypeInfo.TEDEFO_1743_SINCE_SDK_VERSION);
+    testXpathWithNamespaces(new SdkVersion("1.8.0"));
   }
 
   private static void testXpathWithNamespaces(final SdkVersion sdkVersion)
@@ -41,7 +40,7 @@ public class XmlAndXpathTest {
     doc.appendChild(rootElement);
 
     // Add some test data.
-    final XPath xPathInst = PhysicalModel.setXmlNamespaces(docTypeInfo, rootElement, sdkVersion);
+    final XPath xPathInst = PhysicalModel.setXmlNamespaces(docTypeInfo, rootElement);
     rootElement.appendChild(doc.createElement("ext:UBLExtensions"));
     rootElement.appendChild(doc.createElement("cbc:CustomizationID"));
     logger.debug(EditorXmlUtils.asText(doc, true));
