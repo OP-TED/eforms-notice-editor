@@ -48,16 +48,21 @@ public abstract class SaveNoticeTest {
 
   static final String KEY_TYPE = "type";
 
-  static final String KEY_PARENT_NODE_ID = "parentNodeId";
-  static final String KEY_NODE_PARENT_ID = "parentId";
-  static final String KEY_NODE_ID = "id";
+  static final String KEY_NODE_PARENT_ID = FieldsAndNodes.NODE_PARENT_NODE_ID;
+  static final String KEY_NODE_ID = FieldsAndNodes.ID;
 
-  static final String KEY_XPATH_REL = "xpathRelative";
-  static final String KEY_XPATH_ABS = "xpathAbsolute";
+  static final String KEY_XPATH_REL = FieldsAndNodes.XPATH_RELATIVE;
+  static final String KEY_XPATH_ABS = FieldsAndNodes.XPATH_ABSOLUTE;
 
-  static final String KEY_FIELD_ID = "id";
-  static final String KEY_FIELD_REPEATABLE = "repeatable";
-  static final String KEY_NODE_REPEATABLE = "repeatable";
+  static final String KEY_ATTRIBUTE_OF = FieldsAndNodes.ATTRIBUTE_OF;
+  static final String KEY_ATTRIBUTE_NAME = FieldsAndNodes.ATTRIBUTE_NAME;
+  static final String KEY_ATTRIBUTES = FieldsAndNodes.ATTRIBUTES;
+  static final String KEY_PRESET_VALUE = FieldsAndNodes.PRESET_VALUE;
+
+  static final String KEY_FIELD_ID = FieldsAndNodes.ID;
+  static final String KEY_FIELD_PARENT_NODE_ID = FieldsAndNodes.FIELD_PARENT_NODE_ID;
+  static final String KEY_FIELD_REPEATABLE = FieldsAndNodes.FIELD_REPEATABLE;
+  static final String KEY_NODE_REPEATABLE = FieldsAndNodes.NODE_REPEATABLE;
   static final String KEY_VALUE = FieldsAndNodes.VALUE;
 
   static final String TYPE_DATE = "date";
@@ -129,7 +134,7 @@ public abstract class SaveNoticeTest {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(ConceptualModel.FIELD_ID_SDK_VERSION, field);
       field.put(KEY_FIELD_ID, ConceptualModel.FIELD_ID_SDK_VERSION);
-      field.put(KEY_PARENT_NODE_ID, ND_ROOT);
+      field.put(KEY_FIELD_PARENT_NODE_ID, ND_ROOT);
       field.put(KEY_XPATH_ABS, "/*/cbc:CustomizationID");
       field.put(KEY_XPATH_REL, "cbc:CustomizationID");
       field.put(KEY_TYPE, TYPE_ID);
@@ -139,19 +144,36 @@ public abstract class SaveNoticeTest {
       final ObjectNode field = mapper.createObjectNode();
       fieldById.put(ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE, field);
       field.put(KEY_FIELD_ID, ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE);
-      field.put(KEY_PARENT_NODE_ID, ND_ROOT_EXTENSION);
+      field.put(KEY_FIELD_PARENT_NODE_ID, ND_ROOT_EXTENSION);
       field.put(KEY_XPATH_ABS,
           "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension/efac:NoticeSubType/cbc:SubTypeCode");
       field.put(KEY_XPATH_REL, "efac:NoticeSubType/cbc:SubTypeCode");
       field.put(KEY_TYPE, TYPE_CODE);
+      field.set(
+          KEY_ATTRIBUTES,
+          JsonUtils.createArrayNode().add(ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE_LIST));
       SaveNoticeTest.fieldPutRepeatable(field, false);
       FieldsAndNodes.setFieldFlatCodeList(mapper, field, CODELIST_NOTICE_SUBTYPE);
     }
     {
       final ObjectNode field = mapper.createObjectNode();
+      fieldById.put(ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE_LIST, field);
+      field.put(KEY_FIELD_ID, ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE_LIST);
+      field.put(KEY_FIELD_PARENT_NODE_ID, ND_ROOT_EXTENSION);
+      field.put(KEY_XPATH_ABS,
+          "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension/efac:NoticeSubType/cbc:SubTypeCode/@listName");
+      field.put(KEY_XPATH_REL, "efac:NoticeSubType/cbc:SubTypeCode/@listName");
+      field.put(KEY_TYPE, TYPE_TEXT);
+      field.put(KEY_ATTRIBUTE_NAME, PhysicalModel.XML_ATTR_LIST_NAME);
+      field.put(KEY_ATTRIBUTE_OF, ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE);
+      field.put(KEY_PRESET_VALUE, CODELIST_NOTICE_SUBTYPE);
+      SaveNoticeTest.fieldPutRepeatable(field, false);
+    }
+    {
+      final ObjectNode field = mapper.createObjectNode();
       fieldById.put(ConceptualModel.FIELD_NOTICE_ID, field);
       field.put(KEY_FIELD_ID, ConceptualModel.FIELD_NOTICE_ID);
-      field.put(KEY_PARENT_NODE_ID, ND_ROOT);
+      field.put(KEY_FIELD_PARENT_NODE_ID, ND_ROOT);
       field.put(KEY_XPATH_ABS, "/*/cbc:ID[@schemeName='notice-id']");
       field.put(KEY_XPATH_REL, "cbc:ID[@schemeName='notice-id']");
       field.put(KEY_TYPE, TYPE_ID);
@@ -208,27 +230,31 @@ public abstract class SaveNoticeTest {
 
     final Map<String, JsonNode> documentInfoByType = DummySdk.buildDocInfoByType(sdkVersion);
 
+    // debug: Adds field ids in the XML, making it easier to test the output.
+    // It may also add several additional text files in the output to help debugging.
+    final boolean debug = true;
+
     //
     // BUILD CONCEPTUAL MODEL.
     //
     final FieldsAndNodes fieldsAndNodes = new FieldsAndNodes(fieldById, nodeById, sdkVersion);
-    final ConceptualModel conceptualModel = visModel.toConceptualModel(fieldsAndNodes);
+    final ConceptualModel conceptualModel = visModel.toConceptualModel(fieldsAndNodes, debug);
 
     //
     // BUILD PHYSICAL MODEL.
     //
-    final boolean debug = true; // Adds field ids in the XML, making it easier to test the output.
     final boolean buildFields = true;
+    final boolean sortXml = true;
 
     final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptualModel,
         fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields,
-        sdkRootFolder);
+        sdkRootFolder, sortXml);
 
     return physicalModel;
   }
 
   static void checkCommon(final String prefixedSdkVersion, final String noticeSubType,
-      final String xml) {
+      final String xml, final PhysicalModel physicalModel) {
 
     count(xml, 1, "encoding=\"UTF-8\"");
     contains(xml, " xmlns=");
@@ -243,6 +269,31 @@ public abstract class SaveNoticeTest {
     count(xml, 1, " editorFieldId=\"" + ConceptualModel.FIELD_ID_SDK_VERSION + "\">"
         + prefixedSdkVersion + "<");
 
+    // Search using xpath (more precise).
+
+    assertCount(physicalModel, 1, "/*/cbc:CustomizationID");
+
+    assertCount(physicalModel, 1,
+        "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension/efac:NoticeSubType/cbc:SubTypeCode");
+
+    assertCountAttr(physicalModel, 1,
+        "/*/ext:UBLExtensions/ext:UBLExtension/ext:ExtensionContent/efext:EformsExtension/efac:NoticeSubType/cbc:SubTypeCode/@listName");
+  }
+
+  public static void assertCount(final PhysicalModel pm, final int expectedCount,
+      final String xpathExpr) {
+    assertEquals(
+        expectedCount,
+        pm.evaluateXpathForTests(xpathExpr, xpathExpr).size(),
+        String.format("Expecting %d %s", expectedCount, xpathExpr));
+  }
+
+  public static void assertCountAttr(final PhysicalModel pm, final int expectedCount,
+      final String xpathExpr) {
+    assertEquals(
+        expectedCount,
+        pm.evaluateXpathForTestsAsNodeList(xpathExpr, xpathExpr).getLength(),
+        String.format("Expecting %d %s", expectedCount, xpathExpr));
   }
 
 }

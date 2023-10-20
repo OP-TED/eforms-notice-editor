@@ -32,12 +32,15 @@ public class EformsNoticeEditorApp implements CommandLineRunner {
   @Value("${eforms.sdk.versions}")
   private List<String> supportedSdks;
 
+  @Value("${eforms.sdk.autodownload}")
+  private boolean autoDownload;
+
   public static void main(final String[] args) {
     logger.info("STARTING eForms Notice Editor Demo Application");
     // See README.md on how to run server.
     // https://spring.io/guides/gs/serving-web-content/
 
-    // Here you have access to command line args.
+    // Here you have access to command line arguments.
     // logger.debug("args={}", Arrays.toString(args));
 
     SpringApplication.run(EformsNoticeEditorApp.class, args);
@@ -48,6 +51,19 @@ public class EformsNoticeEditorApp implements CommandLineRunner {
     Validate.notEmpty(eformsSdkDir, "Undefined eForms SDK path");
     Validate.notNull(supportedSdks, "Undefined supported SDK versions");
 
+    logger.info("SDK autoDownload: {}", autoDownload);
+    if (autoDownload) {
+      // This automatically downloads the supported officially SDKs.
+      // You can test any SDK (even release candidates) by doing a git clone and putting the SDK
+      // files manually inside the folder where it would normally be downloaded.
+      autoDownloadSupportedSdks();
+    } else {
+      logger.info(
+          "Not automatically downloading SDKs, put files manually or set autoDownload to true in application.yaml");
+    }
+  }
+
+  private void autoDownloadSupportedSdks() {
     for (final String sdkVersion : supportedSdks) {
       try {
         SdkDownloader.downloadSdk(new SdkVersion(sdkVersion), Path.of(eformsSdkDir));

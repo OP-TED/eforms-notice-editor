@@ -23,7 +23,7 @@ export class UIComponent extends DocumentFragment {
    * 
    * @param {import("./data-types.js").ProxiedNTDContent} content
    * @param {Number} level 
-   * @returns 
+   * @returns the appropriate sub-class based on the content-type of the passed content
    */
   static create(content, level) {
     switch (content?.contentType) {
@@ -35,15 +35,15 @@ export class UIComponent extends DocumentFragment {
     }
   }
 
-    /**
-     * Gets the element that corresponds to the given content-id and instance-number.
-     * 
-     * @param {String} contentId 
-     * @param {Number} instanceNumber 
-     */
-    static getElementByContentId(contentId, instanceNumber = 1) {
-      return document.getElementById(Identifiers.formatFormElementIdentifier(contentId, instanceNumber));
-    }
+  /**
+   * Gets the element that corresponds to the given content-id and instance-number.
+   * 
+   * @param {String} contentId 
+   * @param {Number} instanceNumber 
+   */
+  static getElementByContentId(contentId, instanceNumber = 1) {
+    return document.getElementById(Identifiers.formatFormElementIdentifier(contentId, instanceNumber));
+  }
 
   /**
    * 
@@ -78,6 +78,7 @@ export class UIComponent extends DocumentFragment {
 
     if (this.content.hidden || this.content.readOnly) {
       this.bodyElement.setAttribute("readonly", "readonly");
+      //this.bodyElement.setAttribute("disabled", "disabled");
       this.bodyElement.disabled = true;
     }
 
@@ -93,6 +94,10 @@ export class UIComponent extends DocumentFragment {
   
   get contentId() {
     return this.content?.id;
+  }
+
+  get displayType() {
+    return this.content?.displayType;
   }
 
   get instanceNumber() {
@@ -308,11 +313,11 @@ export class InputFieldElement extends UIComponent {
    */
   static create(content, level) {
     switch (content.displayType) {
-      case "CHECKBOX": return new CheckBoxInputElement(content, level);
-      case "COMBOBOX": return new ComboBoxInputElement(content, level); 
-      case "RADIO": return new RadioInputElement(content, level); 
-      case "TEXTAREA": return new TextAreaInputElement(content, level);
-      case "TEXTBOX": return new TextBoxInputElement(content, level); 
+      case Constants.DisplayType.CHECKBOX: return new CheckBoxInputElement(content, level);
+      case Constants.DisplayType.COMBOBOX: return new ComboBoxInputElement(content, level); 
+      case Constants.DisplayType.RADIO: return new RadioInputElement(content, level); 
+      case Constants.DisplayType.TEXTAREA: return new TextAreaInputElement(content, level);
+      case Constants.DisplayType.TEXTBOX: return new TextBoxInputElement(content, level); 
     }
   }
 

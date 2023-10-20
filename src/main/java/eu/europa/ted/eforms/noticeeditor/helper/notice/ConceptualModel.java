@@ -6,22 +6,30 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.Validate;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import eu.europa.ted.eforms.noticeeditor.util.GraphvizDotTool;
 import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
+import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
- * The conceptual model (CM) is an intermediary model that is between the visual and the physical
- * model. It holds a tree made of conceptual node and conceptual field instances.
+ * <h1>The Conceptual Model (CM)</h1>
+ *
+ * <p>
+ * An intermediary model that is between the visual and the physical model for the given notice
+ * data. It holds a tree made of conceptual node and conceptual field instances.
+ * </p>
+ *
  * <p>
  * In this model the tree items must reference SDK nodes or fields so that SDK metadata can be
  * retrieved!
  * </p>
+ *
  * <p>
  * There are no tree items which do not point to SDK field or node, so if a visual group is not
- * pointing to a node all the children must be moved to the closes parent which points to a node in
- * the conceptual hierarchy. In other words this is one step closer to the physical representation.
+ * pointing to a node all the children must be moved to the closest parent which points to a node in
+ * the conceptual hierarchy. In other words this is one step closer to the physical model.
  * </p>
  */
 public class ConceptualModel {
@@ -38,6 +46,11 @@ public class ConceptualModel {
    * Notice field id having the notice sub type as a value.
    */
   public static final String FIELD_ID_NOTICE_SUB_TYPE = "OPP-070-notice";
+
+  /**
+   * Notice field id defining the notice sub type list attribute.
+   */
+  public static final String FIELD_ID_NOTICE_SUB_TYPE_LIST = "OPP-070-notice-List";
 
   /**
    * Sector of activity.
@@ -74,11 +87,14 @@ public class ConceptualModel {
   public final String getNoticeSubType() {
     // HARDCODED LOGIC.
     final List<ConceptTreeNode> conceptNodes = treeRootNode.getConceptNodes();
+    Validate.notEmpty(conceptNodes, "conceptNodes list is empty!");
+
     final Optional<ConceptTreeNode> rootExtOpt = conceptNodes.stream()
         .filter(item -> ND_ROOT_EXTENSION.equals(item.getNodeId())).findFirst();
     if (rootExtOpt.isEmpty()) {
       throw new RuntimeException(String.format("Conceptual model: Expecting to find root extension "
-          + "in conceptual model! Missing important nodeId=%s", ND_ROOT_EXTENSION));
+          + "in conceptual model! Missing important nodeId=%s, conceptNodes=%s", ND_ROOT_EXTENSION,
+          conceptNodes));
     }
 
     final ConceptTreeNode rootExtension = rootExtOpt.get();
@@ -94,7 +110,13 @@ public class ConceptualModel {
 
   @Override
   public String toString() {
-    return "ConceptualModel [rootNode=" + treeRootNode + "]";
+    try {
+      return JsonUtils.getStandardJacksonObjectMapper()
+          .writerWithDefaultPrettyPrinter()
+          .writeValueAsString(this.treeRootNode);
+    } catch (JsonProcessingException ex) {
+      throw new RuntimeException(ex);
+    }
   }
 
   /**
@@ -127,7 +149,7 @@ public class ConceptualModel {
       // Visualizing it can help understand how it works or find problems.
       final boolean includeFields = true;
       final String dotText = this.toDot(fieldsAndNodes, includeFields);
-      final Path pathToFolder = Path.of("target/dot/");
+      final Path pathToFolder = Path.of("target", "dot");
       Files.createDirectories(pathToFolder);
       final Path pathToFile = pathToFolder.resolve(this.getNoticeSubType() + "-concept.dot");
       JavaTools.writeTextFile(pathToFile, dotText);
@@ -158,9 +180,7 @@ public class ConceptualModel {
 
       final String childId = childNode.getIdUnique() + "_" + childNode.getNodeId();
       GraphvizDotTool.appendEdge("", color,
-
           cnIdUnique, childId, // concept node -> concept node
-
           sb);
 
       toDotRec(fieldsAndNodes, sb, childNode, includeFields);
@@ -171,9 +191,7 @@ public class ConceptualModel {
       // This makes the tree a lot more bushy and can be hard to read.
       for (final ConceptTreeField cf : cn.getConceptFields()) {
         GraphvizDotTool.appendEdge(edgeLabel, GraphvizDotTool.COLOR_BLUE,
-
             cnIdUnique, cf.getIdUnique() + "=" + cf.getValue(), // node -> field
-
             sb);
       }
     }

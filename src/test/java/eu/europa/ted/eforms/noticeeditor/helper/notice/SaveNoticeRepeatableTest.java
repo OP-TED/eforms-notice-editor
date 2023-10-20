@@ -149,16 +149,16 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
       node.put(KEY_NODE_PARENT_ID, ND_ROOT);
       node.put(KEY_XPATH_ABS, "/*/a");
       node.put(KEY_XPATH_REL, "a");
-      SaveNoticeTest.fieldPutRepeatable(node, false);
+      SaveNoticeTest.nodePutRepeatable(node, true);
     }
     {
       final ObjectNode node = mapper.createObjectNode();
       nodeById.put(ND_B, node);
       node.put(KEY_NODE_ID, ND_B);
-      node.put(KEY_NODE_PARENT_ID, ND_ROOT);
+      node.put(KEY_NODE_PARENT_ID, ND_A);
       node.put(KEY_XPATH_ABS, "/*/a/b");
       node.put(KEY_XPATH_REL, "b");
-      SaveNoticeTest.fieldPutRepeatable(node, false);
+      SaveNoticeTest.nodePutRepeatable(node, true);
     }
     return Collections.unmodifiableMap(nodeById);
   }
@@ -176,7 +176,7 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     final ObjectNode field = mapper.createObjectNode();
     fieldById.put(BT_FIELD_DUMMY_C_REP, field);
     field.put(KEY_FIELD_ID, BT_FIELD_DUMMY_C_REP);
-    field.put(KEY_PARENT_NODE_ID, ND_B);
+    field.put(KEY_FIELD_PARENT_NODE_ID, ND_B);
     field.put(KEY_XPATH_ABS, "/*/a/b/c");
     field.put(KEY_XPATH_REL, "c");
     field.put(KEY_TYPE, TYPE_TEXT);
@@ -188,10 +188,10 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
   @Test
   public final void test() throws ParserConfigurationException, IOException, SAXException {
     final ObjectMapper mapper = new ObjectMapper();
-    // A dummy 1.8.0, not real 1.8.0
-    final SdkVersion sdkVersion = new SdkVersion("1.8.0");
+    // A dummy 1.9.0, not real 1.9.0
+    final SdkVersion sdkVersion = new SdkVersion("1.9.0");
     final String prefixedSdkVersion = VersionHelper.prefixSdkVersionWithoutPatch(sdkVersion);
-    final String noticeSubType = "X02"; // A dummy X02, not the real X02 of 1.8.0
+    final String noticeSubType = "X02"; // A dummy X02, not the real X02 of the SDK
 
     final VisualModel visualModel = setupVisualModel(mapper, sdkVersion, noticeSubType);
 
@@ -202,21 +202,19 @@ public class SaveNoticeRepeatableTest extends SaveNoticeTest {
     final String xml = physicalModel.toXmlText(false); // Not indented to avoid line breaks.
     logger.info(physicalModel.toXmlText(true));
 
-    // IDEA it would be more maintainable to use xpath to check the XML instead of pure text.
-    // physicalModel.evaluateXpathForTests("/", "test2");
-
-    checkCommon(prefixedSdkVersion, noticeSubType, xml);
-
-    count(xml, 1, "<cbc:CustomizationID");
-    count(xml, 1, "<cbc:SubTypeCode");
+    checkCommon(prefixedSdkVersion, noticeSubType, xml, physicalModel);
 
     // Verify repeatable nodes at top level.
     count(xml, 2, "<a");
     count(xml, 2, "editorNodeId=\"ND_A\"");
+    assertCount(physicalModel, 2, "//*[local-name()='a']");
 
     // Verify nested repeatable nodes.
     count(xml, 3, "<b"); // 3 in total
     count(xml, 3, "editorNodeId=\"ND_B\""); // 3 in total
+    assertCount(physicalModel, 3, "//*[local-name()='b']");
+    assertCount(physicalModel, 3, "//*[local-name()='a']/*[local-name()='b']"); // Checks nesting.
+
     count(xml, 2, "editorCounterSelf=\"1\" editorNodeId=\"ND_B\"");
     count(xml, 1, "editorCounterSelf=\"2\" editorNodeId=\"ND_B\"");
     count(xml, 1, "<b editorCounterSelf=\"1\" editorNodeId=\"ND_B\">");

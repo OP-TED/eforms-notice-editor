@@ -67,6 +67,7 @@ export class NoticeReader {
 
         var xmlText = await this.#read(xmlFile);
         NoticeReader.instance.#parse(xmlText);
+        console.debug("customizationID=" + NoticeReader.customizationID);
         Context.raiseNoticeLoaded(xmlText, NoticeReader.customizationID?.replace("eforms-sdk-",""), NoticeReader.noticeSubtype); 
     }
 

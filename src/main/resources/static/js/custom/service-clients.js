@@ -1,4 +1,3 @@
-
 /**
  * Client for the back-end SdkService.
  * 
