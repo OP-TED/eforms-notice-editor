@@ -44,6 +44,7 @@ import eu.europa.ted.eforms.noticeeditor.domain.Language;
 import eu.europa.ted.eforms.noticeeditor.genericode.CustomGenericodeMarshaller;
 import eu.europa.ted.eforms.noticeeditor.genericode.GenericodeTools;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
+import eu.europa.ted.eforms.noticeeditor.helper.VersionHelper;
 import eu.europa.ted.eforms.noticeeditor.util.IntuitiveStringComparator;
 import eu.europa.ted.eforms.noticeeditor.util.JavaTools;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
@@ -80,8 +81,6 @@ public class SdkService {
   static final String SDK_NOTICE_TYPES_JSON = "notice-types.json";
   static final String SDK_FIELDS_JSON = "fields.json";
   static final String SDK_CODELISTS_JSON = "codelists.json";
-
-  public static final String ND_ROOT = "ND-Root";
 
   /**
    * The number of seconds in one hour.
@@ -167,8 +166,8 @@ public class SdkService {
 
   private static Optional<Value> gcFindFirstColumnRef(final Collection<Value> gcRowValues,
       final String columnRefText) {
-    return gcRowValues.stream()//
-        .filter(v -> ((Column) v.getColumnRef()).getId().equals(columnRefText))//
+    return gcRowValues.stream()
+        .filter(v -> ((Column) v.getColumnRef()).getId().equals(columnRefText))
         .findFirst();
   }
 
@@ -217,11 +216,12 @@ public class SdkService {
     map.put("appVersion", EformsNoticeEditorApp.APP_VERSION);
 
     // Load available sdk versions. They will be listed in the UI.
-    map.put("sdkVersions", supportedSdks.stream()//
-        .map(SdkVersion::toStringWithoutPatch)//
-        .sorted(new IntuitiveStringComparator<>())//
-        .sorted(Collections.reverseOrder())//
-        .collect(Collectors.toList()));
+    map.put(
+        "sdkVersions", supportedSdks.stream()
+            .map(SdkVersion::toStringWithoutPatch)
+            .sorted(new IntuitiveStringComparator<>())
+            .sorted(Collections.reverseOrder())
+            .collect(Collectors.toList()));
 
     logger.info("Fetching home info: DONE");
     return map;
@@ -240,13 +240,13 @@ public class SdkService {
       final List<String> availableNoticeTypes = JavaTools.listFiles(
           SdkResourceLoader.getResourceAsPath(sdkVersion, SdkResource.NOTICE_TYPES, eformsSdkDir));
 
-      final List<String> noticeTypes = availableNoticeTypes.stream()//
+      final List<String> noticeTypes = availableNoticeTypes.stream()
           // Remove some files.
-          .filter(filename -> filename.endsWith(".json")//
-              && !SDK_NOTICE_TYPES_JSON.equals(filename))//
+          .filter(filename -> filename.endsWith(".json")
+              && !SDK_NOTICE_TYPES_JSON.equals(filename))
           // Remove extension.
-          .map(filename -> filename.substring(0, filename.lastIndexOf('.')))//
-          .sorted(new IntuitiveStringComparator<>())//
+          .map(filename -> filename.substring(0, filename.lastIndexOf('.')))
+          .sorted(new IntuitiveStringComparator<>())
           .collect(Collectors.toList());
 
       map.put("noticeTypes", noticeTypes);
@@ -400,14 +400,14 @@ public class SdkService {
   }
 
   /**
-   * Sdk resouce as a Path.
+   * SDK resouce as a Path.
    */
   public Path readSdkPath(final SdkVersion sdkVersion, final PathResource resourceType,
       final String filenameForDownload) {
     Validate.notNull(sdkVersion, "SDK version is null");
     // For the moment the way the folders work is that the folder "1.1.2" would be in folder "1.1",
     // if "1.1.3" exists it would overwrite "1.1.2", but the folder would still be "1.1".
-    final String sdkVersionNoPatch = sdkVersion.getMajor() + "." + sdkVersion.getMinor();
+    final String sdkVersionNoPatch = VersionHelper.buildSdkVersionWithoutPatch(sdkVersion);
     return SdkResourceLoader.getResourceAsPath(new SdkVersion(sdkVersionNoPatch), resourceType,
         filenameForDownload, Path.of(eformsSdkPath));
   }
@@ -574,4 +574,5 @@ public class SdkService {
   public Path getSdkRootFolder() {
     return Path.of(this.eformsSdkPath);
   }
+
 }

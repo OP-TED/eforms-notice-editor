@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -26,6 +25,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import com.fasterxml.jackson.databind.JsonNode;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
+import eu.europa.ted.eforms.noticeeditor.helper.VersionHelper;
 import eu.europa.ted.eforms.noticeeditor.sorting.NoticeXmlTagSorter;
 import eu.europa.ted.eforms.noticeeditor.util.EditorXmlUtils;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
@@ -47,15 +47,9 @@ public class PhysicalModel {
 
   private static final Logger logger = LoggerFactory.getLogger(PhysicalModel.class);
 
-  private static final String CBC_CUSTOMIZATION_ID = "cbc:CustomizationID";
+  public static final String CBC_CUSTOMIZATION_ID = "cbc:CustomizationID";
   private static final String CBC_ID = "cbc:ID"; // Notice id, related to BT-701-notice.
   private static final String XMLNS = "xmlns";
-
-  /**
-   * The same prefix is used in the fields.json but technically nothing ensures this will remain
-   * like that.
-   */
-  public static final String EFORMS_SDK_PREFIX = "eforms-sdk-";
 
   /**
    * A special case that we have to solve. HARDCODED. TODO
@@ -88,7 +82,7 @@ public class PhysicalModel {
   private final Optional<Path> mainXsdPathOpt;
 
   /**
-   * @param document W3C DOM document
+   * @param document W3C DOM document representing the notice XML
    * @param xpathInst Used for xpath evaluation
    * @param fieldsAndNodes Holds SDK field and node metadata
    * @param mainXsdPathOpt Path to the main XSD file to use, may be empty if the feature is not
@@ -97,6 +91,11 @@ public class PhysicalModel {
   public PhysicalModel(final Document document, final XPath xpathInst,
       final FieldsAndNodes fieldsAndNodes, final Optional<Path> mainXsdPathOpt) {
     this.domDocument = document;
+
+    // You may have the patch until this point, which could help debug the application.
+    // But before the XML is written the patch version is removed.
+    this.setSdkVersionWithoutPatch(getSdkVersion());
+
     this.fieldsAndNodes = fieldsAndNodes;
     this.xpathInst = xpathInst;
     this.mainXsdPathOpt = mainXsdPathOpt;
@@ -124,11 +123,20 @@ public class PhysicalModel {
     return UUID.fromString(text);
   }
 
+  public final void setSdkVersionWithoutPatch(final SdkVersion sdkVersion) {
+    final Node xmlElem = getSdkVersionElement();
+    xmlElem.setTextContent(VersionHelper.prefixSdkVersionWithoutPatch(sdkVersion));
+  }
+
   public SdkVersion getSdkVersion() {
-    final Node jsonNode = this.domDocument.getElementsByTagName(CBC_CUSTOMIZATION_ID).item(0);
-    Validate.notNull(jsonNode, "The physical model SDK version cannot be found!");
+    final Node jsonNode = getSdkVersionElement();
+    Validate.notNull(jsonNode, "The physical model SDK version element cannot be found!");
     final String text = jsonNode.getTextContent();
-    return new SdkVersion(text.substring(EFORMS_SDK_PREFIX.length()));
+    return VersionHelper.parsePrefixedSdkVersion(text);
+  }
+
+  private Node getSdkVersionElement() {
+    return this.domDocument.getElementsByTagName(CBC_CUSTOMIZATION_ID).item(0);
   }
 
   /**
@@ -183,7 +191,8 @@ public class PhysicalModel {
   public static PhysicalModel buildPhysicalModel(final ConceptualModel conceptModel,
       final FieldsAndNodes fieldsAndNodes, final Map<String, JsonNode> noticeInfoBySubtype,
       final Map<String, JsonNode> documentInfoByType, final boolean debug,
-      final boolean buildFields, final Path sdkRootFolder)
+      final boolean buildFields,
+      final Path sdkRootFolder)
       throws ParserConfigurationException, SAXException, IOException {
 
     logger.info("Attempting to build physical model.");
@@ -207,8 +216,7 @@ public class PhysicalModel {
 
     // TEDEFO-1426
     // For the moment do as if it was there.
-    final XPath xpathInst =
-        setXmlNamespaces(docTypeInfo, xmlDocRoot, fieldsAndNodes.getSdkVersion());
+    final XPath xpathInst = setXmlNamespaces(docTypeInfo, xmlDocRoot);
 
     // Attempt to put schemeName first.
     // buildPhysicalModelXmlRec(fieldsAndNodes, doc, concept.getRoot(), rootElem, debug,
@@ -227,8 +235,12 @@ public class PhysicalModel {
         buildFields, depth, onlyIfPriority, xpathInst);
 
     // Reorder the physical model.
+    // The location of the XSDs is given in the SDK and could vary by SDK version.
+    final SdkVersion sdkVersion = fieldsAndNodes.getSdkVersion();
+    final Path pathToSpecificSdk = sdkRootFolder.resolve(sdkVersion.toStringWithoutPatch());
     final NoticeXmlTagSorter sorter =
-        new NoticeXmlTagSorter(safeDocBuilder, xpathInst, docTypeInfo, sdkRootFolder);
+        new NoticeXmlTagSorter(xpathInst, docTypeInfo, pathToSpecificSdk,
+            fieldsAndNodes);
     sorter.sortXml(xmlDocRoot);
 
     final Optional<Path> mainXsdPathOpt = sorter.getMainXsdPathOpt();
@@ -272,13 +284,13 @@ public class PhysicalModel {
 
     // FIELDS.
     for (final ConceptTreeField conceptField : conceptElem.getConceptFields()) {
-      buildFields(doc, fieldsAndNodes, conceptField, xpathInst, xmlNodeElem, debug, depth,
+      buildFields(doc, fieldsAndNodes, conceptField, xmlNodeElem, debug, depth,
           onlyIfPriority, buildFields);
     }
 
     // if (debug) {
     // Display the XML steps:
-    // System out is used here because it is more readable than the logger lines.
+    // System out is used here because it is more readable than the logger lines in the console.
     // This is not a replacement for logger.debug(...)
     // System.out.println("");
     // System.out.println(EditorXmlUtils.asText(doc, true));
@@ -311,11 +323,11 @@ public class PhysicalModel {
     final String nodeId = conceptNode.getNodeId();
     final JsonNode nodeMeta = fieldsAndNodes.getNodeById(nodeId);
 
-    // If a field or node is repeatable, the the XML element to repeat is the first XML
+    // If a field or node is repeatable, then the XML element to repeat is the first XML
     // element in the xpathRelative.
     final boolean nodeMetaRepeatable = FieldsAndNodes.isNodeRepeatableStatic(nodeMeta);
 
-    final String xpathRel = getTextStrict(nodeMeta, NODE_XPATH_RELATIVE);
+    final String xpathRel = getTextStrict(nodeMeta, NODE_XPATH_RELATIVE); // "xpathRelative"
     Element previousElem = xmlNodeElem;
     Element partElem = null;
 
@@ -333,6 +345,12 @@ public class PhysicalModel {
       System.out.println(depthStr + " NODE PARTS SIZE: " + xpathParts.size());
       System.out.println(depthStr + " NODE PARTS: " + listToString(xpathParts));
     }
+
+    // In SDK 1.9:
+    // "id" : "OPT-060-Lot"
+    // /cac:ContractExecutionRequirement[cbc:ExecutionRequirementCode/@listName='conditions']
+    // /cbc:ExecutionRequirementCode"
+    // "id" : "OPT-060-Lot-List" is the attribute
 
     for (final String xpathPart : xpathParts) {
       Validate.notBlank(xpathPart, "partXpath is blank for nodeId=%s, xmlNodeElem=%s", nodeId,
@@ -366,6 +384,7 @@ public class PhysicalModel {
 
         // Node is a w3c dom node, nothing to do with the SDK node.
         final Node xmlNode = foundElements.item(0);
+        System.out.println(depthStr + " " + "Found elements: " + foundElements.getLength());
         if (Node.ELEMENT_NODE == xmlNode.getNodeType()) {
           // An existing element was found, reuse it.
           partElem = (Element) xmlNode;
@@ -430,7 +449,7 @@ public class PhysicalModel {
    * @param buildFields If false it will abort (only exists to simplify the code elsewhere)
    */
   private static void buildFields(final Document doc, final FieldsAndNodes fieldsAndNodes,
-      final ConceptTreeField conceptField, final XPath xpathInst, final Element xmlNodeElem,
+      final ConceptTreeField conceptField, final Element xmlNodeElem,
       final boolean debug, final int depth, final boolean onlyIfPriority,
       final boolean buildFields) {
 
@@ -456,11 +475,11 @@ public class PhysicalModel {
     // IMPORTANT: !!! The relative xpath of fields can contain intermediary xml elements !!!
     // Example: "cac:PayerParty/cac:PartyIdentification/cbc:ID" contains more than just the field.
     // These intermediary elements are very simple items and have no nodeId.
-    final String xpathRel = getTextStrict(fieldMeta, FIELD_XPATH_RELATIVE);
+    final String xpathRel = getTextStrict(fieldMeta, FIELD_XPATH_RELATIVE); // "xpathRelative"
 
-    // If a field or node is repeatable, the the XML element to repeat is the first XML
+    // If a field or node is repeatable, the XML element to repeat is the first XML
     // element in the xpathRelative.
-    final boolean fieldMetaRepeatable = FieldsAndNodes.isFieldRepeatableStatic(fieldMeta);
+    // final boolean fieldMetaRepeatable = FieldsAndNodes.isFieldRepeatableStatic(fieldMeta);
 
     Element previousElem = xmlNodeElem;
     Element partElem = null;
@@ -478,8 +497,6 @@ public class PhysicalModel {
 
       final PhysicalXpathPart px = handleXpathPart(partXpath);
       final Optional<String> schemeNameOpt = px.getSchemeNameOpt();
-      final Optional<String> xpathExprOpt =
-          fieldMetaRepeatable ? Optional.empty() : Optional.of(px.getXpathExpr());
       final String tagOrAttr = px.getTagOrAttribute();
 
       // In this case the field is an attribute of a field in the XML, technically this makes a
@@ -489,50 +506,23 @@ public class PhysicalModel {
       // XML.
       final boolean isAttribute = tagOrAttr.startsWith("@") && tagOrAttr.length() > 1;
 
-      final Optional<NodeList> foundElementsOpt = !isAttribute && xpathExprOpt.isPresent()
-          ? Optional.of(XmlUtils.evaluateXpathAsNodeList(xpathInst, previousElem,
-              xpathExprOpt.get(), fieldId))
-          : Optional.empty();
-
-      if (foundElementsOpt.isPresent() && foundElementsOpt.get().getLength() > 0) {
-        final NodeList foundElements = foundElementsOpt.get();
-        assert foundElements.getLength() == 1 : "foundElements length != 1";
-
-        // One or more pre-existing XML items were found. Try to reuse.
-        final Node xmlNode;
-        if (foundElements.getLength() > 1) {
-          xmlNode = foundElements.item(0); // Which? 0, 1, ...???
-          logger.warn("  FOUND MULTIPLE ELEMENTS for: {}", fieldId);
-        } else {
-          xmlNode = foundElements.item(0);
-        }
-
-        // Node is a w3c dom node, nothing to do with SDK node.
-        if (Node.ELEMENT_NODE == xmlNode.getNodeType()) {
-          // An existing element was found, reuse it.
-          partElem = (Element) xmlNode;
-        } else {
-          throw new RuntimeException(String.format("NodeType=%s not an Element", xmlNode));
-        }
-
+      // NOTE: for the field relative xpath we want to build the all the elements (no reuse).
+      if (isAttribute) {
+        // Set attribute on previous element.
+        // Example:
+        // @listName or @currencyID
+        // In the case we cannot create a new XML element.
+        // We have to add this attribute to the previous element.
+        logger.debug(depthStr + " Creating attribute=" + tagOrAttr);
+        previousElem.setAttribute(tagOrAttr.substring(1), value); // SIDE-EFFECT!
+        // partElem = ... NO we do not want to reassign the partElem. This ensures that after we
+        // exit the loop the partElem still points to the last XML element.
+        // We also cannot set an attribute on an attribute!
       } else {
-        if (isAttribute) {
-          // Set attribute on previous element.
-          // Example:
-          // @listName or @currencyID
-          // In the case we cannot create a new XML element.
-          // We have to add this attribute to the previous element.
-          logger.debug(depthStr + " Creating attribute=" + tagOrAttr);
-          previousElem.setAttribute(tagOrAttr.substring(1), value); // SIDE-EFFECT!
-          // partElem = ... NO we do not want to reassign the partElem. This ensures that after we
-          // exit the loop the partElem still points to the last XML element.
-          // We also cannot set an attribute on an attribute!
-        } else {
-          // Create an XML element.
-          logger.debug(depthStr + " Creating tag=" + tagOrAttr);
-          partElem = createElemXml(doc, tagOrAttr);
-          partElem.setAttribute(attrTemp, attrTemp);
-        }
+        // Create an XML element.
+        logger.debug(depthStr + " Creating tag=" + tagOrAttr);
+        partElem = createElemXml(doc, tagOrAttr);
+        partElem.setAttribute(attrTemp, attrTemp);
       }
 
       // This check is to avoid a problem with attributes.
@@ -649,7 +639,7 @@ public class PhysicalModel {
    * @return XPath instance with prefix to namespace awareness
    */
   public static XPath setXmlNamespaces(final DocumentTypeInfo docTypeInfo,
-      final Element rootElement, final SdkVersion sdkVersion) {
+      final Element rootElement) {
     Validate.notNull(rootElement);
 
     final String namespaceUriRoot = docTypeInfo.getNamespaceUri();
@@ -660,23 +650,10 @@ public class PhysicalModel {
     //
     rootElement.setAttribute(XMLNS, namespaceUriRoot);
 
-    final Map<String, String> map;
-    if (sdkVersion.compareTo(new SdkVersion("1.6")) >= 0) {
-      // Since SDK 1.6.0 the SDK provides this information (TEDEFO-1744).
-      // If these namespaces evolve they could start to differ by SDK version.
-      // This is why they have been moved to the SDK metadata.
-      map = docTypeInfo.buildAdditionalNamespaceUriByPrefix();
-    } else {
-      // Pre SDK 1.6.0 logic:
-      map = new LinkedHashMap<>();
-      map.put("xsi", XMLConstants.W3C_XML_SCHEMA_NS_URI);
-      map.put("cbc", "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2");
-      map.put("cac", "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2");
-      map.put("efext", "http://data.europa.eu/p27/eforms-ubl-extensions/1");
-      map.put("efac", "http://data.europa.eu/p27/eforms-ubl-extension-aggregate-components/1");
-      map.put("efbc", "http://data.europa.eu/p27/eforms-ubl-extension-basic-components/1");
-      map.put("ext", "urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2");
-    }
+    // Since SDK 1.6.0 the SDK provides this information (TEDEFO-1744).
+    // If these namespaces evolve they could start to differ by SDK version.
+    // This is why they have been moved to the SDK metadata.
+    final Map<String, String> map = docTypeInfo.buildAdditionalNamespaceUriByPrefix();
 
     final String xmlnsUri = XMLConstants.XMLNS_ATTRIBUTE_NS_URI;
     for (final Entry<String, String> entry : map.entrySet()) {
@@ -725,6 +702,7 @@ public class PhysicalModel {
       // HARDCODED
       // TODO This is a TEMPORARY FIX until we have a proper solution inside of the SDK. National is
       // only indirectly described by saying not EU, but the text itself is not given.
+      // NOTE: SDK 1.9 will be the solution to this.
 
       // Example:
       // "xpathAbsolute" : "/*/cac:BusinessParty/cac:PartyLegalEntity/cbc:CompanyID[@schemeName =

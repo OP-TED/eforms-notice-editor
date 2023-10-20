@@ -27,15 +27,6 @@ public class DocumentTypeInfo {
   private final List<DocumentTypeNamespace> additionalNamespaces;
   private final SdkVersion sdkVersion;
 
-  /**
-   * The schemaLocation and additionalNamespaces are available since version 1.6
-   *
-   * <p>
-   * TEDEFO-1743 and TEDEFO-1744.
-   * </p>
-   */
-  public static final SdkVersion TEDEFO_1743_SINCE_SDK_VERSION = new SdkVersion("1.6");
-
   public DocumentTypeInfo(final JsonNode jsonParam, final SdkVersion sdkVersion) {
     Validate.notNull(jsonParam, "jsonParam of document type is null");
 
@@ -48,11 +39,7 @@ public class DocumentTypeInfo {
     this.rootElementType =
         JsonUtils.getTextStrict(jsonItem, SdkConstants.NOTICE_TYPES_JSON_ROOT_ELEMENT_KEY);
 
-    if (sdkVersion.compareTo(TEDEFO_1743_SINCE_SDK_VERSION) >= 0) {
-      this.xsdPathInSdkOpt = Optional.of(JsonUtils.getTextStrict(jsonItem, "schemaLocation"));
-    } else {
-      this.xsdPathInSdkOpt = Optional.empty();
-    }
+    this.xsdPathInSdkOpt = Optional.of(JsonUtils.getTextStrict(jsonItem, "schemaLocation"));
     this.additionalNamespaces = new ArrayList<>(parseAdditionalNamespaces(jsonItem));
   }
 

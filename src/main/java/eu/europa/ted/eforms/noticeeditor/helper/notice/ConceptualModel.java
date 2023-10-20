@@ -71,11 +71,11 @@ public class ConceptualModel {
     return treeRootNode;
   }
 
-  public String getNoticeSubType() {
+  public final String getNoticeSubType() {
     // HARDCODED LOGIC.
     final List<ConceptTreeNode> conceptNodes = treeRootNode.getConceptNodes();
     final Optional<ConceptTreeNode> rootExtOpt = conceptNodes.stream()
-        .filter(item -> item.getNodeId().equals(ND_ROOT_EXTENSION)).findFirst();
+        .filter(item -> ND_ROOT_EXTENSION.equals(item.getNodeId())).findFirst();
     if (rootExtOpt.isEmpty()) {
       throw new RuntimeException(String.format("Conceptual model: Expecting to find root extension "
           + "in conceptual model! Missing important nodeId=%s", ND_ROOT_EXTENSION));
@@ -83,7 +83,7 @@ public class ConceptualModel {
 
     final ConceptTreeNode rootExtension = rootExtOpt.get();
     final Optional<ConceptTreeField> noticeSubTypeOpt = rootExtension.getConceptFields().stream()
-        .filter(item -> item.getFieldId().equals(FIELD_ID_NOTICE_SUB_TYPE)).findFirst();
+        .filter(item -> FIELD_ID_NOTICE_SUB_TYPE.equals(item.getFieldId())).findFirst();
     if (noticeSubTypeOpt.isEmpty()) {
       throw new RuntimeException(String.format(
           "Concept model: Expecting to find notice sub type field! Missing important fieldId=%s",
@@ -119,6 +119,8 @@ public class ConceptualModel {
   /**
    * Write dot graph file for debugging purposes.
    */
+  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+      value = "EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS", justification = "Ok here")
   public void writeDotFile(final FieldsAndNodes fieldsAndNodes) {
     try {
       // Generate dot file for the conceptual model.
