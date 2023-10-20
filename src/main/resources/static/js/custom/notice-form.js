@@ -424,7 +424,7 @@ export class TextBoxInputElement extends InputFieldElement {
     const input = document.createElement("input");
     input.setAttribute("type", "text");
     
-    const presetValue = this.content.presetValue;
+    const presetValue = this.content._presetValue;
     if (presetValue) {
       input.value = presetValue;
     }
@@ -453,7 +453,7 @@ export class CheckBoxInputElement extends InputFieldElement {
     const input = document.createElement("input");
     input.setAttribute("type", "checkbox");
     
-    const presetValue = this.content.presetValue;
+    const presetValue = this.content._presetValue;
     if (presetValue && presetValue === key) {
       input.setAttribute("checked", "checked");
     }
@@ -496,7 +496,7 @@ export class RadioInputElement extends InputFieldElement {
     labelElement.textContent = label;
     labelElement.appendChild(radioButtonElement);
     
-    const presetValue = this.content.presetValue;
+    const presetValue = this.content._presetValue;
     if (presetValue && presetValue === key) {
       radioButtonElement.setAttribute("checked", "checked");
     }
@@ -529,7 +529,7 @@ export class ComboBoxInputElement extends InputFieldElement {
       this.bodyElement.appendChild(this.createOption(item[0], item[1]));
     }
     
-    const presetValue = this.content.presetValue;
+    const presetValue = this.content._presetValue;
     if (presetValue) {
       this.select(presetValue);
     }
@@ -576,7 +576,7 @@ export class TextAreaInputElement extends InputFieldElement {
     const bodyElement = document.createElement("textarea");
     bodyElement.setAttribute("rows", "2");
     
-    const presetValue = this.content.presetValue;
+    const presetValue = this.content._presetValue;
     if (presetValue) {
       bodyElement.value = presetValue;
     }
