@@ -8,7 +8,7 @@
   <version>0.0.1-SNAPSHOT</version>
 
   <name>eForms notice editor demo</name>
-  <description>Demo project for Spring Boot</description>
+  <description>The eForms notice editor demo, demonstrates use of the SDK</description>
   <packaging>jar</packaging>
 
   <url>https://docs.ted.europa.eu/eforms/latest/</url>
@@ -47,7 +47,7 @@
     <maven.compiler.target>${java.version}</maven.compiler.target>
 
     <!-- Versions - eForms -->
-    <version.eforms-core>1.0.0</version.eforms-core>
+    <version.eforms-core>1.0.5</version.eforms-core>
 
     <!-- Versions - Third-party libraries -->
     <version.xml.bind-api>2.3.3</version.xml.bind-api>
@@ -317,6 +317,11 @@
       <artifactId>spring-boot</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-aop</artifactId>
       <scope>runtime</scope>
@@ -347,6 +352,7 @@
       <artifactId>spring-webmvc</artifactId>
       <scope>runtime</scope>
     </dependency>
+
 
     <!-- Other -->
     <dependency>
@@ -390,7 +396,6 @@
         </exclusion>
       </exclusions>
     </dependency>
-
   </dependencies>
 
   <build>
