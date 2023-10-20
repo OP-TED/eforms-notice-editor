@@ -32,7 +32,7 @@ xml:
        # Generates extra XML attributes for human readability, but makes the XML invalid for eforms.
        # It also generates additional files to help debug or understand the XML generation.
        # It is recommended to initially set this to true in order to better understand the process.
-       debug: true
+       debug: false
 
        # Skips items if there is no value set.
        # This can help reduce the noise (empty fields ...) in the generated items.
