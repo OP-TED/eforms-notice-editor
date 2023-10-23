@@ -758,7 +758,9 @@ export class DateInputField extends InputField {
   constructor(content, parent = null) {
     super(content, parent);
     this.container.classList.add("date");
-    this.htmlElement.setAttribute("type", "date"); // Nice to have but not required.
+    // Nice to have but not required.
+    // NOTE: Type "date" has no concept of timezone!
+    this.htmlElement.setAttribute("type", "date");
     this.loadValue();
   }
 }
@@ -771,7 +773,9 @@ export class TimeInputField extends InputField {
   constructor(content, parent = null) {
     super(content, parent);
     this.container.classList.add("time");
-    this.htmlElement.setAttribute("type", "time"); // Nice to have but not required.
+    // Nice to have but not required.
+    // NOTE: Type "time" has no concept of timezone!
+    this.htmlElement.setAttribute("type", "time");
     this.loadValue();
   }
 }

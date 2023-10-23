@@ -180,6 +180,15 @@ public class FieldsAndNodes {
    *
    * @return The xpath absolute of the field, if the field does not exist it throws an exception
    */
+  public String getFieldType(final String fieldId) {
+    return getFieldType(this.getFieldById(fieldId));
+  }
+
+  /**
+   * Provided for convenience for the unit tests.
+   *
+   * @return The xpath absolute of the field, if the field does not exist it throws an exception
+   */
   public String getFieldXpathAbs(final String fieldId) {
     return getFieldXpathAbs(this.getFieldById(fieldId));
   }
@@ -250,6 +259,10 @@ public class FieldsAndNodes {
 
   public static String getFieldXpathRel(final JsonNode fieldMeta) {
     return JsonUtils.getTextStrict(fieldMeta, XPATH_RELATIVE);
+  }
+
+  public static String getFieldType(final JsonNode fieldMeta) {
+    return JsonUtils.getTextStrict(fieldMeta, FIELD_TYPE);
   }
 
   public static void setFieldFlatCodeList(final ObjectMapper mapper, final ObjectNode field,

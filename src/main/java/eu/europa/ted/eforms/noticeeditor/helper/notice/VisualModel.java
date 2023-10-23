@@ -390,7 +390,7 @@ public class VisualModel {
     final int counter = jsonItem.get(VIS_CONTENT_COUNT).asInt(-1);
 
     final Optional<ConceptTreeField> conceptFieldOpt = buildVisualField(jsonItem, visContentId,
-        counter, skipIfNoValue);
+        fieldsAndNodes.getFieldType(visContentId), counter, skipIfNoValue);
 
     if (conceptFieldOpt.isPresent()) {
       final ConceptTreeField conceptItem = conceptFieldOpt.get();
@@ -598,21 +598,51 @@ public class VisualModel {
   /**
    * @param jsonItem The current visual json item
    * @param sdkFieldId The SDK field id for the current visual json item
+   * @param sdkFieldType The field type as provided by the corresponding SDK
+   * @param counter The counter value of this field
    * @param skipIfNoValue Skip if there is no value
    */
   private static Optional<ConceptTreeField> buildVisualField(
-      final JsonNode jsonItem, final String sdkFieldId, final int counter,
-      final boolean skipIfNoValue) {
+      final JsonNode jsonItem, final String sdkFieldId,
+      final String sdkFieldType, final int counter, final boolean skipIfNoValue) {
 
     // This is a visual field (leaf of the tree).
     // Every visual field points to an SDK field for the SDK metadata.
     final String value = jsonItem.get(VIS_VALUE).asText(null);
     if (skipIfNoValue && StringUtils.isBlank(value)) {
-      // This helps when debugging, in case only one value has been set, ti
+      // This helps when debugging, ot reduce the noise created by empty fields.
       return Optional.empty();
     }
+
+    //
+    // Timezones.
+    //
+    // NOTE: the editor demo only allows to select a date or a time (no timezone field has been
+    // foreseen).
+    // In order to generate valid XML, the UTC timezone (Z) has been chosen.
+    // In your own applications, add the necessary work in the UI so that users may specify the
+    // appropriate timezone and also load it from a notice.
+    // The browser type="date" is nice, but has no concept of timezones.
+    // The browser type="datetime-local" has such concepts, but merges dates and times.
+    final String defaultTimezone = "Z";
+    final String adaptedValue;
+    if (value != null && (sdkFieldType.equals("date") || sdkFieldType.equals("time")) &&
+        !value.endsWith(defaultTimezone)
+        && (!value.contains("+") || StringUtils.countMatches(value, '-') < 3)) {
+      // This could be handled in the UI.
+      // Put default.
+      adaptedValue = value + defaultTimezone;
+    } else {
+      adaptedValue = value;
+    }
+
+    // It probably does not make sense to keep trailing whitespace from the UI values.
+    final String valueStripped = adaptedValue != null ? adaptedValue.strip() : value;
+
     final ConceptTreeField conceptField =
-        new ConceptTreeField(sdkFieldId, sdkFieldId, value, counter);
+        new ConceptTreeField(sdkFieldId, sdkFieldId,
+            valueStripped,
+            counter);
 
     return Optional.of(conceptField); // Leaf of tree: just return.
   }
