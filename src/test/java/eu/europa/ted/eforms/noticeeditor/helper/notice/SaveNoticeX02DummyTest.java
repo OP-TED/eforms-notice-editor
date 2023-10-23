@@ -399,6 +399,7 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
         setupPhysicalModel(mapper, noticeSubType, NOTICE_DOCUMENT_TYPE, visualModel,
             sdkService.getSdkRootFolder(),
             sdkVersion);
+    final FieldsAndNodes fieldsAndNodes = physicalModel.getFieldsAndNodes();
 
     // As this dummy test example has some metadata, ensure those getters work:
     assertEquals(VersionHelper.buildSdkVersionWithoutPatch(sdkVersion).toString(),
@@ -416,6 +417,9 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     // Check some metadata.
     checkCommon(prefixedSdkVersion, noticeSubType, xml, physicalModel);
 
+    contains(xml, ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE + "\"");
+    contains(xml, ConceptualModel.FIELD_ID_SDK_VERSION + "\"");
+
     count(xml, 2, "BusinessRegistrationInformationNotice");
 
     // Check nodes.
@@ -431,6 +435,9 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     // "<efac:NoticePurpose editorCounterSelf=\"1\"",
     // ND_OPERATION_TYPE));
 
+    //
+    // Party legal entity.
+    //
     // It is the same xml tag, but here we can even check the nodeId is originally correct.
     // Without debug true this editor intermediary information would otherwise be lost.
     count(xml, 1, String.format("<cac:PartyLegalEntity editorCounterSelf=\"1\" editorNodeId=\"%s\"",
@@ -439,24 +446,33 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     count(xml, 1, String.format("<cac:PartyLegalEntity editorCounterSelf=\"1\" editorNodeId=\"%s\"",
         ND_LOCAL_ENTITY));
 
-    // Check fields.
-    contains(xml, ConceptualModel.FIELD_ID_NOTICE_SUB_TYPE + "\"");
-    contains(xml, ConceptualModel.FIELD_ID_SDK_VERSION + "\"");
+    final String partyLegalEntity = "/*/cac:BusinessParty/cac:PartyLegalEntity";
+    assertCount(physicalModel, 2, partyLegalEntity);
 
+    // National.
     contains(xml, BT_500_BUSINESS + "\"");
     contains(xml, BT_501_BUSINESS_NATIONAL + "\"");
     contains(xml, BT_501_BUSINESS_NATIONAL + "\" schemeName=\"national\"");
+    assertCount(physicalModel, 1,
+        fieldsAndNodes.getFieldXpathAbs("BT-501-Business-National"));
+    assertCountAttr(physicalModel, 1,
+        fieldsAndNodes.getFieldXpathAbs("BT-501-Business-National-Scheme"));
 
+    // European.
     contains(xml, BT_501_BUSINESS_EUROPEAN + "\"");
     contains(xml, BT_501_BUSINESS_EUROPEAN + "\" schemeName=\"EU\"");
     contains(xml, OPP_113_BUSINESS_EUROPEAN + "\"");
+    assertCount(physicalModel, 1,
+        fieldsAndNodes.getFieldXpathAbs("BT-501-Business-European"));
+    assertCountAttr(physicalModel, 1,
+        fieldsAndNodes.getFieldXpathAbs("BT-501-Business-European-Scheme"));
 
     contains(xml, OPP_100_BUSINESS + "\"");
 
+    //
     // Test repeatable field OPP-105-Business.
-
+    //
     // Ensure the field is indeed repeatable so that the test itself is not broken.
-    final FieldsAndNodes fieldsAndNodes = physicalModel.getFieldsAndNodes();
     assert fieldsAndNodes.isNodeRepeatable(ND_BUSINESS_CAPABILITY) : ND_BUSINESS_CAPABILITY
         + " should be repeatable";
 
@@ -465,6 +481,17 @@ public class SaveNoticeX02DummyTest extends SaveNoticeTest {
     contains(xml, ">" + VALUE_HEALTH + "<");
     contains(xml, OPP_105_BUSINESS + "\" listName=\"sector\">" + VALUE_EDUCATION + "<");
     contains(xml, OPP_105_BUSINESS + "\" listName=\"sector\">" + VALUE_HEALTH + "<");
+
+    // Test using xpath.
+    // Going from less precise to more precise tests.
+    final String opp105 = fieldsAndNodes.getFieldXpathAbs(OPP_105_BUSINESS);
+    assertCount(physicalModel, 2, opp105);
+    assertCountAttr(physicalModel, 2, opp105 + "/@listName");
+    assertCountAttr(physicalModel, 2, opp105 + "[@listName = 'sector']");
+    assertCountAttr(physicalModel, 1,
+        opp105 + "[@listName = 'sector' and text()='" + VALUE_EDUCATION + "']");
+    assertCountAttr(physicalModel, 1,
+        opp105 + "[@listName = 'sector' and text()='" + VALUE_HEALTH + "']");
   }
 
 }

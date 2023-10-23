@@ -175,6 +175,24 @@ public class FieldsAndNodes {
     return sdkVersion;
   }
 
+  /**
+   * Provided for convenience for the unit tests.
+   *
+   * @return The xpath absolute of the field, if the field does not exist it throws an exception
+   */
+  public String getFieldXpathAbs(final String fieldId) {
+    return getFieldXpathAbs(this.getFieldById(fieldId));
+  }
+
+  /**
+   * Provided for convenience for the unit tests.
+   *
+   * @return The xpath relative of the field, if the field does not exist it throws an exception
+   */
+  public String getFieldXpathRel(final String fieldId) {
+    return getFieldXpathRel(this.getFieldById(fieldId));
+  }
+
   private static SdkVersion parseSdkVersion(final JsonNode fieldsJsonRoot) {
     // Example: "sdkVersion" : "eforms-sdk-1.3.2",
     final String text = fieldsJsonRoot.get(FIELDS_JSON_SDK_VERSION).asText(null);
@@ -224,6 +242,14 @@ public class FieldsAndNodes {
 
   public static boolean isNodeRepeatableStatic(final JsonNode nodeMeta) {
     return JsonUtils.getBoolStrict(nodeMeta, NODE_REPEATABLE);
+  }
+
+  public static String getFieldXpathAbs(final JsonNode fieldMeta) {
+    return JsonUtils.getTextStrict(fieldMeta, XPATH_ABSOLUTE);
+  }
+
+  public static String getFieldXpathRel(final JsonNode fieldMeta) {
+    return JsonUtils.getTextStrict(fieldMeta, XPATH_RELATIVE);
   }
 
   public static void setFieldFlatCodeList(final ObjectMapper mapper, final ObjectNode field,
