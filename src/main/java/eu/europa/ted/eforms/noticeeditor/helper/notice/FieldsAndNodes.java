@@ -28,6 +28,7 @@ public class FieldsAndNodes {
 
   private static final String ND_PREFIX = "ND-";
   public static final String ND_ROOT = "ND-Root";
+  public static final String ND_ROOT_EXTENSION = "ND-RootExtension";
   public static final String FIELD_OR_NODE_ID_KEY = "id";
   private static final String FIELDS_JSON_SDK_VERSION = "sdkVersion";
   public static final String XPATH_RELATIVE = "xpathRelative";

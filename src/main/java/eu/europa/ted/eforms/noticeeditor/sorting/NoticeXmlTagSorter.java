@@ -240,7 +240,7 @@ public class NoticeXmlTagSorter {
 
       final String fieldOrNodeId =
           JsonUtils.getTextStrict(childItem, FieldsAndNodes.FIELD_OR_NODE_ID_KEY);
-      logger.debug("Found child fieldOrNodeId={}", fieldOrNodeId);
+      logger.trace("Found child fieldOrNodeId={}", fieldOrNodeId);
 
       final String xpathRel = JsonUtils.getTextStrict(childItem, FieldsAndNodes.XPATH_RELATIVE);
       final List<String> xpathRelParts = XpathUtils.getXpathParts(xpathRel);
@@ -270,7 +270,7 @@ public class NoticeXmlTagSorter {
     }
     // The order items are not ordered yet, they contain the order, and we naturally sort on it.
     Collections.sort(orderItemsForParent); // Relies on implementation of "Comparable".
-    logger.debug("orderItemsForParent=" + orderItemsForParent);
+    logger.trace("orderItemsForParent={}", orderItemsForParent);
 
     //
     // Find parent elements in the XML.

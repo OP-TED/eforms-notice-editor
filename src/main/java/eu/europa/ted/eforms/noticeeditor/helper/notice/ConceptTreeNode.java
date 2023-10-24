@@ -1,16 +1,19 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 /**
  * Conceptual node. This holds non-metadata information about a node. This is not an SDK node, this
  * only points to an SDK node to reference metadata. A node can have child items!
  */
+@JsonPropertyOrder({"idUnique", "counter", "nodeId", "repeatable", "conceptFields", "conceptNodes"})
 public class ConceptTreeNode extends ConceptTreeItem {
   private static final Logger logger = LoggerFactory.getLogger(ConceptTreeNode.class);
 
@@ -36,17 +39,19 @@ public class ConceptTreeNode extends ConceptTreeItem {
 
   /**
    * @param item The item to add.
-   * @param sb
+   * @param sb A string builder passed for debugging purposes
    */
   @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = "ITC_INHERITANCE_TYPE_CHECKING",
       justification = "Spotbugs is confused, the check is done on the passed item, not the class.")
-  public final boolean addConceptItem(final ConceptTreeItem item, final StringBuilder sb) {
+  public final Optional<ConceptTreeNode> addConceptItem(final ConceptTreeItem item,
+      final StringBuilder sb) {
     if (item instanceof ConceptTreeNode) {
       final boolean strict = true;
-      return addConceptNode((ConceptTreeNode) item, strict, sb);
+      return addConceptNode((ConceptTreeNode) item, strict, sb, "addConceptItem");
     }
     if (item instanceof ConceptTreeField) {
-      return addConceptField((ConceptTreeField) item, sb);
+      addConceptField((ConceptTreeField) item, sb);
+      return Optional.of(this); // Always added on self.
     }
     throw new RuntimeException(
         String.format("Unexpected item type for concept item=%s", item.getIdUnique()));
@@ -77,7 +82,7 @@ public class ConceptTreeNode extends ConceptTreeItem {
     return idInSdkFieldsJson;
   }
 
-  public final boolean addConceptField(final ConceptTreeField conceptField,
+  public final void addConceptField(final ConceptTreeField conceptField,
       final StringBuilder sb) {
     Validate.notNull(conceptField);
     conceptFields.add(conceptField);
@@ -88,17 +93,21 @@ public class ConceptTreeNode extends ConceptTreeItem {
         .append(conceptField.getIdUnique())
         .append(" to ").append(this.getIdUnique())
         .append('\n');
-    return true;
   }
 
   /**
    * @param cn The concept node to add
-   * @param strictAdd When true, if the item is already contained it will fail, set to true
+   * @param strictAdd When true, if the item is already contained it will fail
    * @param sb A string builder passed for debugging purposes
+   *
+   * @return The conceptual node to which the passed element was added, this must be used on the
+   *         outside of the call
    */
-  public final boolean addConceptNode(final ConceptTreeNode cn, final boolean strictAdd,
-      final StringBuilder sb) {
+  public final Optional<ConceptTreeNode> addConceptNode(final ConceptTreeNode cn,
+      final boolean strictAdd,
+      final StringBuilder sb, final String originalOfCall) {
     Validate.notNull(cn);
+
     final String nodeIdToAdd = cn.getNodeId();
     final String nodeIdSelf = getNodeId();
     if (nodeIdToAdd.equals(nodeIdSelf)) {
@@ -107,35 +116,60 @@ public class ConceptTreeNode extends ConceptTreeItem {
           String.format("Cannot have child=%s that is same as parent=%s (cycle), self reference.",
               nodeIdToAdd, nodeIdSelf));
     }
+
     if (cn.isRepeatable()) {
       // It is repeatable, meaning it can exist multiple times, just add it.
-      conceptNodes.add(cn);
+      addConceptNodePrivate(cn, "repeatable");
       sb.append("Added concept node (repeatable): ").append(cn.getIdUnique()).append(" to ")
           .append(this.getIdUnique()).append('\n');
       logger.debug("Added concept node uniqueId={} to nodeId={}", cn.getIdUnique(),
           this.getNodeId());
-      return true;
+      return Optional.of(cn);
     }
 
     // It is not repeatable.
     // Is it already contained?
-    final boolean cnAlreadyContained = conceptNodes.contains(cn);
+    final boolean cnAlreadyContained = containsNodeOrNodeId(cn);
 
-    // It should not already be contained.
     if (strictAdd) {
       // Strict add.
       if (cnAlreadyContained) {
-        throw new RuntimeException(String.format(
-            "Conceptual model: node is not repeatable "
-                + "but it would be added twice, id=%s (nodeId=%s), parentId=%s",
-            cn.getIdUnique(), cn.getNodeId(), this.getIdUnique()));
+        if (containsNodeEquals(cn)) {
+          // It should not already be contained as an exact copy, this is a problem!
+          throw new RuntimeException(String.format(
+              "Conceptual model: node is not repeatable, it would be added twice, "
+                  + "id=%s (nodeId=%s), parentId=%s, originOfCall=%s",
+              cn.getIdUnique(), cn.getNodeId(), this.getIdUnique(), originalOfCall));
+        } else {
+          // It is already contained but is not the exact same object, there is another concept node
+          // with the same node id, so it that cannot be repeated.
+          // In this case we have to fuse the concept nodes.
+          // Fuse with existing node.
+          final Optional<ConceptTreeNode> existingCnOpt = findFirstByConceptNodeId(nodeIdSelf);
+          if (existingCnOpt.isPresent()) {
+            final ConceptTreeNode cnExisting = existingCnOpt.get();
+            // Fuse fields.
+            for (final ConceptTreeField cnField : cn.getConceptFields()) {
+              cnExisting.addConceptField(cnField, sb);
+            }
+            // Fuse nodes.
+            for (final ConceptTreeNode cnNode : cn.getConceptNodes()) {
+              cnExisting.addConceptNode(cnNode, strictAdd, sb, "fusion2");
+            }
+            return Optional.of(cnExisting);
+          }
+          throw new RuntimeException(String.format(
+              "Conceptual model: node not found by nodeId=%s, parentId=%s, originOfCall=%s",
+              cn.getNodeId(), this.getIdUnique(), originalOfCall));
+        }
       }
-      conceptNodes.add(cn);
+      // Not repeatable and not already contained, add it.
+      addConceptNodePrivate(cn, "not repeatable (strictAdd)");
       sb.append("Added concept node (not repeatable): ").append(cn.getIdUnique()).append(" to ")
           .append(this.getIdUnique()).append('\n');
       logger.debug("Added concept node uniqueId={} to nodeId={}", cn.getIdUnique(),
           this.getNodeId());
-      return true;
+      return Optional.of(cn);
     }
 
     // Non-strict add.
@@ -166,33 +200,77 @@ public class ConceptTreeNode extends ConceptTreeItem {
         // Iterative fusion logic:
         // X could be already contained, but some child item like Y may not be there yet.
         final ConceptTreeNode existingCn = conceptNodes.get(indexOfCn);
-        // We know that the branches uni-dimensional (flat), so a simple for loop with return should
-        // work. At least for the known cases this works.
+        // We know that the branches are uni-dimensional (flat), so a simple for loop with return
+        // should work. At least for the known cases this works.
         for (final ConceptTreeNode cn2 : cn.getConceptNodes()) {
-          if (existingCn.addConceptNode(cn2, strictAdd, sb)) {
+          final Optional<ConceptTreeNode> cnToWhichItWasAdded =
+              existingCn.addConceptNode(cn2, strictAdd, sb, "fusion1");
+          if (cnToWhichItWasAdded.isPresent()) {
             logger.debug("Fusion for uniqueId={}", cn2.getIdUnique());
-            return true;
+            sb.append("Fusion for uniqueId=").append(cn2.getIdUnique()).append('\n');
+            return cnToWhichItWasAdded;
           }
         }
+        return Optional.empty();
       }
     } else {
       // Not contained yet, add it.
-      conceptNodes.add(cn);
+      addConceptNodePrivate(cn, "not repeatable (bis)");
       sb.append("Added concept node (not repeatable)(bis): ").append(cn.getIdUnique())
           .append(" to ")
           .append(this.getIdUnique()).append('\n');
       logger.debug("Added concept node uniqueId={} to nodeId={}", cn.getIdUnique(),
           this.getNodeId());
+      return Optional.of(cn); // It was add on this item.
     }
-    return true;
+    return Optional.empty();
+  }
+
+  /**
+   * @return true if it contains the exact same concept node (at the level of the children, not
+   *         recursive)
+   */
+  private boolean containsNodeEquals(final ConceptTreeNode cn) {
+    return conceptNodes.contains(cn);
+  }
+
+  /**
+   * @return true if it contains the exact same concept node or a concept node with the same node id
+   *         (at the level of the children, not recursive)
+   */
+  private boolean containsNodeOrNodeId(final ConceptTreeNode cn) {
+    return conceptNodes.contains(cn) || conceptNodes.stream()
+        .filter(item -> item.getNodeId().equals(cn.getNodeId())).count() > 0;
+  }
+
+  /**
+   * Every add on this collection must go through this to ensure coherence. NOT RECURSIVE!
+   *
+   * @param cn The concept node to add
+   * @param originOfAdd The origin of the add call, put in the error messages or logs For internal
+   *        usage only, used to centralise add check adds.
+   */
+  private boolean addConceptNodePrivate(final ConceptTreeNode cn, final String originOfAdd) {
+    if (!cn.isRepeatable()) {
+      // This catches unexpected behaviour, probably an algorithms or bad data is to blame.
+      // The part of the code which lead here is added to the exception.
+      if (containsNodeOrNodeId(cn)) {
+        // Throw an exception as otherwise the conceptual model would be broken from here on.
+        throw new RuntimeException(
+            String.format(
+                "Attempting to add already contained non-repeatable node: %s, originOfAdd=%s",
+                cn.getNodeId(), originOfAdd));
+      }
+    }
+    return conceptNodes.add(cn); // The only place we use .add on this list in this class!
   }
 
   public List<ConceptTreeField> getConceptFields() {
-    return conceptFields;
+    return Collections.unmodifiableList(conceptFields); // Unmodifiable to avoid side-effects!
   }
 
   public List<ConceptTreeNode> getConceptNodes() {
-    return conceptNodes;
+    return Collections.unmodifiableList(conceptNodes); // Unmodifiable to avoid side-effects!
   }
 
   public boolean isRepeatable() {

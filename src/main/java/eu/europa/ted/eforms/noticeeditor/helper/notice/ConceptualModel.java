@@ -34,8 +34,8 @@ import eu.europa.ted.eforms.sdk.SdkVersion;
  */
 public class ConceptualModel {
 
-  static final String ND_ROOT = "ND-Root";
-  static final String ND_ROOT_EXTENSION = "ND-RootExtension";
+  static final String ND_ROOT = FieldsAndNodes.ND_ROOT;
+  static final String ND_ROOT_EXTENSION = FieldsAndNodes.ND_ROOT_EXTENSION;
 
   /**
    * Notice field id having the eformsSdkVersion as a value.

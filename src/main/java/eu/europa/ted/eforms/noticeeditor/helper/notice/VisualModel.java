@@ -281,8 +281,9 @@ public class VisualModel {
       // The closestParent is the parent of cn (desired), just attach it and stop.
       // -> closestParent -> cn
       final boolean strict = false;
-      final boolean added = closestParentNode.addConceptNode(cn, strict, sb);
-      if (added) {
+      final Optional<ConceptTreeNode> addedTo =
+          closestParentNode.addConceptNode(cn, strict, sb, "intermediary1");
+      if (addedTo.isPresent()) {
         logger.debug(
             "Case A: true Added intermediary concept tree node, conceptNodeId={}, sdkId={}",
             cn.getIdUnique(), fieldOrNodeId);
@@ -294,8 +295,8 @@ public class VisualModel {
       return cn;
     }
 
-    final boolean isRepeatable = fieldsAndNodes.isNodeRepeatable(cnParentIdInSdk);
-    if (isRepeatable) {
+    final boolean repeatable = fieldsAndNodes.isNodeRepeatable(cnParentIdInSdk);
+    if (repeatable) {
       // The SDK says the desired parentNodeId is repeatable and is missing in the
       // visual model, thus we have a serious problem!
       final String msg =
@@ -317,10 +318,10 @@ public class VisualModel {
     // Try to create an intermediary node in the conceptual model.
     // -> closestParent -> cnNew -> cn
     final ConceptTreeNode cnNew =
-        new ConceptTreeNode(uniqueId, cnParentIdInSdk, 1, isRepeatable);
+        new ConceptTreeNode(uniqueId, cnParentIdInSdk, 1, repeatable);
     final boolean strict = false;
-    final boolean added = cnNew.addConceptNode(cn, strict, sb);
-    if (added) {
+    final Optional<ConceptTreeNode> addedTo = cnNew.addConceptNode(cn, strict, sb, "intermediaryB");
+    if (addedTo.isPresent()) {
       logger.debug(
           "Case B: true Added intermediary concept tree node, conceptNodeId={}, sdkId={}",
           cn.getIdUnique(), fieldOrNodeId);
@@ -418,8 +419,8 @@ public class VisualModel {
     }
     if (!closestParentNode.getNodeId().equals(sdkParentNodeId)) {
       // The parents do not match.
-      final boolean isRepeatable = fieldsAndNodes.isNodeRepeatable(sdkParentNodeId);
-      if (isRepeatable) {
+      final boolean repeatable = fieldsAndNodes.isNodeRepeatable(sdkParentNodeId);
+      if (repeatable) {
         // The SDK says the desired parentNodeId is repeatable and is missing in the visual
         // model, thus we have a serious problem!
         final String msg = String.format(
@@ -450,13 +451,12 @@ public class VisualModel {
         // Create and add the missing conceptual node.
         // Generate missing conceptual node.
         // IDEA what if more than one intermediary nodes are missing? For now we will assume
-        // that
-        // this is not the case.
+        // that this is not the case.
         // ND-Root -> ... -> closestParentNode -> newConceptNode -> ... -> field
         // By convention we will add a suffix to these generated concept nodes.
         final String idUnique = sdkParentNodeId + SUFFIX_GENERATED;
         cn = new ConceptTreeNode(idUnique, sdkParentNodeId, 1,
-            isRepeatable);
+            repeatable);
 
         // See unit test about filling to fully understand this.
         // closestParentNode.addConceptNode(cn); // NO: there may be more items to fill in.
@@ -538,9 +538,9 @@ public class VisualModel {
       final String sdkNodeId, final boolean skipIfNoValue, final StringBuilder sb) {
     Validate.notBlank(sdkNodeId, "sdkNodeId is blank for visContentId=%s", visContentId);
 
-    final boolean isRepeatable = fieldsAndNodes.isNodeRepeatable(sdkNodeId);
+    final boolean repeatable = fieldsAndNodes.isNodeRepeatable(sdkNodeId);
     final ConceptTreeNode conceptNodeNew = new ConceptTreeNode(visContentId, sdkNodeId,
-        visualItem.get(VIS_CONTENT_COUNT).asInt(-1), isRepeatable);
+        visualItem.get(VIS_CONTENT_COUNT).asInt(-1), repeatable);
 
     final JsonNode sdkNodeMeta = fieldsAndNodes.getNodeById(sdkNodeId);
 
@@ -601,6 +601,8 @@ public class VisualModel {
    * @param sdkFieldType The field type as provided by the corresponding SDK
    * @param counter The counter value of this field
    * @param skipIfNoValue Skip if there is no value
+   *
+   * @return The concept field, it can be empty if there is no value
    */
   private static Optional<ConceptTreeField> buildVisualField(
       final JsonNode jsonItem, final String sdkFieldId,

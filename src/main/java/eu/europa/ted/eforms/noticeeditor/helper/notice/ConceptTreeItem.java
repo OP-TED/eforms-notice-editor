@@ -2,6 +2,7 @@ package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * Abstract item holding common conceptual information for a notice. References SDK metadata.
@@ -38,6 +39,7 @@ public abstract class ConceptTreeItem {
     return idUnique;
   }
 
+  @JsonIgnore // This will be covered by getFieldId and getNodeId
   public String getIdInSdkFieldsJson() {
     return idInSdkFieldsJson;
   }
