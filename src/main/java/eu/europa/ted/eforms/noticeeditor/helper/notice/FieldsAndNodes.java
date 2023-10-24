@@ -17,8 +17,10 @@ import eu.europa.ted.eforms.sdk.SdkConstants;
 import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
- * Holds JSON data of the SDK "fields.json" file. Reuse this after construction. As with all SDK
- * data this is associated with an SDK version.
+ * <p>
+ * Holds the entire JSON data of the SDK "fields.json" file. Reuse this after construction. As with
+ * all SDK data this is associated with an SDK version.
+ * </p>
  */
 public class FieldsAndNodes {
 
@@ -26,15 +28,26 @@ public class FieldsAndNodes {
 
   private static final String ND_PREFIX = "ND-";
   public static final String ND_ROOT = "ND-Root";
+  public static final String ND_ROOT_EXTENSION = "ND-RootExtension";
   public static final String FIELD_OR_NODE_ID_KEY = "id";
   private static final String FIELDS_JSON_SDK_VERSION = "sdkVersion";
   public static final String XPATH_RELATIVE = "xpathRelative";
   public static final String XPATH_ABSOLUTE = "xpathAbsolute";
 
+  public static final String ATTRIBUTES = "attributes";
+  public static final String ATTRIBUTE_OF = "attributeOf";
+  public static final String ATTRIBUTE_NAME = "attributeName";
+
+  public static final String ID = "id";
+  public static final String FIELD_TYPE = "type";
+  public static final String PRESET_VALUE = "presetValue";
+
   /**
    * Sort order.
    *
-   * <p>Since SDK 1.7, but data is only correct since SDK 1.8</p>
+   * <p>
+   * Since SDK 1.7, but data is only correct since SDK 1.8
+   * </p>
    */
   public static final String XSD_SEQUENCE_ORDER_KEY = "xsdSequenceOrder";
 
@@ -46,8 +59,8 @@ public class FieldsAndNodes {
   public static final String FIELD_PARENT_NODE_ID = "parentNodeId";
   public static final String NODE_PARENT_NODE_ID = "parentId";
 
-  private static final String FIELD_REPEATABLE = "repeatable";
-  private static final String NODE_REPEATABLE = "repeatable";
+  public static final String FIELD_REPEATABLE = "repeatable";
+  public static final String NODE_REPEATABLE = "repeatable";
 
   private final Map<String, JsonNode> fieldById;
   private final Map<String, JsonNode> nodeById;
@@ -163,6 +176,33 @@ public class FieldsAndNodes {
     return sdkVersion;
   }
 
+  /**
+   * Provided for convenience for the unit tests.
+   *
+   * @return The xpath absolute of the field, if the field does not exist it throws an exception
+   */
+  public String getFieldType(final String fieldId) {
+    return getFieldType(this.getFieldById(fieldId));
+  }
+
+  /**
+   * Provided for convenience for the unit tests.
+   *
+   * @return The xpath absolute of the field, if the field does not exist it throws an exception
+   */
+  public String getFieldXpathAbs(final String fieldId) {
+    return getFieldXpathAbs(this.getFieldById(fieldId));
+  }
+
+  /**
+   * Provided for convenience for the unit tests.
+   *
+   * @return The xpath relative of the field, if the field does not exist it throws an exception
+   */
+  public String getFieldXpathRel(final String fieldId) {
+    return getFieldXpathRel(this.getFieldById(fieldId));
+  }
+
   private static SdkVersion parseSdkVersion(final JsonNode fieldsJsonRoot) {
     // Example: "sdkVersion" : "eforms-sdk-1.3.2",
     final String text = fieldsJsonRoot.get(FIELDS_JSON_SDK_VERSION).asText(null);
@@ -212,6 +252,18 @@ public class FieldsAndNodes {
 
   public static boolean isNodeRepeatableStatic(final JsonNode nodeMeta) {
     return JsonUtils.getBoolStrict(nodeMeta, NODE_REPEATABLE);
+  }
+
+  public static String getFieldXpathAbs(final JsonNode fieldMeta) {
+    return JsonUtils.getTextStrict(fieldMeta, XPATH_ABSOLUTE);
+  }
+
+  public static String getFieldXpathRel(final JsonNode fieldMeta) {
+    return JsonUtils.getTextStrict(fieldMeta, XPATH_RELATIVE);
+  }
+
+  public static String getFieldType(final JsonNode fieldMeta) {
+    return JsonUtils.getTextStrict(fieldMeta, FIELD_TYPE);
   }
 
   public static void setFieldFlatCodeList(final ObjectMapper mapper, final ObjectNode field,

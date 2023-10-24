@@ -145,7 +145,7 @@ public class SaveNoticeFillingTest extends SaveNoticeTest {
     final ObjectNode field = mapper.createObjectNode();
     fieldById.put(BT_FIELD_DUMMY_Z, field);
     field.put(KEY_FIELD_ID, BT_FIELD_DUMMY_Z);
-    field.put(KEY_PARENT_NODE_ID, ND_Y);
+    field.put(KEY_FIELD_PARENT_NODE_ID, ND_Y);
     field.put(KEY_XPATH_ABS, "/*/x/y/z");
     field.put(KEY_XPATH_REL, "z");
     field.put(KEY_TYPE, TYPE_TEXT);
@@ -158,11 +158,11 @@ public class SaveNoticeFillingTest extends SaveNoticeTest {
   public final void test() throws ParserConfigurationException, IOException, SAXException {
     final ObjectMapper mapper = new ObjectMapper();
 
-    // A dummy 1.8.0, not real 1.8.0
-    final SdkVersion sdkVersion = new SdkVersion("1.8.0");
+    // A dummy 1.9.0, not real 1.9.0
+    final SdkVersion sdkVersion = new SdkVersion("1.9.0");
     final String prefixedSdkVersion =
         VersionHelper.prefixSdkVersionWithoutPatch(sdkVersion).toString();
-    final String noticeSubType = "X02"; // A dummy X02, not the real X02 of 1.8.0
+    final String noticeSubType = "X02"; // A dummy X02, not the real X02 of the SDK.
 
     final VisualModel visualModel = setupVisualModel(mapper, sdkVersion, noticeSubType);
 
@@ -176,7 +176,7 @@ public class SaveNoticeFillingTest extends SaveNoticeTest {
     // IDEA it would be more maintainable to use xpath to check the XML instead of pure text.
     // physicalModel.evaluateXpathForTests("/", "test2");
 
-    checkCommon(prefixedSdkVersion, noticeSubType, xml);
+    checkCommon(prefixedSdkVersion, noticeSubType, xml, physicalModel);
 
     // Verify nodes.
     // x
@@ -187,9 +187,15 @@ public class SaveNoticeFillingTest extends SaveNoticeTest {
     count(xml, 1, "<y"); // 1 in total
     count(xml, 1, "editorNodeId=\"ND_Y\"");
 
+    // y is inside of x
+    assertCount(physicalModel, 1, "//*[local-name()='x']/*[local-name()='y']"); // Checks nesting.
+
     // Verify field z.
     count(xml, 1, "editorFieldId=\"BT-field-z\">value-of-field-z</z>");
     count(xml, 1, "editorCounterSelf=\"1\" editorFieldId=\"BT-field-z\">value-of-field-z</z>");
+
+    // Check nesting. x -> y -> z (z inside of y, y inside of x).
+    assertCount(physicalModel, 1, "//*[local-name()='x']/*[local-name()='y']/*[local-name()='z']");
   }
 
 }

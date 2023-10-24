@@ -14,15 +14,37 @@ server:
     # Number of selector threads to use.
     # selectors:
 
-
 eforms:
   sdk:
     # Path to eForms SDK
     path: eforms-sdk
 
     # Comma-separated list of the supported major versions of eForms SDK
-    versions: 1.8
+    versions: 1.9
 
+    # Default should be true, it can be set to false for development or experimental purposes.
+    # If set to false the SDK files must be put manually inside the eforms sdk path
+    autoDownload: true
+
+xml:
+    generation:
+
+       # Generates extra XML attributes for human readability, but makes the XML invalid for eforms.
+       # It also generates additional files to help debug or understand the XML generation.
+       # It is recommended to initially set this to true in order to better understand the process.
+       debug: false
+
+       # Skips items if there is no value set.
+       # This can help reduce the noise (empty fields ...) in the generated items.
+       # This is especially useful with an empty form when setting only some values of interest.
+       # This simplifies the XML files and the conceptual .dot file (assuming debug = true).
+       # Setting false may break XML validation and unit tests!
+       skipIfEmpty: true
+
+       # This is related to the use of fields.json "xsdSequenceOrder" to order the XML elements.
+       # This is mainly used to deactivate the sorting for development purposes.
+       # It can be used to determine if the sorting is causing an issue or not.
+       sortXmlElements: true
 
 proxy:
   ### Security: use a command line parameter for security related data

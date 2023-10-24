@@ -1,6 +1,36 @@
-import { DynamicProperty } from "./dynamic-property.js";
+import { Validatable } from "./dynamic-property.js";
 import { Constants } from "./global.js";
 
+/**
+ * @typedef {HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement} ValidatableHTMLElement
+ */
+
+/**
+ * The Validator is used for live-validation (a.k.a. client-side validation).
+ * 
+ * The general idea is that the validity of the value of an HTML element needs to 
+ * be checked to verify that it conforms with some kind of restriction (a.k.a. constraint).
+ * The constraints that restrict the validity of the HTMLElement's value are expressed through 
+ * some property of some object somewhere (we do not care about which object the property belongs to).
+ * The logic that needs to be applied in order to check the validity of the HTMLElement's value
+ * is encoded inside the property, whereas the data that needs to be validated are held within 
+ * the HTMLElement.  
+ * 
+ * So what we do, is we "register" with the Validator, an HTMLElement, plus a so-called {@link Validatable}.
+ * This "registration" tells the Validator that we want it to monitor the HTMLElement for some event (typically "onchange"
+ * or "oninput"), and apply the validation logic encapsulated within the Validatable, every time that event is
+ * fired. 
+ * 
+ * The Validator relies on the HTML Form Validation mechanism. So what it does every time the monitored 
+ * event is fired on the HTMLElement is, it calls the {@link Validatable.checkValidity} method,
+ * passing along a reference to the HTMLElement being validated. The property should use HTML form validation
+ * attributes to set the appropriate constraints on the HTMLElement. Then control is handed back to the Validator,
+ * who will now call the {@link HTMLInputElement.checkValidity} method. This is a "native" JavaScript method
+ * part of the HTML Form Validation API, that will check the validity of the HTMLElement and set its 
+ * {@link HTMLInputElement.validity} property which eventually tells us whether the HTMLElement is in a
+ * valid state or not. If the HTMLElement is not in a valid state then the Validator will display the 
+ * appropriate validation message as determined earlier by the ValidityProperty.  
+ */
 export class Validator {
 
     /** @type {Validator} */
@@ -23,7 +53,7 @@ export class Validator {
       * 1. So that we can trigger all validations without dispatching "change" events.
       * 2. So that we can remove event handlers after an HTMLElement has been removed from the DOM.
       * 
-      *  @type {Map<String, DynamicProperty[]>} 
+      *  @type {Map<String, Validatable[]>} 
       */
     validationRoster = new Map();
 
@@ -58,8 +88,8 @@ export class Validator {
         }
 
         for (const property of this.validationRoster.get(htmlElement.id)) {
-            property.checkValidity();
-            property.htmlElement.checkValidity();
+            property.checkValidity(htmlElement);
+            htmlElement.checkValidity();
 
             if (htmlElement.validity.valid) {
                 htmlElement.closest(".container").querySelector(".footer").textContent = "";
@@ -97,29 +127,33 @@ export class Validator {
     }
 
     /**
-     * 
-     * @param {DynamicProperty} dynamicProperty 
+     * Registers a HTML element for validation of a given property.
+     * An event listener will be added to the {@link htmlElement} for 
+     * the event indicated by the property. When the event is triggered the
+     * {@link property} will be asked to {@link Validatable.checkValidity()}
+     *  
+     * @param {Validatable} property 
+     * @param {HTMLElement} htmlElement
      */
-    static register(dynamicProperty) {
+    static register(property, htmlElement) {
 
-        const htmlElement = dynamicProperty.htmlElement;
-        const eventName = dynamicProperty.validateOnEventName;
+        const eventName = property.validateOnEventName;
 
         if (Validator.instance.validationRoster.has(htmlElement.id)) {
             const registeredProperties = Validator.instance.validationRoster.get(htmlElement.id);
             const isSameEventUsedByOtherRegisteredProperties = registeredProperties.find(p => p.validateOnEventName == eventName) ? true : false;
             
-            registeredProperties.push(dynamicProperty);
+            registeredProperties.push(property);
             
             if (!isSameEventUsedByOtherRegisteredProperties) {
                 htmlElement.addEventListener(eventName, Validator.onValidate);
             }
         } else {
-            Validator.instance.validationRoster.set(htmlElement.id, [ dynamicProperty ]);
+            Validator.instance.validationRoster.set(htmlElement.id, [ property ]);
             htmlElement.addEventListener(eventName, Validator.onValidate);
         }
 
-        dynamicProperty.checkValidity();
+        property.checkValidity(htmlElement);
     }
 
     /**

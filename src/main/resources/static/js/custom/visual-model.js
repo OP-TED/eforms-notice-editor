@@ -1,7 +1,7 @@
 import { Constants } from "./global.js";
 
 /**
- * 
+ * Representation of the visual-model.
  */
 export class VisualModelElement {
 
@@ -61,7 +61,7 @@ export class VisualModelElement {
 /**
  * The visual-model has two top-level "sections": The "Notice-Metadata" section and the "Notice-Data" section.
  * These two "sections" are contained directly under the root element of the visual-model.
- * The root element of teh visual-model, is also a VisualModelTopLevelElement (see {@link VisualModel} class).
+ * The root element of the visual-model, is also a VisualModelTopLevelElement (see {@link VisualModel} class).
  */
 export class VisualModelTopLevelElement extends VisualModelElement {
     constructor(htmlElement) {

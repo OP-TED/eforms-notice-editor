@@ -1,4 +1,5 @@
-import { Constants } from "./global.js";
+import { Constants, Identifiers } from "./global.js";
+import { GroupUIComponentProxy, UIComponentProxy, FieldUIComponentProxy } from "./proxies.js";
 import { Validator } from "./validator.js";
 
 /**
@@ -6,37 +7,37 @@ import { Validator } from "./validator.js";
  * For example, some elements have a valueSource property that indicates that their value is a copy of the value of another element.  
  * Other elements represent fields of type "id-ref" and need to "discover" the identifiers available for them to reference.
  *  
- * The SyncCenter class is a singleton that we use to synchronise values across HTML elements as needed.
+ * The Orchestrator class is a singleton that we use to synchronise values across HTML elements as needed.
  * It is not a generic reusable class but rather focuses on the needs of the eForms Notice Editor.
  * 
- * The SyncCenter works by monitoring the root element of the notice form, for mutations in its subtree (additions or removals of HTML elements).
- * When an HTML element is added or removed, {@link SyncCenter.mutationObserved} method is called which inspects the HTML element
+ * The Orchestrator works by monitoring the root element of the notice form, for mutations in its subtree (additions or removals of HTML elements).
+ * When an HTML element is added or removed, {@link Orchestrator.mutationObserved} method is called which inspects the HTML element
  * and acts accordingly based on its data attributes.
  * 
  * The values that need to be synchronised include:
  * - All input-fields of type "id-ref" use a combobox to select a referenced identifier. 
  *   A list with all relevant identifiers (as specified by the idSchemes property), is needed to populate the combobox.
  *   As new identifiers are created (or removed) while the user is filling-in the form, id-ref input-fields need to update
- *   the options available in their comboboxes accordingly. The SyncCenter takes care of this synchronisation. 
- *   (see {@link SyncCenter.subscribeToIdentifierNotifications}).
+ *   the options available in their comboboxes accordingly. The Orchestrator takes care of this synchronisation. 
+ *   (see {@link Orchestrator.subscribeToIdentifierNotifications}).
  * - Input-fields with a valueSource property, need to synchronise their value with the value of another input-field.
  */
-export class SyncCenter extends MutationObserver {
+export class Orchestrator extends MutationObserver {
 
     /**
      * Being declared as static, when this property is initialized it creates the single instance of
-     * the SyncCenter and sets it up to monitor (observe) changes in the subtree of the HTML element that contains 
+     * the Orchestrator and sets it up to monitor (observe) changes in the subtree of the HTML element that contains 
      * the entire notice form.
      */
-    static instance = new SyncCenter(document.getElementById(Constants.HtmlElements.FORM_CONTENT_ROOT_ELEMENT));
+    static instance = new Orchestrator(document.getElementById(Constants.HtmlElements.FORM_CONTENT_ROOT_ELEMENT));
 
     constructor(htmlElement) {
-        if (SyncCenter.instance) {
-            throw new Error("You should not instantiate the SyncCenter yourself. It's meant to be a singleton.");
+        if (Orchestrator.instance) {
+            throw new Error("You should not instantiate the Orchestrator yourself. It's meant to be a singleton.");
         }
 
         // Create the MutationObserver and connect it to the mutationObserved handler.
-        super(SyncCenter.mutationObserved);
+        super(Orchestrator.mutationObserved);
 
         // This is not a typical publisher/subscriber pattern implementation, but it is inspired by it.
         // Some elements need to be updated when changes happen on other elements. 
@@ -56,25 +57,44 @@ export class SyncCenter extends MutationObserver {
         // We need to keep track of them so that we can remove them when they are no longer needed.
         this.publications = new Map();
 
-        // Start listening for subtree mutations
-        this.observe(htmlElement, { childList: true, subtree: true });
+        // Start observing mutations
+        this.observe(htmlElement, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ["id", "data-counter"],
+            attributeOldValue: true
+        });
     }
 
     /**
-     * Called whenever any mutations are observed by the MutationObserver (SyncCenter).
+     * Called whenever any mutations are observed by the MutationObserver (Orchestrator).
      * 
      * @param {MutationRecord[]} mutationList Array of {@link MutationRecord} objects listing observed mutations.
-     * @param {SyncCenter} observer 
+     * @param {Orchestrator} observer 
      */
     static mutationObserved(mutationList, observer) {
         for (const mutation of mutationList) {                                  // Go through each mutation observed.
-            mutation.addedNodes.forEach(node => observer.nodeAdded(node));      // First, process added nodes,
-            mutation.removedNodes.forEach(node => observer.nodeRemoved(node));  // then, process removed nodes.
+            switch (mutation.type) {
+                case "attributes":
+                    var newValue = mutation.target.getAttribute(mutation.attributeName);
+                    if (mutation.oldValue && mutation.oldValue !== newValue) {
+                        switch (mutation.attributeName) {
+                            case "id": observer.htmlElementIdChanged(mutation.target, mutation.oldValue, newValue); break;
+                            case Constants.Attributes.COUNTER_ATTRIBUTE: observer.instanceNumberChanged(mutation.target, mutation.oldValue, newValue); break;
+                        }
+                    }
+                    break;
+                case "childList":
+                    mutation.addedNodes.forEach(node => observer.nodeAdded(node));      // First, process added nodes,
+                    mutation.removedNodes.forEach(node => observer.nodeRemoved(node));  // then, process removed nodes.
+                    break;
+            }
         }
     }
 
     /**
-     * Called by {@link SyncCenter.mutationObserved} for each node added in the subtree being monitored.
+     * Called by {@link Orchestrator.mutationObserved} for each node added in the subtree being monitored.
      * 
      * @param {Node} addedNode 
      */
@@ -83,13 +103,22 @@ export class SyncCenter extends MutationObserver {
             return; // We are only interested in HTML elements. Ignore everything else (i.e. text nodes etc.).
         }
 
+        for (const node of addedNode.querySelectorAll(GroupUIComponentProxy.cssSelector)) {
+
+            const proxy = GroupUIComponentProxy.create(node);
+
+            if (proxy.isRepeatable) {
+                this.renumberRepeatableContents(proxy.repeater);
+            }
+        }
+
         // The added node may have child nodes. We need to look at all of them.
         // We are interested in all the nodes that have a CONTENT_TYPE_ATTRIBUTE because these are the ones 
         // that may represent input-fields.
-        for (const node of addedNode.querySelectorAll(`[${Constants.Attributes.CONTENT_TYPE_ATTRIBUTE} = '${Constants.ContentType.FIELD}']`)) {
+        for (const node of addedNode.querySelectorAll(FieldUIComponentProxy.cssSelector)) {
 
             // To make code more readable here we use a Proxy to extract the values from the node's attributes.
-            const proxy = new Proxy(node, Constants.InputFieldProxyHandler);
+            const proxy = FieldUIComponentProxy.create(node);
 
             if (proxy.hasIdScheme) {
                 // This node was just added and has an idScheme attribute. 
@@ -121,18 +150,31 @@ export class SyncCenter extends MutationObserver {
                 // when changes occur later.
                 this.addPublisherOfValueSourceChanges(proxy.target, proxy.contentId);
             }
+
+            if (proxy.isRepeatable) {
+                this.renumberRepeatableContents(proxy.repeater);
+            }
         }
     }
 
 
     /**
-     * Called by {@link SyncCenter.mutationObserved} for each Node removed from the subtree being monitored.
+     * Called by {@link Orchestrator.mutationObserved} for each Node removed from the subtree being monitored.
      * 
      * @param {Node} removedNode 
      */
     nodeRemoved(removedNode) {
         if (!(removedNode instanceof HTMLElement)) {
             return; // We are only interested in HTML elements. Ignore everything else (i.e. text nodes etc.).
+        }
+
+        for (const node of removedNode.querySelectorAll(GroupUIComponentProxy.cssSelector)) {
+
+            const proxy = GroupUIComponentProxy.create(node);
+
+            if (proxy.isRepeatable) {
+                this.renumberRepeatableContents(proxy.repeater);
+            }
         }
 
         // The removedNode may have childNodes. We need to look at all of them.
@@ -142,7 +184,7 @@ export class SyncCenter extends MutationObserver {
         for (const node of removedNode.querySelectorAll(`[${Constants.Attributes.CONTENT_TYPE_ATTRIBUTE} = '${Constants.ContentType.FIELD}']`)) {
 
             // To make code more readable here we use a Proxy to extract the values from the node's attributes.
-            const proxy = new Proxy(node, Constants.InputFieldProxyHandler);
+            const proxy = FieldUIComponentProxy.create(node);
 
             if (proxy.hasIdScheme) {
                 // This node was just removed and has an idScheme attribute. 
@@ -171,6 +213,10 @@ export class SyncCenter extends MutationObserver {
 
                 // Also remove the input-field from form validation.
                 Validator.unregister(proxy.target);
+            }
+
+            if (proxy.isRepeatable) {
+                this.renumberRepeatableContents(proxy.repeater);
             }
         }
     }
@@ -286,7 +332,8 @@ export class SyncCenter extends MutationObserver {
     }
 
     /**
-     * Called whenever the valueSource field has changed value to update the values of all subscribers of the valueSource.
+     * Called whenever the valueSource field has changed value to update the values of all
+     * subscribers to the valueSource.
      * 
      * @param {String} fieldId 
      * @param {*} value 
@@ -295,5 +342,64 @@ export class SyncCenter extends MutationObserver {
         if (this.subscriptions.has(fieldId)) {
             this.subscriptions.get(fieldId)?.forEach(subscriber => subscriber.value = value);
         }
+    }
+
+    /**
+     * When a repeatable element is added or removed, we need to update
+     * the instance numbers of all other instances of the element, so that
+     * we leave no "gaps". This will allow us to match each element with
+     * validation messages later based on properly ordered instance numbers 
+     * matched ont-to-one with the ones provided by the XML validation engine.
+     * 
+     * @param {import("./proxies.js").ProxiedRepeater} repeater 
+     */
+    renumberRepeatableContents(repeater) {
+        var counter = 1;
+        for (const node of repeater?.repeatedElements ?? []) {
+            const proxy = UIComponentProxy.create(node);
+            proxy.instanceCounter = counter++;
+        }
+    }
+
+    /**
+     * The instance number is used to form the identifiers.
+     * Therefore when the instance number changes, we need to update the "id" attribute of
+     * the element.
+     * 
+     * @param {HTMLElement} target 
+     * @param {string} oldValue
+     * @param {string} newValue 
+     */
+    instanceNumberChanged(target, oldValue, newValue) {
+        const proxy = UIComponentProxy.create(target);
+        target.id = Identifiers.formatFormElementIdentifier(proxy.contentId, proxy.instanceCounter, proxy.repeatableParent?.instanceId);
+   }
+
+    /**
+     * When the "id" attribute of an HTMLElement changes, we need to update
+     * the "for" attribute value of any the labels that point to the element.
+     * 
+     * There are better ways to do this of course. For example if we used Web Components
+     * we would be able to handle these updates more elegantly without the need for a 
+     * MutationObserver.
+     * 
+     * @param {HTMLElement} target 
+     * @param {string} oldValue 
+     * @param {string} newValue
+     */
+    htmlElementIdChanged(target, oldValue, newValue) {
+        const proxy = UIComponentProxy.create(target);
+
+        // Find all labels that point to the old id and update them.
+        document.querySelectorAll(`.label[for="${oldValue}"]`).forEach(e => {
+            e.setAttribute("for", newValue);
+            e.textContent = `#${proxy.instanceCounter}`
+        });
+
+        // Also update all labels that point to HTML "select" elements wrapped by TomSelect.
+        document.querySelectorAll(`.label[for="${oldValue}-ts-control"]`).forEach(e => {
+            e.setAttribute("for", `${newValue}-ts-control`);
+            e.textContent = `#${proxy.instanceCounter}`
+        });
     }
 }

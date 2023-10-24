@@ -120,6 +120,24 @@ body {
   column-gap: 1em;
 }
 
+
+#notice-selector-button {
+  cursor: pointer; 
+  border: 1px solid var(--eui-primary-100); 
+  color: var(--eui-primary-100); 
+  background-color: var(--eui-white); 
+  padding: .2em 1em .3em 1em !important; 
+  border-radius: .25em; 
+  vertical-align: middle;
+}
+
+#notice-selector {
+  width: 0px; 
+  height: 0px; 
+  margin: 0px; 
+  padding: 0px;
+}
+
 /* Toolbar comboboxes are slightly padded to match the style of other controls in the page */
 #toolbar select {
   padding: 3px 3px;
@@ -131,6 +149,7 @@ body {
 #toolbar label {
   padding: 0em;  
   margin-right: .25em;
+  vertical-align: middle;
 }
 
 #loading-indicator {
@@ -239,7 +258,20 @@ button {
   border-radius: var(--small-radius);
 }
 
-.input-field.container.repeatable {
+.repeater {
+  border: 1px solid var(--eui-primary-100);
+  border-radius: .5em;
+  padding: 1em;
+}
+
+.repeater .repeatable.container {
+  border: dashed 2px var(--eui-primary-25);
+  border-radius: var(--large-radius);
+  padding: .25em;
+  margin: .5em 0em;
+}
+
+.repeatable.input-field.container {
   border: dashed 2px var(--eui-grey-20);
   border-radius: var(--large-radius);
   padding: .25em;
@@ -413,6 +445,14 @@ h6 { font-size: 1.0em; }
 .section.container > .body > .input-field.container {
   grid-column-start: 1;
   grid-column-end: 3;
+}
+
+.repeater.container {
+  grid-column-start: 1;
+  grid-column-end: 3;
+  padding: .5em;
+  border: 1px solid var(--group-border); 
+  border-radius: var(--large-radius);
 }
 
 /*
