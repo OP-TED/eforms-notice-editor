@@ -317,7 +317,7 @@ public class SdkService {
   }
 
   /**
-   * Serves the specified json string as download.
+   * Serves the specified JSON string as download.
    *
    * @param response The HTTP response to serve the download to
    * @param text The JSON string to serve
@@ -357,7 +357,7 @@ public class SdkService {
 
     } catch (IOException ex) {
       logger.info("Error responding with file '{}' for download.", filenameForDownload, ex);
-      throw new RuntimeException("IOException writing json string to output stream.", ex);
+      throw new RuntimeException("IOException writing JSON string to output stream.", ex);
     }
   }
 
@@ -552,8 +552,8 @@ public class SdkService {
     basicInfoJson.set("fieldsJson", fieldsJson);
     basicInfoJson.set("codelistsJson", codelistsJson);
 
-    // Serve a fictional SDK json file that contains metadata from multiple files.
-    // This avoid doing multiple calls to separate SDK files.
+    // Serve a fictional SDK .json file that contains metadata from multiple files.
+    // This avoids doing multiple calls to separate SDK files.
     final String filenameForDownload = "basic.json";
 
     serveSdkJsonString(response, basicInfoJson.toPrettyString(), filenameForDownload);

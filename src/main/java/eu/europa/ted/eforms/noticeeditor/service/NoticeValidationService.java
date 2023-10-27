@@ -3,6 +3,7 @@ package eu.europa.ted.eforms.noticeeditor.service;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,6 +32,9 @@ import eu.europa.ted.eforms.sdk.SdkVersion;
 @Service
 public class NoticeValidationService {
   private static final Logger logger = LoggerFactory.getLogger(NoticeValidationService.class);
+
+  @org.springframework.beans.factory.annotation.Value("${eforms.sdk.path}")
+  private String eformsSdkPath;
 
   private final CvsConfig cvsConfig;
   private final ObjectMapper objectMapper;
@@ -61,8 +65,13 @@ public class NoticeValidationService {
 
     if (mainXsdPathOpt.isPresent()) {
       final Path mainXsdPath = mainXsdPathOpt.get();
-      final List<SAXParseException> validationExceptions =
-          XsdValidator.validateXml(noticeXmlText, mainXsdPath);
+
+      final List<SAXParseException> validationExceptions = new ArrayList<>();
+      try {
+        validationExceptions.addAll(XsdValidator.validateXml(noticeXmlText, mainXsdPath));
+      } catch (SAXParseException e) {
+        validationExceptions.add(e);
+      }
       xsdReport.put("errorCount", validationExceptions.size());
 
       if (!validationExceptions.isEmpty()) {
@@ -88,16 +97,22 @@ public class NoticeValidationService {
   }
 
   /**
+   * @param noticeSdkVersion The notice SDK version, this is required information!
    * @param noticeXml The notice XML text
-   * @param eformsSdkVersion An optional SDK version in case it does not work with the desired
+   * @param csvSdkVersionOverride An optional SDK version in case it does not work with the desired
    *        version, if not provided the version found in the notice XML will be used
    * @param svrlLangA2 The language the svrl messages should be in
    * @return The response body
    */
-  public String validateNoticeXmlUsingCvs(final String noticeXml,
-      final Optional<String> eformsSdkVersion, final Optional<String> svrlLangA2,
+  public String validateNoticeXmlUsingCvs(
+      final SdkVersion noticeSdkVersion, final String noticeXml,
+      final Optional<SdkVersion> csvSdkVersionOverride, final Optional<String> svrlLangA2,
       final Optional<CsvValidationMode> sdkValidationMode) throws IOException {
-    logger.info("Attempting to validate notice using the CVS");
+    logger.info(
+        "Attempting to validate notice using the CVS, notice SDK version={}, "
+            + "eformsSdkVersionOverride={}",
+        noticeSdkVersion, csvSdkVersionOverride);
+    Validate.notNull(noticeSdkVersion, "noticeSdkVersion is null");
 
     // https://docs.ted.europa.eu/api/index.html
     // TED Developer Portal API KEY.
@@ -114,7 +129,8 @@ public class NoticeValidationService {
     // Call the CVS API.
     //
     final String responseBody =
-        cvsClient.validateNoticeXml(noticeXml, svrlLangA2, eformsSdkVersion, sdkValidationMode);
+        cvsClient.validateNoticeXml(noticeSdkVersion, noticeXml, svrlLangA2,
+            csvSdkVersionOverride, sdkValidationMode, Path.of(eformsSdkPath));
 
     return responseBody;
   }

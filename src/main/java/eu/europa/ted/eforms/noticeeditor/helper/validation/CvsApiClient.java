@@ -10,6 +10,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
@@ -23,6 +25,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -48,13 +51,17 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import eu.europa.ted.eforms.noticeeditor.helper.SafeDocumentBuilder;
 import eu.europa.ted.eforms.noticeeditor.helper.notice.PhysicalModel;
+import eu.europa.ted.eforms.noticeeditor.service.SdkService;
 import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
 import eu.europa.ted.eforms.noticeeditor.util.XmlUtils;
+import eu.europa.ted.eforms.noticeeditor.util.XpathUtils;
+import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
  * Demo implementation of a Common Validation Service (CVS) API client.
@@ -67,6 +74,10 @@ import eu.europa.ted.eforms.noticeeditor.util.XmlUtils;
 public class CvsApiClient {
 
   private static final Logger logger = LoggerFactory.getLogger(CvsApiClient.class);
+
+  public static final String CVS_REPORT_LOCATION = "location";
+  public static final String CVS_REPORT_LOCATION_XML = "xml";
+  public static final String CVS_REPORT_LOCATION_INDEX = "index";
 
   private static final Charset CHARSET = StandardCharsets.UTF_8;
   private static final String MIME_TYPE_APPLICATION_JSON = "application/json";
@@ -106,20 +117,26 @@ public class CvsApiClient {
   /**
    * Uses the CVS API to validate the notice, returns the response body.
    *
+   * @param noticeSdkVersion The notice SDK version
    * @param noticeXml The notice XML text
-   * @param svrlLangA2 Language to generate the SVRL report, for example "en" for English
-   * @param eformsSdkVersion Specify the eForms SDK version to use for validating the XML document
-   *        encoded in base64, if not specified the version contained in the XML will be used
+   * @param language Language to generate the SVRL report, for example "en" for English
+   * @param csvSdkVersionOverride Specify the eForms SDK version to use for validating the XML
+   *        document encoded in base64, if not specified the version contained in the XML will be
+   *        used
    * @param sdkValidationMode Specify the validation mode that will be applied, selecting the
    *        corresponding sub-group of the eForms SDK version ("static" or "dynamic")
+   *
    * @return The response body, SVRL XML as text in this case
    */
-  public String validateNoticeXml(final String noticeXml, final Optional<String> svrlLangA2,
-      final Optional<String> eformsSdkVersion, final Optional<CsvValidationMode> sdkValidationMode)
+  public String validateNoticeXml(final SdkVersion noticeSdkVersion, final String noticeXml,
+      final Optional<String> language,
+      final Optional<SdkVersion> csvSdkVersionOverride,
+      final Optional<CsvValidationMode> sdkValidationMode, final Path eformsSdkDir)
       throws IOException {
     if (noticeXml == null || noticeXml.isEmpty()) {
       throw new RuntimeException("Expecting notice xml but it is blank.");
     }
+    Validate.notNull(eformsSdkDir);
     final String noticeInBase64 = toBase64(noticeXml);
 
     // How to build the API url and the JSON is internal knowledge.
@@ -131,26 +148,43 @@ public class CvsApiClient {
     final String requestContentType = MIME_TYPE_APPLICATION_JSON; // Known to be JSON.
     final String responseContentType = "*/*"; // "application/xml"; (if valid it is xml, otherwise?)
 
-    final ObjectNode jsonPayload = this.objectMapper.createObjectNode();
+    // Define the entity.
+    final ObjectNode jsonPayloadForEntity = this.objectMapper.createObjectNode();
     {
-      jsonPayload.put("notice", noticeInBase64);
-      putIfPresent(jsonPayload, "language", svrlLangA2);
+      // Required.
+      jsonPayloadForEntity.put("notice", noticeInBase64);
+
+      // Optional.
+      putIfPresent(jsonPayloadForEntity, "language", language);
 
       final Optional<String> validationModeOpt =
           sdkValidationMode.isPresent() ? Optional.of(sdkValidationMode.get().getText())
               : Optional.empty();
-      putIfPresent(jsonPayload, "validationMode", validationModeOpt);
+      putIfPresent(jsonPayloadForEntity, "validationMode", validationModeOpt);
 
-      putIfPresent(jsonPayload, "eFormsSdkVersion", eformsSdkVersion);
+      if (csvSdkVersionOverride.isPresent()) {
+        jsonPayloadForEntity.put("eFormsSdkVersion", csvSdkVersionOverride.get().toString());
+        // .toNormalisedString
+        // ????
+        // with
+        // patch ???? or without it?
+      }
     }
-
-    return httpPostToCvs(postUrl, requestContentType, responseContentType, jsonPayload, svrlLangA2);
+    return httpPostToCvs(postUrl, requestContentType, responseContentType, jsonPayloadForEntity,
+        noticeSdkVersion, language, csvSdkVersionOverride, eformsSdkDir);
   }
 
   private static void putIfPresent(final ObjectNode jsonPayload, final String key,
-      final Optional<String> eformsSdkVersion) {
-    if (eformsSdkVersion.isPresent()) {
-      jsonPayload.put(key, eformsSdkVersion.get());
+      final Optional<String> textOpt) {
+    if (textOpt.isPresent()) {
+      jsonPayload.put(key, textOpt.get());
+    }
+  }
+
+  private static void putIfPresent(final ObjectNode jsonPayload, final String key,
+      final String text) {
+    if (StringUtils.isNotBlank(text)) {
+      jsonPayload.put(key, text);
     }
   }
 
@@ -159,8 +193,15 @@ public class CvsApiClient {
    * @return The response body
    */
   private String httpPostToCvs(final String postUrl, final String requestContentType,
-      final String responseContentType, final ObjectNode jsonPayload,
-      final Optional<String> svrlLangA2) throws IOException {
+      final String responseContentType, final ObjectNode jsonPayloadForEntity,
+      final SdkVersion noticeSdkVersion, final Optional<String> language,
+      final Optional<SdkVersion> csvSdkVersionOverride, final Path eformsSdkDir)
+      throws IOException {
+    Validate.notBlank(postUrl);
+    Validate.notBlank(requestContentType);
+    Validate.notBlank(responseContentType);
+    Validate.notNull(eformsSdkDir);
+
     //
     // SETUP HTTP POST.
     //
@@ -174,7 +215,7 @@ public class CvsApiClient {
     //
     // HTTP POST ENTITY (payload).
     //
-    post.setEntity(new StringEntity(jsonPayload.toString(), CHARSET));
+    post.setEntity(new StringEntity(jsonPayloadForEntity.toString(), CHARSET));
 
     //
     // DEFINE HOW THE RESPONSE SHOULD BE HANDLED.
@@ -182,13 +223,11 @@ public class CvsApiClient {
     // https://docs.ted.europa.eu/api/endpoints/cvs-ted-europa-eu.html#_responses
     final ResponseHandler<String> responseHandler = new ResponseHandler<>() {
       @Override
-      public String handleResponse(final HttpResponse response)
-          throws IOException {
+      public String handleResponse(final HttpResponse response) throws IOException {
         final StatusLine statusLine = response.getStatusLine();
         final int status = statusLine.getStatusCode();
         logger.info("CVS responded with status={}", status);
         final HttpEntity entity = response.getEntity(); // It could be null.
-
         if (status >= HttpStatus.SC_OK && status < HttpStatus.SC_MULTIPLE_CHOICES) {
           final String svrlText = entity != null ? EntityUtils.toString(entity) : null;
           EntityUtils.consumeQuietly(entity);
@@ -199,24 +238,60 @@ public class CvsApiClient {
                 SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype(false);
             final Document doc = db.parse(IOUtils.toInputStream(svrlText, CHARSET));
             doc.normalize();
-            // final ObjectNode jsonReport = createJsonReport(doc, svrlLangA2);
-            // return jsonReport;
+
+            final String labelAssetType = "rule";
+            final SdkVersion labelsSdkVersion =
+                csvSdkVersionOverride.isPresent() ? csvSdkVersionOverride.get()
+                    : noticeSdkVersion;
+            final String langCode = language.isPresent() ? language.get() : "en";
+            final Map<String, String> translations =
+                SdkService.getTranslations(labelsSdkVersion, eformsSdkDir, labelAssetType,
+                    langCode);
+
+            final ObjectNode jsonReport =
+                createJsonReport(doc, langCode, csvSdkVersionOverride, noticeSdkVersion,
+                    translations);
+            return JsonUtils.marshall(jsonReport);
+
           } catch (ParserConfigurationException e) {
             logger.error(e.toString(), e);
           } catch (SAXException e) {
             logger.error(e.toString(), e);
           }
-
-          return svrlText;
+          // return svrlText;
         }
 
         // There was a problem.
+        // Try to extract information from the response.
+        final Optional<JsonNode> entityOpt;
         if (entity != null) {
+          final String entityText = EntityUtils.toString(entity);
           EntityUtils.consumeQuietly(entity);
+          final Header contentType = response.getFirstHeader("Content-Type");
+          logger.error("Content-Type={}, Response entity: {}", contentType, entityText);
+          if (contentType != null && MIME_TYPE_APPLICATION_JSON.equals(contentType.getValue())) {
+            // There should be a JSON response.
+            final JsonNode responseJson = objectMapper.readTree(entityText);
+            entityOpt = Optional.of(responseJson);
+          } else {
+            entityOpt = Optional.empty();
+          }
+        } else {
+          entityOpt = Optional.empty();
         }
-        final String msg = String.format("CVS POST response error: reason=%s, status=%s",
-            statusLine.getReasonPhrase(), status);
-        throw new CvsApiException(msg, status);
+
+        final String message;
+        if (entityOpt.isPresent()) {
+          final JsonNode errorJson = entityOpt.get();
+          final String msgFromJson = JsonUtils.getTextStrict(errorJson, "message");
+          message = String.format("CVS POST response error: reason=%s, status=%s, message=%s",
+              statusLine.getReasonPhrase(), status, msgFromJson);
+          throw new CvsApiException(message, status, JsonUtils.marshall(errorJson));
+        } else {
+          message = String.format("CVS POST response error: reason=%s, status=%s",
+              statusLine.getReasonPhrase(), status);
+          throw new CvsApiException(message, status, "{}");
+        }
       }
     };
 
@@ -225,6 +300,7 @@ public class CvsApiClient {
     //
     // Execute returns the response object as generated by the response handler.
     logger.info("POST url={}", post.getURI());
+    logger.info("POST language={}, noticeSdkVersion={}", language, noticeSdkVersion);
     logger.info("Posting to CVS: wait ... (could stall if there are network issues, proxy, ...)");
     return this.closeableHttpClient.execute(post, responseHandler);
   }
@@ -302,7 +378,7 @@ public class CvsApiClient {
 
         // By default use this config for all requests going through the client.
         builder.setDefaultRequestConfig(defaultRequestConfig);
-      } catch (@SuppressWarnings("unused") MalformedURLException e) {
+      } catch (MalformedURLException e) {
         throw new RuntimeException(
             "Malformed proxy url (not logging it as it could contain passwords).", e);
       }
@@ -356,11 +432,22 @@ public class CvsApiClient {
     }
   }
 
-  static ObjectNode createJsonReport(final Document svrlDoc, final Optional<String> svrlLangA2) {
+  /**
+   * This is report custom to the editor demo and has nothing to do with CVS API.
+   */
+  static ObjectNode createJsonReport(final Document svrlDoc,
+      final String languageTwoLetterCode, final Optional<SdkVersion> csvSdkVersion,
+      final SdkVersion noticeSdkVersion, final Map<String, String> translations) {
 
     final ObjectNode jsonReport = JsonUtils.createObjectNode();
     jsonReport.put("description", "Data extracted from the svrl report");
     jsonReport.put("timestamp", Instant.now().toString());
+
+    jsonReport.put("noticeSdkVersion", noticeSdkVersion.toString()); // ???? with patch ????
+    if (csvSdkVersion.isPresent()) {
+      jsonReport.put("csvSdkVersionOverride", csvSdkVersion.get().toString()); // ???? with patch
+    }
+    jsonReport.put("languageTwoLetterCode", languageTwoLetterCode); // ???? with patch ????
 
     // Find failed assertions.
     final ArrayNode jsonArr = jsonReport.putArray("failedAsserts");
@@ -369,31 +456,28 @@ public class CvsApiClient {
 
       final Element failedAssert = (Element) failedAsserts.item(i);
 
+      final ObjectNode jsonItem = JsonUtils.createObjectNode();
+
+      final String id = failedAssert.getAttribute("id");
+      jsonItem.put("id", id);
+
       final String role = failedAssert.getAttribute("role"); // ERROR, WARN
+      jsonItem.put("role", role);
 
       // TODO Skip WARN level??
       // if ("WARN".equals(role)) {
       // continue;
       // }
 
-      final String flag = failedAssert.getAttribute("flag"); // Example: LAWFULNESS
-      final String id = failedAssert.getAttribute("id");
-      final String test = failedAssert.getAttribute("test");
-      final String locationXpath = failedAssert.getAttribute("location");
+      putIfPresent(jsonItem, "flag", failedAssert.getAttribute("flag")); // Example: LAWFULNESS
+      putIfPresent(jsonItem, "test", failedAssert.getAttribute("test"));
 
       final Element textElem = XmlUtils.getDirectChild(failedAssert, "svrl:text");
-      final String labelId = XmlUtils.getTextNodeContentOneLine(textElem);
 
-      final ObjectNode jsonItem = JsonUtils.createObjectNode();
-      jsonItem.put("id", id);
-      jsonItem.put("labelId", labelId);
-      jsonItem.put("role", role);
-      // jsonItem.put("flag", flag);
-      // jsonItem.put("test", test);
-
+      final String locationXpath = failedAssert.getAttribute(CVS_REPORT_LOCATION);
       if (locationXpath != null) {
-        // TODO extract instance id from location xpath .../abcd[2]/...
-        jsonItem.put("location", locationXpath);
+        final ArrayNode xpathParts = handleXpathParts(locationXpath);
+        jsonItem.set(CVS_REPORT_LOCATION, xpathParts);
       }
 
       // Diagnostic ref.
@@ -408,24 +492,60 @@ public class CvsApiClient {
 
         // Complete XPath location of the element.
         final String diagnostic = diagnosticRef.getAttribute("diagnostic");
-
-        final String nodeId;
-        final String fieldId;
-        final int indexOfUnderscore = diagnostic.indexOf('_');
-        if (indexOfUnderscore > 0) {
-          nodeId = diagnostic.substring(0, indexOfUnderscore);
-          // In case of something like (c) inside of an id ... those are replaced by underscore.
-          // BT-01_c_-Procedure
-          // fieldId = diagnostic.substring(indexOfUnderscore, diagnostic.length());
-        } else {
-          nodeId = null;
-          // fieldId = diagnostic;
+        if (diagnostic != null) {
+          jsonItem.put("diagnostic", diagnostic);
         }
-        jsonItem.put("nodeId", nodeId);
-        // jsonItem.put("fieldId", fieldId); // TODO wait for TEDEFO-1758
 
-        // TODO accumulate labelIds and get them all in one call ...or get labels from the UI later?
-        // jsonItem.put("label", labelId + svrlLangA2 = label);
+        final String fieldId;
+        final String nodeId;
+        final String see = diagnosticRef.getAttribute("see");
+        if (see != null) {
+          // Uses work related to TEDEFO-1758.
+          // Example: ... see="field:BT-514-Organization-Company"
+          final int indexOfColon = see.indexOf(':');
+          if (indexOfColon > 0) {
+            final String seePrefix = see.substring(0, indexOfColon);
+            if ("field".equals(seePrefix)) {
+              fieldId = see.substring(indexOfColon + 1);
+              nodeId = null;
+            } else if ("node".equals(seePrefix)) {
+              fieldId = null;
+              nodeId = see.substring(indexOfColon + 1);
+            } else {
+              throw new RuntimeException(
+                  String.format("Unknown type for SVRL 'see' attribute: ", seePrefix));
+            }
+          } else {
+            fieldId = null;
+            nodeId = null;
+          }
+        } else {
+          fieldId = null;
+          nodeId = null;
+        }
+        if (nodeId != null) {
+          jsonItem.put("nodeId", nodeId);
+        }
+        if (fieldId != null) {
+          jsonItem.put("fieldId", fieldId);
+        }
+
+        // Handle label id / translation or text.
+        final String text = XmlUtils.getTextNodeContentOneLine(textElem);
+        if (text.contains("|")) {
+          // This is probably a label identifier.
+          // Example: rule|text|BR-BT-00005-0059
+          jsonItem.put("labelId", text);
+          final String translation = translations.get(text);
+
+          putIfPresent(jsonItem, "translation", translation);
+          // jsonItem.put("label", translation); // Avoid use of key "label" as many times it is
+          // used for labelId and this would be confusing.
+
+        } else {
+          // If it is not a label id, we could just put what ever is found.
+          jsonItem.put("textRaw", text);
+        }
       }
       jsonArr.add(jsonItem);
     }
@@ -433,8 +553,36 @@ public class CvsApiClient {
   }
 
   /**
+   * @return A JSON array containing items which can be used to locate the problem or warning
+   */
+  private static ArrayNode handleXpathParts(final String locationXpath) {
+    // Example:
+    // location="/cn:ContractNotice/cac:ProcurementProjectLot[2]/cac:TenderingTerms/...
+    final List<String> xpathParts = XpathUtils
+        .getXpathParts(locationXpath.startsWith("/") ? locationXpath.substring(1) : locationXpath);
+    final ArrayNode array = JsonUtils.createArrayNode();
+    for (final String part : xpathParts) {
+      final ObjectNode pathItem = JsonUtils.createObjectNode();
+      final String xmlTag;
+      if (part.endsWith("]")) { // Something like "...[2]"
+        final int indexStart = part.indexOf('[');
+        final int indexEnd = part.indexOf(']');
+        xmlTag = part.substring(0, indexStart);
+        final String instanceCountStr = part.substring(indexStart + 1, indexEnd);
+        final int index = Integer.parseInt(instanceCountStr);
+        pathItem.put(CVS_REPORT_LOCATION_INDEX, index);
+      } else {
+        xmlTag = part;
+      }
+      pathItem.put(CVS_REPORT_LOCATION_XML, xmlTag);
+      array.add(pathItem);
+    }
+    return array;
+  }
+
+  /**
    * @return The text encoded in base 64
-   * @throws UnsupportedEncodingException
+   * @throws UnsupportedEncodingException If the Character Encoding is not supported
    */
   private static String toBase64(final String text) throws UnsupportedEncodingException {
     return new String(Base64.getEncoder().encode(text.getBytes(CHARSET)), CHARSET.toString());

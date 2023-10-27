@@ -3,6 +3,10 @@ package eu.europa.ted.eforms.noticeeditor.helper.notice;
 import static eu.europa.ted.eforms.noticeeditor.util.JsonUtils.getTextStrict;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -46,6 +50,16 @@ import eu.europa.ted.eforms.sdk.SdkVersion;
 public class PhysicalModel {
 
   private static final Logger logger = LoggerFactory.getLogger(PhysicalModel.class);
+
+  /**
+   * Technical field "BT-803(t)-notice" for the "Notice Dispatch Date eSender (time)".
+   */
+  private static final String EFBC_TRANSMISSION_TIME = "efbc:TransmissionTime";
+
+  /**
+   * Technical field "BT-803(d)-notice" for the "Notice Dispatch Date eSender (date)".
+   */
+  private static final String EFBC_TRANSMISSION_DATE = "efbc:TransmissionDate";
 
   public static final String CBC_CUSTOMIZATION_ID = "cbc:CustomizationID";
   private static final String CBC_ID = "cbc:ID"; // Notice id, related to BT-701-notice.
@@ -163,7 +177,56 @@ public class PhysicalModel {
    * @return The XML as text.
    */
   public String toXmlText(final boolean indented) {
+    setTransmissionDateAndTimeValues();
     return EditorXmlUtils.asText(domDocument, indented);
+  }
+
+  /**
+   * Set the eSender notice dispatch date and time on this DOM document as a SIDE-EFFECT.
+   *
+   * <p style="color: red">
+   * Assumes your system time / clock is properly configured and synchronized!
+   * </p>
+   *
+   * <p>
+   * NOTE: the XML elements must already have been added because otherwise they may not be in the
+   * correct order. The values are set here, at the last moment, because the values depend on the
+   * current date and time and contrary to other values they cannot be set early.
+   * </p>
+   */
+  private void setTransmissionDateAndTimeValues() {
+    // Set this at the last moment before sending.
+    // The back end can dynamically add some technical information that is not present in the UI.
+    // Internal ticket: TEDEFO-2596
+    final ZoneOffset utc = ZoneOffset.UTC; // Also note that in the patterns we put "z".
+    final LocalDateTime datetimeNow = LocalDateTime.ofInstant(Instant.now(), utc);
+    {
+      // Transmission date in UTC.
+      final String formatted =
+          DateTimeFormatter.ofPattern("yyyy-MM-ddz").withZone(utc).format(datetimeNow);
+      final Node elem = XmlUtils.getElementByTagName(domDocument, EFBC_TRANSMISSION_DATE);
+      elem.setTextContent(formatted); // Set value: a date in UTC from the date time.
+    }
+    {
+      // Transmission time in UTC.
+      final String formatted =
+          DateTimeFormatter.ofPattern("HH:mm:ssz").withZone(utc).format(datetimeNow);
+      final Node elem = XmlUtils.getElementByTagName(domDocument, EFBC_TRANSMISSION_TIME);
+      elem.setTextContent(formatted); // Set value: a time in UTC from the date time.
+    }
+  }
+
+  private static void addTransmissionDateAndTimeElements(final Document domDocument) {
+    // Related to TEDEFO-2596
+    // The elements have to be set before the entire XML is sorted.
+    // The values of the elements should be set later (at the last moment).
+    final Node eformsExtension = XmlUtils.getElementByTagName(domDocument, "efext:EformsExtension");
+
+    final Element transmissionDate = createElemXml(domDocument, EFBC_TRANSMISSION_DATE);
+    eformsExtension.appendChild(transmissionDate); // Set no value yet.
+
+    final Element transmissionTime = createElemXml(domDocument, EFBC_TRANSMISSION_TIME);
+    eformsExtension.appendChild(transmissionTime); // Set no value yet.
   }
 
   @Override
@@ -233,6 +296,8 @@ public class PhysicalModel {
     final int depth = 0;
     buildPhysicalModelRec(xmlDoc, fieldsAndNodes, conceptualModelTreeRootNode, xmlDocRoot, debug,
         buildFields, depth, onlyIfPriority, xpathInst);
+
+    addTransmissionDateAndTimeElements(xmlDoc);
 
     // Reorder the physical model.
     // The location of the XSDs is given in the SDK and could vary by SDK version.

@@ -112,6 +112,10 @@ Note that before 1.8 the XML sorting relied only on XSD data, you can still find
 
 Configuration is found in `application.yaml`: `proxy` and `client.cvs`.
 
+Either use `application.yaml` or use parameters.
+Example command (assuming you have setup environment variables):
+`mvn compile exec:java -Dexec.mainClass="eu.europa.ted.eforms.noticeeditor.EformsNoticeEditorApp" -Dproxy.url=${EFORMS_PROXY_URL} -Dclient.cvs.apiKey=${CVS_API_KEY}`
+
 ## Running checkstyle
 
 `mvn checkstyle:checkstyle`, see pom.xml for checkstyle xml rules (Google code style subset)
