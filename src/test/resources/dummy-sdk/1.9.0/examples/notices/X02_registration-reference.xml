@@ -19,32 +19,39 @@
       </ext:UBLExtension>
    </ext:UBLExtensions>
    <cbc:UBLVersionID>2.3</cbc:UBLVersionID>
-   <cbc:CustomizationID>eforms-sdk-1.6</cbc:CustomizationID>
+   <cbc:CustomizationID>eforms-sdk-1.9</cbc:CustomizationID>
    <cbc:ID schemeName="notice-id">adc2cb72-0bd7-4fbe-a6b8-8efc308316b6</cbc:ID>
    <cbc:IssueDate>2020-11-26Z</cbc:IssueDate>
    <cbc:IssueTime>15:12:24Z</cbc:IssueTime>
+   <!-- Additional information -->
+   <cbc:Note languageID="ENG">The registrant declares ...</cbc:Note>
    <cbc:VersionID>01</cbc:VersionID>
    <cbc:RegulatoryDomain>32001R2157</cbc:RegulatoryDomain>
    <cbc:NoticeTypeCode listName="bri">brin-ecs</cbc:NoticeTypeCode>
    <cbc:NoticeLanguageCode>ENG</cbc:NoticeLanguageCode>
-   <cbc:Note languageID="ENG">The registrant declares ...</cbc:Note>
    <cac:SenderParty>
       <cac:Contact>
          <cbc:ElectronicMail>sender.example@example.com</cbc:ElectronicMail>
       </cac:Contact>
    </cac:SenderParty>
    <cac:BusinessParty>
-    <!-- Main Internet Address -->
       <cbc:WebsiteURI>http://www.acme-solution.co.uk</cbc:WebsiteURI>
       <cac:PostalAddress>
          <cbc:StreetName>Mainstreet 3B</cbc:StreetName>
          <cbc:AdditionalStreetName>Building C</cbc:AdditionalStreetName>
+         <!-- Postal Address (to be continued) -->
+         <!-- Town -->
          <cbc:CityName>South Tilport</cbc:CityName>
+         <!-- Postal Code -->
          <cbc:PostalZone>STI543M</cbc:PostalZone>
+         <!-- NUTS code (if applicable) -->
          <cbc:CountrySubentityCode listName="nuts3">UKC11</cbc:CountrySubentityCode>
+         <!-- Country -->
+         <!-- Postal Address (continuation) -->
          <cac:AddressLine>
             <cbc:Line>3rd floor</cbc:Line>
          </cac:AddressLine>
+         <!-- Postal Address (end) -->
          <cac:Country>
             <cbc:IdentificationCode listName="country">GBR</cbc:IdentificationCode>
          </cac:Country>
@@ -59,13 +66,16 @@
          <cac:CorporateRegistrationScheme>
             <cac:JurisdictionRegionAddress>
                <cbc:CityName>Hornfrestone</cbc:CityName>
+               <!-- Postal Code -->
                <cbc:PostalZone>HRN765Z</cbc:PostalZone>
+               <!-- Country -->
                <cac:Country>
                   <cbc:IdentificationCode listName="country">GBR</cbc:IdentificationCode>
                </cac:Country>
             </cac:JurisdictionRegionAddress>
          </cac:CorporateRegistrationScheme>
       </cac:PartyLegalEntity>
+      <!-- Contact Person -->
       <cac:Contact>
          <cbc:Name>John Doe</cbc:Name>
          <cbc:Telephone>(+123) 456 789 0123</cbc:Telephone>
@@ -75,21 +85,21 @@
    </cac:BusinessParty>
    <cac:AdditionalDocumentReference>
       <cbc:ID>DUMMY</cbc:ID>
+      <!-- Date of publication of the announcement -->
       <cbc:IssueDate>2020-11-16+01:00</cbc:IssueDate>
+      <!-- Title of the announcement -->
       <cbc:ReferencedDocumentInternalAddress>Registration of the "ACME Solution" European Company.
     </cbc:ReferencedDocumentInternalAddress>
+      <!-- Name of publication -->
       <cbc:DocumentDescription>The Hornfrestone Gazette</cbc:DocumentDescription>
+      <!-- URL of the announcement -->
       <cac:Attachment>
          <cac:ExternalReference>
             <cbc:URI>http://www.hornfrestone-gazette.co.uk/20201116/acme-solution.pdf</cbc:URI>
          </cac:ExternalReference>
       </cac:Attachment>
    </cac:AdditionalDocumentReference>
-   <!-- 
-    Sector of activity
-    ==================
-    Codelst to be established, see for Main Activity if extended
-   -->
+   <!-- Sector of activity ================== Codelist to be established, see for Main Activity if extended -->
    <cac:BusinessCapability>
       <cbc:CapabilityTypeCode listName="sector">education</cbc:CapabilityTypeCode>
    </cac:BusinessCapability>

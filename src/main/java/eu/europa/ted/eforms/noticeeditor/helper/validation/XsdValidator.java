@@ -20,7 +20,7 @@ public class XsdValidator {
 
   public static List<SAXParseException> validateXml(final String xmlAsText, final Path mainXsdPath)
       throws SAXException, IOException {
-    logger.info(String.format("Attempting to validate using schema: {}", mainXsdPath));
+    logger.info("Attempting to validate using schema: {}", mainXsdPath);
 
     final XsdCustomErrorHandler xsdErrorHandler = new XsdCustomErrorHandler();
 

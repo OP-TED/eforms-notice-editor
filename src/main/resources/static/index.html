@@ -11,9 +11,16 @@
 	<meta name="robots" content="noindex" />
 	<link rel="stylesheet" type="text/css" media="all" href="css/external/tom-select.css" />
 	<link rel="stylesheet" type="text/css" media="all" href="css/custom/editor.css" />
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.3/jquery.min.js"
+		integrity="sha512-STof4xm1wgkfm7heWqFJVn58Hm3EtS31XFaagaa8VMReCXAkQnJZ+jEy8PCC/iT18dFy95WcExNHFTqLyp72eQ=="
+		crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-xpath/0.3.1/jquery.xpath.min.js"
+		integrity="sha512-j98OvxcYGNtdLlhL4yi2QD6CsSDS1edBfOt/ZUMNztI3xCpnYPvDiOZk+HOA5qGWWVYI4+vJyV7MPp7EqDBD+w=="
+		crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
 	<script src="js/external/tom-select.complete.min.js" defer></script>
 	<script src="js/custom/sync-center.js" type="module" defer></script>
 	<script src="js/custom/editor.js" type="module" defer></script>
+	<script language="XML" id="notice-xml" type="text/xml"></script>
 </head>
 
 <body onload="Editor.loaded()">
@@ -25,8 +32,12 @@
 
 	<ul id="toolbar">
 		<li>
+			<label for="notice-selector" id="notice-selector-button">Open...</label>
+			<input type="file" accept=".xml" id="notice-selector" />
+		</li>
+		<li>
 			<label for="notice-subtype-selector">Select notice subtype:</label>
-			<select id="notice-subtype-selector" onchange="Editor.selectedNoticeSubtypeChanged()">
+			<select id="notice-subtype-selector">
 				<option value=""></option>
 			</select>
 		</li>
@@ -36,7 +47,7 @@
 		</li>
 		<li>
 			<label for="language-selector">Language:</label>
-			<select id="language-selector" onchange="Editor.selectedLanguageChanged()">
+			<select id="language-selector">
 				<option value="en">English</option>
 				<option value="fr">French</option>
 			</select>
@@ -52,7 +63,8 @@
 				<!-- For data injection into page DOM, see associated .js files-->
 			</div>
 			<div style="text-align: center;">
-				<input type="submit" id="id-editor-submit-form-2" class="notice-type-submit-button" value="Submit Notice"/>
+				<input type="submit" id="id-editor-submit-form-2" class="notice-type-submit-button"
+					value="Submit Notice" />
 			</div>
 		</form>
 	</div>
@@ -63,13 +75,16 @@
 				<label class="title">Debug</label>
 				<label class="sub-title">Click on the "serialize" button to generate and view the notice XML.</label>
 			</div>
-			<button type="button" id="id-editor-log-json" class="button" onclick="Editor.serializeToJson(event, 'no-validation')"
+			<button type="button" id="id-editor-log-json" class="button"
+				onclick="Editor.serializeToJson(event, 'no-validation')"
 				title="This may not work properly if required values are missing!">Generate XML</button>
-				
-			<button type="button" id="id-editor-log-json" class="button" onclick="Editor.serializeToJson(event, 'xsd-validation')"
+
+			<button type="button" id="id-editor-log-json" class="button"
+				onclick="Editor.serializeToJson(event, 'xsd-validation')"
 				title="This may not work properly if required values are missing!">XSD Validation</button>
 
-			<button type="button" id="id-editor-log-json" class="button" onclick="Editor.serializeToJson(event, 'cvs-validation')"
+			<button type="button" id="id-editor-log-json" class="button"
+				onclick="Editor.serializeToJson(event, 'cvs-validation')"
 				title="This may not work properly if required values are missing!">CVS Validation</button>
 		</div>
 		<output for="form-element" id="debug-output" class="body hidden">
@@ -81,7 +96,8 @@
 				<label for="xml-window">Physical Model</label>
 				<textarea id="xml-window" title="Notice XML"></textarea>
 			</div>
-			<div style="display: flex; flex-direction: column; grid-column-start: 1; grid-column-end: 3; margin-top: 1em;">
+			<div
+				style="display: flex; flex-direction: column; grid-column-start: 1; grid-column-end: 3; margin-top: 1em;">
 				<label for="validation-window">Validation response</label>
 				<textarea id="validation-window" title="Validation response"></textarea>
 			</div>

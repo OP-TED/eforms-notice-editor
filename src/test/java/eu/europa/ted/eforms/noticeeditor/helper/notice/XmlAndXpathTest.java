@@ -2,6 +2,7 @@ package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
+import java.util.List;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
@@ -24,7 +25,7 @@ public class XmlAndXpathTest {
   @SuppressWarnings("static-method")
   @Test
   public void xpathWithNamespaceTest() throws ParserConfigurationException, IOException {
-    testXpathWithNamespaces(new SdkVersion("1.6.0"));
+    testXpathWithNamespaces(new SdkVersion("1.9.0")); // SDK for dummy test files.
   }
 
   private static void testXpathWithNamespaces(final SdkVersion sdkVersion)
@@ -55,5 +56,23 @@ public class XmlAndXpathTest {
   private static int evalLength(final XPath xPathInst, final Element elem, final String xpathExpr) {
     return XmlUtils.evaluateXpathAsNodeList(xPathInst, elem, xpathExpr, elem.getTagName())
         .getLength();
+  }
+
+  @SuppressWarnings("static-method")
+  @Test
+  public void testXpathParts() {
+    final List<String> list = PhysicalModel.getXpathParts("a/b[x/y]/c");
+    assertEquals("a", list.get(0));
+    assertEquals("b[x/y]", list.get(1));
+    assertEquals("c", list.get(2));
+  }
+
+  @SuppressWarnings("static-method")
+  @Test
+  public void testXpathPartsNoPredicates() {
+    final List<String> list = PhysicalModel.getXpathPartsWithoutPredicates("a/b[x/y]/c");
+    assertEquals("a", list.get(0));
+    assertEquals("b", list.get(1)); // The predicate was removed.
+    assertEquals("c", list.get(2));
   }
 }
