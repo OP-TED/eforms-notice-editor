@@ -1,4 +1,3 @@
-
 /**
  * Client for the back-end SdkService.
  * 
@@ -19,15 +18,25 @@ export class SdkServiceClient {
     static noticeTypeDefinition = undefined;
 
     static async fetchVersionInfo() {
-        const response = await fetch("/sdk/info");
+        const url = "/sdk/info";
+        const response = await fetch(url);
         const json = await response.json();
 
         SdkServiceClient.appVersion = json.appVersion;
         SdkServiceClient.availableSdkVersions = json.sdkVersions;
     }
+    
+    static codelistUrl(sdkVersion, filename, language) {
+        if (!filename) {
+            throw new Error("Codelist URL: missing filename=" + filename);
+        }
+        const url = "/sdk/" + sdkVersion + "/codelists/" + filename + "/lang/" + language;
+        return url;
+    }
 
     static async fetchFieldsAndCodelists(sdkVersion) {
-        const response = await fetch("/sdk/" + sdkVersion + "/basic-meta-data");
+        const url = "/sdk/" + sdkVersion + "/basic-meta-data";
+        const response = await fetch(url);
         const json = await response.json();
 
         SdkServiceClient.sdkVersion = json.fieldsJson.sdkVersion;
@@ -38,18 +47,21 @@ export class SdkServiceClient {
     }
 
     static async fetchAvailableNoticeSubtypes(sdkVersion) {
-        const response = await fetch("/sdk/" + sdkVersion + "/notice-types");
+        const url = "/sdk/" + sdkVersion + "/notice-types";
+        const response = await fetch(url);
         const json = await response.json();
         SdkServiceClient.availableNoticeSubtypes = json.noticeTypes;
     }
 
     static async fetchNoticeSubtype(sdkVersion, noticeId) {
-        const response = await fetch("/sdk/" + sdkVersion + "/notice-types/" + noticeId)
+        const url = "/sdk/" + sdkVersion + "/notice-types/" + noticeId;
+        const response = await fetch(url)
         SdkServiceClient.noticeTypeDefinition = await response.json();
     }
 
     static async fetchTranslations(sdkVersion, languageCode) {
-        const response = await fetch("/sdk/" + sdkVersion + "/translations/" + languageCode + ".json");
+        const url = "/sdk/" + sdkVersion + "/translations/" + languageCode + ".json";
+        const response = await fetch(url);
         SdkServiceClient.translations = await response.json();
     }
 }

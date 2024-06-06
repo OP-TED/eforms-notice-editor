@@ -53,7 +53,6 @@ public class EditorXmlUtils {
     }
   }
 
-
   public static String getNodePath(final Node node) {
     if (node == null) {
       throw new IllegalArgumentException("Node cannot be null");

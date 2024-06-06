@@ -19,7 +19,7 @@ export class FormElement extends DocumentFragment {
    * 
    * @param {Object} content Deserialized object from notice-type-definition JSON.
    * @param {Number} level 
-   * @returns 
+   * @returns the appropriate sub-class based on the content-type of the passed content
    */
   static create(content, level) {
     switch (content?.contentType) {
@@ -37,22 +37,22 @@ export class FormElement extends DocumentFragment {
    * @param {String} contentId 
    * @param {Number} instanceNumber 
    */
-    static idFromFieldIdAndInstanceNumber(contentId, instanceNumber = -1) {
-      const prefix = /^\d/.test(contentId) ? "_" : "";                                              // prefix with an underscore if the contentId starts with a number
-      const identifier = contentId.replace(/\W/g,'_').toLowerCase();                                // replace all non-word characters with underscores
-      const suffix = instanceNumber > -1 ? `_${instanceNumber?.toString().padStart(4, "0")}` : "";  // add an instance number if requested
-      return prefix + identifier + suffix;
-    }
-  
-    /**
-     * Gets the element that corresponds to the given content-id and instance-number.
-     * 
-     * @param {String} contentId 
-     * @param {Number} instanceNumber 
-     */
-    static getElementByContentId(contentId, instanceNumber = -1) {
-      return document.getElementById(FormElement.idFromFieldIdAndInstanceNumber(contentId, instanceNumber));
-    }
+  static idFromFieldIdAndInstanceNumber(contentId, instanceNumber = -1) {
+    const prefix = /^\d/.test(contentId) ? "_" : "";                                              // prefix with an underscore if the contentId starts with a number
+    const identifier = contentId.replace(/\W/g,'_').toLowerCase();                                // replace all non-word characters with underscores
+    const suffix = instanceNumber > -1 ? `_${instanceNumber?.toString().padStart(4, "0")}` : "";  // add an instance number if requested
+    return prefix + identifier + suffix;
+  }
+
+  /**
+   * Gets the element that corresponds to the given content-id and instance-number.
+   * 
+   * @param {String} contentId 
+   * @param {Number} instanceNumber 
+   */
+  static getElementByContentId(contentId, instanceNumber = -1) {
+    return document.getElementById(FormElement.idFromFieldIdAndInstanceNumber(contentId, instanceNumber));
+  }
   
   constructor(content, level) {
     super();
@@ -81,6 +81,7 @@ export class FormElement extends DocumentFragment {
 
     if (this.content.hidden || this.content.readOnly) {
       this.bodyElement.setAttribute("readonly", "readonly");
+      //this.bodyElement.setAttribute("disabled", "disabled");
       this.bodyElement.disabled = true;
     }
 
@@ -95,6 +96,10 @@ export class FormElement extends DocumentFragment {
   
   get contentId() {
     return this.content?.id;
+  }
+
+  get displayType() {
+    return this.content?.displayType;
   }
 
   get instanceNumber() {
@@ -313,11 +318,11 @@ export class InputFieldElement extends FormElement {
    */
   static create(content, level) {
     switch (content.displayType) {
-      case "CHECKBOX": return new CheckBoxInputElement(content, level);
-      case "COMBOBOX": return new ComboBoxInputElement(content, level); 
-      case "RADIO": return new RadioInputElement(content, level); 
-      case "TEXTAREA": return new TextAreaInputElement(content, level);
-      case "TEXTBOX": return new TextBoxInputElement(content, level); 
+      case Constants.DisplayType.CHECKBOX: return new CheckBoxInputElement(content, level);
+      case Constants.DisplayType.COMBOBOX: return new ComboBoxInputElement(content, level); 
+      case Constants.DisplayType.RADIO: return new RadioInputElement(content, level); 
+      case Constants.DisplayType.TEXTAREA: return new TextAreaInputElement(content, level);
+      case Constants.DisplayType.TEXTBOX: return new TextBoxInputElement(content, level); 
     }
   }
 
@@ -425,7 +430,7 @@ export class TextBoxInputElement extends InputFieldElement {
     const input = document.createElement("input");
     input.setAttribute("type", "text");
     
-    const presetValue = this.content.presetValue;
+    const presetValue = this.content._presetValue;
     if (presetValue) {
       input.value = presetValue;
     }
@@ -446,7 +451,7 @@ export class CheckBoxInputElement extends InputFieldElement {
     const input = document.createElement("input");
     input.setAttribute("type", "checkbox");
     
-    const presetValue = this.content.presetValue;
+    const presetValue = this.content._presetValue;
     if (presetValue && presetValue === key) {
       input.setAttribute("checked", "checked");
     }
@@ -485,7 +490,7 @@ export class RadioInputElement extends InputFieldElement {
     labelElement.textContent = label;
     labelElement.appendChild(radioButtonElement);
     
-    const presetValue = this.content.presetValue;
+    const presetValue = this.content._presetValue;
     if (presetValue && presetValue === key) {
       radioButtonElement.setAttribute("checked", "checked");
     }
@@ -513,7 +518,7 @@ export class ComboBoxInputElement extends InputFieldElement {
       this.bodyElement.appendChild(DomUtil.createOption(item[0], item[1]));
     }
     
-    const presetValue = this.content.presetValue;
+    const presetValue = this.content._presetValue;
     if (presetValue) {
       this.select(presetValue);
     }
@@ -542,7 +547,7 @@ export class TextAreaInputElement extends InputFieldElement {
     const bodyElement = document.createElement("textarea");
     bodyElement.setAttribute("rows", "2");
     
-    const presetValue = this.content.presetValue;
+    const presetValue = this.content._presetValue;
     if (presetValue) {
       bodyElement.value = presetValue;
     }

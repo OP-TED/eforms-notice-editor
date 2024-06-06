@@ -22,7 +22,7 @@ public class SvrlParserTest {
   @SuppressWarnings("static-method")
   @Test
   public void testParse() throws SAXException, IOException, ParserConfigurationException {
-    final Path svrlPath = DummySdk.buildDummySdkPath(new SdkVersion("1.6.0"))
+    final Path svrlPath = DummySdk.buildDummySdkPath(new SdkVersion("1.8.0"))
         .resolve("examples/reports/INVALID_cn_24_empty.svrl");
 
     final Document svrlDoc = SafeDocumentBuilder.buildSafeDocumentBuilderAllowDoctype(false)

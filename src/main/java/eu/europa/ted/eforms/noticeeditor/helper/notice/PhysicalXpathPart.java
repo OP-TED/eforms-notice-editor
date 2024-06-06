@@ -1,19 +1,14 @@
 package eu.europa.ted.eforms.noticeeditor.helper.notice;
 
-import java.util.Optional;
-
 /**
  * Holds data about an xpath fragment.
  */
 public class PhysicalXpathPart {
   private final String xpathExpr;
-  private final Optional<String> schemeNameOpt;
   private final String tagOrAttr;
 
-  public PhysicalXpathPart(final String xpathExpr, final String tagOrAttr,
-      final Optional<String> schemeNameOpt) {
+  public PhysicalXpathPart(final String xpathExpr, final String tagOrAttr) {
     this.xpathExpr = xpathExpr;
-    this.schemeNameOpt = schemeNameOpt;
     this.tagOrAttr = tagOrAttr;
   }
 
@@ -31,10 +26,4 @@ public class PhysicalXpathPart {
     return xpathExpr;
   }
 
-  /**
-   * @return An optional extracted schemeName, use it if if present
-   */
-  public Optional<String> getSchemeNameOpt() {
-    return schemeNameOpt;
-  }
 }

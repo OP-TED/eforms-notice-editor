@@ -125,6 +125,10 @@ public class JsonUtils {
     return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
   }
 
+  public static List<String> getListOfStrings(final JsonNode jsonNode, final String key) {
+    return getListOfStrings(jsonNode.get(key));
+  }
+
   public static List<String> getListOfStrings(final JsonNode jsonNode) {
     if (jsonNode != null && jsonNode.isArray()) {
       final ArrayNode arrayNode = (ArrayNode) jsonNode;

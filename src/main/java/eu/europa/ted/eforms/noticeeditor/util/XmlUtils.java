@@ -166,6 +166,18 @@ public class XmlUtils {
     return elemList;
   }
 
+  public static List<Node> evaluateXpathAsListOfNode(final XPath xpathInst,
+      final Object contextElem, final String xpathExpr, String idForError) {
+    final NodeList elemsFound =
+        evaluateXpathAsNodeList(xpathInst, contextElem, xpathExpr, idForError);
+    final List<Node> elemList = new ArrayList<>(elemsFound.getLength());
+    for (int i = 0; i < elemsFound.getLength(); i++) {
+      final Node xmlNode = elemsFound.item(i);
+      elemList.add(xmlNode);
+    }
+    return elemList;
+  }
+
   public static String getTextNodeContentOneLine(final Node node) {
     return getTextNodeContent(node).strip().replaceAll("\r\n\t", "");
   }

@@ -40,7 +40,7 @@ public class NoticeXmlTagSorterTest {
   /**
    * NOTE: just changing this is not enough, the dummy examples must also be adapted for some tests.
    */
-  private static final SdkVersion SDK_VERSION = new SdkVersion("1.8.0");
+  private static final SdkVersion SDK_VERSION = new SdkVersion("1.9.0");
 
   @Autowired
   private XmlWriteService xmlWriteService;
@@ -162,7 +162,7 @@ public class NoticeXmlTagSorterTest {
       final Document docReference,
       final boolean validate) throws SAXException, IOException {
 
-    final FieldsAndNodes fieldsAndNodes = xmlWriteService.readFieldsAndNodes(sdkVersion);
+    final FieldsAndNodes fieldsAndNodes = xmlWriteService.readSdkFieldsAndNodes(sdkVersion);
     final Path pathToSpecificSdk = DummySdk.buildDummySdkPath(sdkVersion);
     final NoticeXmlTagSorter sorter = new NoticeXmlTagSorter(xpathInst, docTypeInfo,
         pathToSpecificSdk, fieldsAndNodes);

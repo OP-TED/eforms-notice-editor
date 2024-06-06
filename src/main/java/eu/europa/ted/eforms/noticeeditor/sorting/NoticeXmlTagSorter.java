@@ -92,10 +92,18 @@ public class NoticeXmlTagSorter {
    */
   public void sortXml(final Element xmlRoot) throws SAXException, IOException {
 
+    final String cbcCustomizationId = PhysicalModel.CBC_CUSTOMIZATION_ID;
     // Compare sdkVersion of the element to the SDK version of this instance.
-    final String sdkVersionOfNoticeStr =
-        XmlUtils.getDirectChild(xmlRoot, PhysicalModel.CBC_CUSTOMIZATION_ID).getTextContent();
+    final Element customizationElem =
+        XmlUtils.getDirectChild(xmlRoot, cbcCustomizationId);
+    if (customizationElem == null) {
+      throw new RuntimeException(
+          String.format(
+              "Failed to find field=%s, the physical model is probably not well formed. xmlRoot=%s",
+              cbcCustomizationId, xmlRoot));
+    }
 
+    final String sdkVersionOfNoticeStr = customizationElem.getTextContent();
     final SdkVersion sdkVersionOfNotice =
         VersionHelper.parsePrefixedSdkVersion(sdkVersionOfNoticeStr);
     final SdkVersion sdkVersionOfSorter = getSorterSdkVersion();
@@ -213,7 +221,6 @@ public class NoticeXmlTagSorter {
     Validate.notNull(fieldOrNode);
 
     final String id = JsonUtils.getTextStrict(fieldOrNode, FieldsAndNodes.FIELD_OR_NODE_ID_KEY);
-    logger.debug("Sorting children of id={}", id);
     final String xpathAbsolute =
         JsonUtils.getTextStrict(fieldOrNode, FieldsAndNodes.XPATH_ABSOLUTE);
 
@@ -225,6 +232,7 @@ public class NoticeXmlTagSorter {
     if (childItems == null) {
       return; // Nothing to sort.
     }
+    logger.debug("Sorting children of id={}", id);
 
     // Get sort order of child items for the current node id.
     final List<OrderItem> orderItemsForParent = new ArrayList<>(childItems.size());
@@ -251,7 +259,7 @@ public class NoticeXmlTagSorter {
         final OrderItem orderItem = new OrderItem(fieldOrNodeId, key, order);
         orderItemsForParent.add(orderItem);
       } else {
-        logger.info("parentId={}, itemId={} has no {}", id, fieldOrNodeId,
+        logger.warn("parentId={}, itemId={} has no {}", id, fieldOrNodeId,
             FieldsAndNodes.XSD_SEQUENCE_ORDER_KEY);
         // Ideally we want this to throw, but some tests are using dummy data that is missing the
         // sort order and the tests are not about the order.

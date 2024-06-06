@@ -4,17 +4,17 @@ import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Abstract item holding common information. References SDK metadata.
+ * Abstract item holding common conceptual information for a notice. References SDK metadata.
  */
 public abstract class ConceptTreeItem {
   /**
-   * Unique identifier among children at same level.
+   * Unique identifier among children at same level. Counter excluded.
    */
   private final String idUnique;
 
   /**
    * This id is not unique as some concept items can be repeatead while still have the same metadata
-   * (pointing to same field or same node multiple times).
+   * (pointing to same field or same node multiple times). A counter helps to differentiate them.
    */
   protected final String idInSdkFieldsJson;
 
@@ -32,10 +32,14 @@ public abstract class ConceptTreeItem {
   }
 
   /**
-   * @return Unique identifier among children at same level.
+   * @return Unique identifier among children at same level. Counter excluded.
    */
   public String getIdUnique() {
     return idUnique;
+  }
+
+  public String getIdInSdkFieldsJson() {
+    return idInSdkFieldsJson;
   }
 
   public int getCounter() {
@@ -50,6 +54,7 @@ public abstract class ConceptTreeItem {
 
   @Override
   public int hashCode() {
+    // Important: the counter is taken into account, this matters for repeatable items.
     return Objects.hash(counter, idInSdkFieldsJson, idUnique);
   }
 
@@ -65,6 +70,7 @@ public abstract class ConceptTreeItem {
       return false;
     }
     ConceptTreeItem other = (ConceptTreeItem) obj;
+    // Important: the counter is taken into account, this matters for repeatable items.
     return counter == other.counter && Objects.equals(idInSdkFieldsJson, other.idInSdkFieldsJson)
         && Objects.equals(idUnique, other.idUnique);
   }
