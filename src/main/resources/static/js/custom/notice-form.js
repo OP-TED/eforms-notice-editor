@@ -432,6 +432,15 @@ export class TextBoxInputElement extends InputFieldElement {
     
     return input;
   }
+
+   populate(map) {
+     let idSchemes = '';
+     for (const item of map) {
+       idSchemes += item + ',';
+     }
+     this.bodyElement.value = idSchemes;
+   }
+
 }
 
 /*******************************************************************************
