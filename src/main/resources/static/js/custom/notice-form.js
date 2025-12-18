@@ -510,7 +510,11 @@ export class RadioInputElement extends InputFieldElement {
 export class ComboBoxInputElement extends InputFieldElement {
   constructor(content, level) {
     super(content, level);
-    new TomSelect(this.bodyElement, {});
+    new TomSelect(this.bodyElement, {
+        //TEMP, For some id-ref fields the list of available ids wont be populated probably due to a bug
+        persist: false,
+        create: true
+    });
   }
 
   populate(map, addEmptyOption = false) {

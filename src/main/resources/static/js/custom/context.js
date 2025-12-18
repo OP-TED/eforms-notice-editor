@@ -10,6 +10,7 @@
  */
 
 import { SdkServiceClient } from "./service-clients.js";
+import { I18N } from "./global.js"
 
 /*******************************************************************************
  * Provides a central point of access to the application's context .

@@ -439,7 +439,7 @@ export class IdRefInputField extends InputField {
     }
 
     const elements = document.querySelectorAll(query);
-    this.formElement.populate(Array.from(elements).map(element => [element.value, element.value]));
+    this.formElement.populate(Array.from(elements).filter(e => e.value).map(element => [element.value, element.value]));
   }
 }
 
