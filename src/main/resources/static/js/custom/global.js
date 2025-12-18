@@ -16,6 +16,8 @@ export const Constants = {
         ID_SCHEMES_ATTRIBUTE: "data-id-schemes",
         VALUE_SOURCE_ATTRIBUTE: "data-value-source",
         COUNTER_ATTRIBUTE: "data-counter",
+        REPEATABLE_ATTRIBUTE: "repeatable",
+        LANGUAGE_ID: "languageid"
     },
 
     InputFieldProxyHandler: {

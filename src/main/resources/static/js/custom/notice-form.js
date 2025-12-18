@@ -90,6 +90,7 @@ export class FormElement extends DocumentFragment {
 
     if (this.content._repeatable) {
       this.containerElement.classList.add("repeatable");
+      this.bodyElement.setAttribute("repeatable", '')
     }
   }
   

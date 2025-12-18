@@ -160,6 +160,18 @@ export class DisplayGroup extends NoticeTypeDefinitionElement {
     if (this.content._repeatable) {
       this.container.classList.add("repeatable");
     }
+
+    if (this.#hasIdScheme) {
+      this.htmlElement.setAttribute(Constants.Attributes.ID_SCHEME_ATTRIBUTE, this.idScheme);
+    }
+  }
+
+  get idScheme() {
+    return this.content._idScheme;
+  }
+
+  get #hasIdScheme() {
+    return this.content._idScheme ? true : false;
   }
 
   get nodeIdAttribute() {
@@ -594,6 +606,7 @@ export class TextMultilingualInputField extends TextInputField {
   constructor(content, level = 0) {
     super(content, level);
     this.container.classList.add("text-multilingual");
+    this.htmlElement.setAttribute(Constants.Attributes.LANGUAGE_ID, Context.languageAsIso6393)
   }
 }
 

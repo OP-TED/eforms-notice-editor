@@ -19,7 +19,17 @@ export class VisualModelElement {
 
         this.contentId = htmlElement.getAttribute(Constants.Attributes.CONTENT_ID_ATTRIBUTE);
         this.contentType = htmlElement.getAttribute(Constants.Attributes.CONTENT_TYPE_ATTRIBUTE);
-        this.contentCount = htmlElement.getAttribute(Constants.Attributes.COUNTER_ATTRIBUTE);
+        this.contentCount = +htmlElement.getAttribute(Constants.Attributes.COUNTER_ATTRIBUTE);
+        if (htmlElement.hasAttribute(Constants.Attributes.REPEATABLE_ATTRIBUTE)) {
+            this.repeatable = true;
+        }
+
+        if (htmlElement.hasAttribute(Constants.Attributes.LANGUAGE_ID)) {
+            this.languageId = htmlElement.getAttribute(Constants.Attributes.LANGUAGE_ID)
+        }
+
+        this.idScheme = htmlElement.getAttribute(Constants.Attributes.ID_SCHEME_ATTRIBUTE)
+
 
         if (htmlElement.hasChildNodes()) {
             const visualModelElements = VisualModelElement.fromChildren(htmlElement);
@@ -106,8 +116,18 @@ export class VisualModelFieldElement extends VisualModelElement {
     }
 
     static getValue(htmlElement) {
+        if (htmlElement instanceof HTMLInputElement) {
+            if (htmlElement.value) {
+                if (htmlElement.type == "date") {
+                    return htmlElement.valueAsDate.toISOString().substr(0, 10)+"Z"
+                } else if (htmlElement.type == "time") {
+                    return htmlElement.valueAsDate.toISOString().substr(11, 8)+"Z";
+                }
+            }
+            return htmlElement.value
+        }
 
-        if (htmlElement instanceof HTMLInputElement || htmlElement instanceof HTMLSelectElement || htmlElement instanceof HTMLTextAreaElement) {
+        if (htmlElement instanceof HTMLSelectElement || htmlElement instanceof HTMLTextAreaElement) {
             return htmlElement.value;
         }
 
@@ -136,7 +156,7 @@ export class VisualModel extends VisualModelTopLevelElement {
         this.contentId = "notice-root"; // visualRoot.
         this.visNodeId = Constants.StandardIdentifiers.ND_ROOT;
         this.visType = Constants.VIS_TYPE_NON_FIELD;
-        this.contentCount = "1";
+        this.contentCount = 1;
 
         // Put the notice SDK version at top level.
         this.sdkVersion = this.findByContentId(Constants.StandardIdentifiers.SDK_VERSION_FIELD).value;
