@@ -472,8 +472,21 @@ export class CodeInputField extends InputField {
     // Special case for some of the metadata fields.
     if (this.getCodelistId() === "notice-subtype") {
       this.formElement.select(Context.noticeSubtype);
-    } else if (this.getCodelistId() === "language_eu-official-language" && "BT-702(a)-notice" === content.id) {
+      this.formElement.bodyElement.tomselect?.sync();
+    } else if (this.fieldId === Constants.StandardIdentifiers.LANGUAGE_FIELD) {
       this.formElement.select(Context.languageAsIso6393);
+      this.formElement.bodyElement.tomselect?.sync();
+    } else if (this.fieldId === Constants.StandardIdentifiers.NOTICE_TYPE_FIELD) {
+        this.formElement.select(SdkServiceClient.noticeSubtypeMeta.type);
+        this.formElement.bodyElement.tomselect?.sync();
+    } else if (this.fieldId === Constants.StandardIdentifiers.NOTICE_FORM_TYPE_FIELD) {
+        this.formElement.select(SdkServiceClient.noticeSubtypeMeta.formType);
+        this.formElement.bodyElement.tomselect?.sync();
+    } else if (this.fieldId === Constants.StandardIdentifiers.LEGAL_BASIS_FIELD) {
+        // For some notice types, legal basis is in the metadata section
+        // This will set the field, even when its in the procedure section
+        this.formElement.select(SdkServiceClient.noticeSubtypeMeta.legalBasis);
+        this.formElement.bodyElement.tomselect?.sync();
     }
   }
 

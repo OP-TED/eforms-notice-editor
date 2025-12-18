@@ -559,6 +559,28 @@ public class SdkService {
     serveSdkJsonString(response, basicInfoJson.toPrettyString(), filenameForDownload);
   }
 
+  /**
+   * Serves metadata of the given notice subtype for a specific SDK version
+   * @param response http response
+   * @param sdkVersion version of the SDK
+   * @param noticeTypeId id of notice subtype
+   */
+  public void serveNoticeTypeMetadata(final HttpServletResponse response, final SdkVersion sdkVersion, final String noticeTypeId) {
+    Validate.notNull(sdkVersion, "sdkVersion is null");
+    Validate.notEmpty(noticeTypeId, "noticeTypeId is empty");
+
+    JsonNode noticeTypesJson = readNoticeTypesJson(sdkVersion);
+    JsonNode noticeSubTypes = noticeTypesJson.get("noticeSubTypes");
+    final String filenameForDownload = String.format("%s.json", noticeTypeId);
+
+    for (JsonNode subtype : noticeSubTypes) {
+      String subTypeId = JsonUtils.getTextStrict(subtype, "subTypeId");
+      if (subTypeId.equals(noticeTypeId)) {
+        serveSdkJsonString(response, subtype.toPrettyString(), filenameForDownload);
+      }
+    }
+  }
+
   JsonNode readSdkCodelistsJson(final SdkVersion sdkVersion) {
     return readSdkJsonFile(sdkVersion, SdkResource.CODELISTS, SdkService.SDK_CODELISTS_JSON);
   }

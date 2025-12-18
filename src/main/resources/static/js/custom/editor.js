@@ -62,6 +62,7 @@ export default class Editor {
     await SdkServiceClient.fetchFieldsAndCodelists(selectedSdkVersion);
     await SdkServiceClient.fetchNoticeSubtype(selectedSdkVersion, selectedNoticeSubtype);
     await SdkServiceClient.fetchTranslations(SdkVersionSelector.selectedSdkVersion, LanguageSelector.selectedLanguage);
+    await SdkServiceClient.fetchNoticeSubtypeMetadata(selectedSdkVersion, selectedNoticeSubtype)
 
     Editor.instance.createNoticeForm();
   }
@@ -117,6 +118,12 @@ export default class Editor {
 
     // Set the notice id.
     FormElement.getElementByContentId(Constants.StandardIdentifiers.NOTICE_UUID_FIELD).value = DomUtil.generateRandomUuidV4();
+
+    // Set notice procedure id.
+    let procedureIdField = FormElement.getElementByContentId(Constants.StandardIdentifiers.NOTICE_PROCEDURE_UUID_FIELD)
+    if (procedureIdField) {
+        procedureIdField.value = DomUtil.generateRandomUuidV4()
+    }
 
     // BUILD NON-METADATA SECTION.
     Editor.formContainerElement.appendChild(

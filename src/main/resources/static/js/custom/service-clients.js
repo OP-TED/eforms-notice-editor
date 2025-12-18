@@ -17,6 +17,7 @@ export class SdkServiceClient {
     static codelists = undefined;
     static translations = undefined;
     static noticeTypeDefinition = undefined;
+    static noticeSubtypeMeta = undefined;
 
     static async fetchVersionInfo() {
         const response = await fetch("/sdk/info");
@@ -51,6 +52,11 @@ export class SdkServiceClient {
     static async fetchTranslations(sdkVersion, languageCode) {
         const response = await fetch("/sdk/" + sdkVersion + "/translations/" + languageCode + ".json");
         SdkServiceClient.translations = await response.json();
+    }
+
+    static async fetchNoticeSubtypeMetadata(sdkVersion, noticeId) {
+        const response = await fetch("/sdk/" + sdkVersion + "/notice-types/" + noticeId + "/metadata")
+        SdkServiceClient.noticeSubtypeMeta = await response.json();
     }
 }
 

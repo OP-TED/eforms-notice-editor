@@ -89,6 +89,11 @@ export const Constants = {
         NOTICE_SUBTYPE_FIELD: "OPP-070-notice",
         NOTICE_UUID_FIELD: "BT-701-notice",
         NOTICE_VERSION_FIELD: "BT-757-notice",
+        NOTICE_PROCEDURE_UUID_FIELD: "BT-04-notice",
+        LANGUAGE_FIELD: "BT-702(a)-notice",
+        LEGAL_BASIS_FIELD: "BT-01-notice",
+        NOTICE_TYPE_FIELD: "BT-02-notice",
+        NOTICE_FORM_TYPE_FIELD: "BT-03-notice"
     }
 }
 

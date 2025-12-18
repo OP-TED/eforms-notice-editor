@@ -115,4 +115,13 @@ public class SdkRestController implements AsyncConfigurer {
         filenameForDownload);
   }
 
+  /**
+   * Get JSON containing data about a notice type metadata
+   */
+  @RequestMapping(value = "/{sdkVersion}/notice-types/{noticeTypeId}/metadata", method = RequestMethod.GET, produces = SdkService.MIME_TYPE_JSON)
+  public void serveNoticeTypeMetadata(final HttpServletResponse response, @PathVariable(value = "sdkVersion") final String sdkVersion,
+          @PathVariable(value = "noticeTypeId") final String noticeTypeId) {
+    sdkService.serveNoticeTypeMetadata(response, new SdkVersion(sdkVersion), noticeTypeId);
+  }
+
 }
