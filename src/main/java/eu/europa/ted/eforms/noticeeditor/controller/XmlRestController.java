@@ -2,6 +2,8 @@ package eu.europa.ted.eforms.noticeeditor.controller;
 
 import java.util.Optional;
 import javax.servlet.http.HttpServletResponse;
+
+import eu.europa.ted.eforms.noticeeditor.helper.notice.VisualTreeElement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,12 +28,12 @@ public class XmlRestController implements AsyncConfigurer {
    */
   @RequestMapping(value = "/notice/save/validation/none", method = RequestMethod.POST,
       produces = SdkService.MIME_TYPE_XML, consumes = SdkService.MIME_TYPE_JSON)
-  public void saveNotice(final HttpServletResponse response, final @RequestBody String noticeJson)
+  public void saveNotice(final HttpServletResponse response, final @RequestBody VisualTreeElement rootElement)
       throws Exception {
     // Enriches the XML for human readability but it becomes invalid.
     // Also adds .dot files in target.
     final boolean debug = false;
-    xmlService.saveNoticeAsXml(Optional.of(response), noticeJson, debug);
+    xmlService.saveNoticeAsXml(Optional.of(response), rootElement, debug);
   }
 
   /**
@@ -40,10 +42,10 @@ public class XmlRestController implements AsyncConfigurer {
    */
   @RequestMapping(value = "/notice/save/validation/xsd", method = RequestMethod.POST,
       produces = SdkService.MIME_TYPE_XML, consumes = SdkService.MIME_TYPE_JSON)
-  public void saveNoticeAndXsdValidate(final HttpServletResponse response,
-      final @RequestBody String noticeJson) throws Exception {
+  public void saveNoticeAndXsdValidate(final HttpServletResponse response, final @RequestBody VisualTreeElement rootElement)
+          throws Exception {
     final boolean debug = false;
-    xmlService.validateUsingXsd(Optional.of(response), noticeJson, debug);
+    xmlService.validateUsingXsd(Optional.of(response), rootElement, debug);
   }
 
   /**
@@ -53,9 +55,9 @@ public class XmlRestController implements AsyncConfigurer {
    */
   @RequestMapping(value = "/notice/save/validation/cvs", method = RequestMethod.POST,
       produces = SdkService.MIME_TYPE_XML, consumes = SdkService.MIME_TYPE_JSON)
-  public void saveNoticeAndCvsValidate(final HttpServletResponse response,
-      final @RequestBody String noticeJson) throws Exception {
+  public void saveNoticeAndCvsValidate(final HttpServletResponse response, final @RequestBody VisualTreeElement rootElement)
+          throws Exception {
     final boolean debug = false;
-    xmlService.validateUsingCvs(Optional.of(response), noticeJson, debug);
+    xmlService.validateUsingCvs(Optional.of(response), rootElement, debug);
   }
 }

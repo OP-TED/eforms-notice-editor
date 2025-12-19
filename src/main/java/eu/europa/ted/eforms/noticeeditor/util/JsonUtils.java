@@ -148,4 +148,10 @@ public class JsonUtils {
     }
     return Collections.emptyList();
   }
+
+  public static List<String> getListOfString(final JsonNode jsonNode, final String key) {
+    Validate.notNull(jsonNode, "Elem is null for key=%s, json=%s", key, jsonNode);
+    final JsonNode jsonElem = jsonNode.get(key);
+    return getListOfStrings(jsonElem);
+  }
 }

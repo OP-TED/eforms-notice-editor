@@ -6,11 +6,19 @@ package eu.europa.ted.eforms.noticeeditor.helper.notice;
  */
 public class ConceptTreeField extends ConceptTreeItem {
   private final String value;
+  private String languageId;
 
   public ConceptTreeField(final String idUnique, final String idInSdkFieldsJson, final String value,
       final int counter) {
     super(idUnique, idInSdkFieldsJson, counter);
     this.value = value; // The value may or may not be blank, we cannot validate it here.
+  }
+
+  public ConceptTreeField(final String idUnique, final String idInSdkFieldsJson, final String value,
+          final int counter, final String languageId) {
+    super(idUnique, idInSdkFieldsJson, counter);
+    this.value = value;
+    this.languageId = languageId;
   }
 
   /**
@@ -22,6 +30,14 @@ public class ConceptTreeField extends ConceptTreeItem {
 
   public String getValue() {
     return value;
+  }
+
+  public String getLanguageId() {
+    return languageId;
+  }
+
+  public void setLanguageId(String languageId) {
+    this.languageId = languageId;
   }
 
   @Override

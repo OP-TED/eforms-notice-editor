@@ -20,6 +20,8 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
+
+import eu.europa.ted.eforms.sdk.SdkConstants;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
@@ -595,6 +597,37 @@ public class SdkService {
 
   public Path getSdkRootFolder() {
     return Path.of(this.eformsSdkPath);
+  }
+
+  /**
+   * Return the document type metadata of the given notice subtype
+   * @param noticeSubtype id of the notice subtype
+   * @param sdkVersion version of the SDK
+   * @return JsonNode of the metadata
+   */
+  public JsonNode getDocumentTypeOfSubtype(String noticeSubtype, SdkVersion sdkVersion) {
+    JsonNode noticeTypesJson = readNoticeTypesJson(sdkVersion);
+
+    JsonNode noticeSubTypes = noticeTypesJson.get("noticeSubTypes");
+    String documentTypeId = "";
+    for (JsonNode subtype : noticeSubTypes) {
+      String subTypeId = JsonUtils.getTextStrict(subtype, "subTypeId");
+      if (subTypeId.equals(noticeSubtype)) {
+        documentTypeId =  JsonUtils.getTextStrict(subtype, SdkConstants.NOTICE_TYPES_JSON_DOCUMENT_TYPE_KEY);
+      }
+    }
+
+    JsonNode documentTypes = noticeTypesJson.get(SdkConstants.NOTICE_TYPES_JSON_DOCUMENT_TYPES_KEY);
+
+    for (JsonNode docType : documentTypes) {
+      String docTypeId = JsonUtils.getTextStrict(docType, "id");
+      if (docTypeId.equals(documentTypeId)) {
+        return docType;
+      }
+    }
+
+    throw new RuntimeException("Unable to find documentType of subtype with id: " + noticeSubtype);
+
   }
 
 }

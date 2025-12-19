@@ -1,5 +1,26 @@
 package eu.europa.ted.eforms.noticeeditor.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import eu.europa.ted.eforms.noticeeditor.helper.VersionHelper;
+import eu.europa.ted.eforms.noticeeditor.helper.notice.ConceptualModel;
+import eu.europa.ted.eforms.noticeeditor.helper.notice.DocumentTypeInfo;
+import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
+import eu.europa.ted.eforms.noticeeditor.helper.notice.PhysicalModel;
+import eu.europa.ted.eforms.noticeeditor.helper.notice.VisualModel;
+import eu.europa.ted.eforms.noticeeditor.helper.notice.VisualTreeElement;
+import eu.europa.ted.eforms.noticeeditor.helper.validation.CsvValidationMode;
+import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
+import eu.europa.ted.eforms.sdk.SdkConstants;
+import eu.europa.ted.eforms.sdk.SdkVersion;
+import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import javax.servlet.http.HttpServletResponse;
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,26 +30,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import javax.servlet.http.HttpServletResponse;
-import javax.xml.parsers.ParserConfigurationException;
-import org.apache.commons.lang3.Validate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.xml.sax.SAXException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import eu.europa.ted.eforms.noticeeditor.helper.VersionHelper;
-import eu.europa.ted.eforms.noticeeditor.helper.notice.ConceptualModel;
-import eu.europa.ted.eforms.noticeeditor.helper.notice.FieldsAndNodes;
-import eu.europa.ted.eforms.noticeeditor.helper.notice.PhysicalModel;
-import eu.europa.ted.eforms.noticeeditor.helper.notice.VisualModel;
-import eu.europa.ted.eforms.noticeeditor.helper.validation.CsvValidationMode;
-import eu.europa.ted.eforms.noticeeditor.util.JsonUtils;
-import eu.europa.ted.eforms.sdk.SdkConstants;
-import eu.europa.ted.eforms.sdk.SdkVersion;
 
 /**
  * About writing to XML format. The starting point is the web form seen in the user interface, the
@@ -53,13 +54,12 @@ public class XmlWriteService {
 
   /**
    * @param responseOpt used to respond with the XML
-   * @param noticeJson The notice as JSON as built by the front-end form.
+   * @param rootElement The notice as serialized JSON as built by the front-end form.
    * @param debug Adds special debug info to the XML, useful for humans and unit tests. Not for
    *        production
    */
-  public void saveNoticeAsXml(final Optional<HttpServletResponse> responseOpt,
-      final String noticeJson, final boolean debug) throws Exception {
-    final PhysicalModel physicalModel = buildPhysicalModel(noticeJson, debug);
+  public void saveNoticeAsXml(final Optional<HttpServletResponse> responseOpt, final VisualTreeElement rootElement, final boolean debug) throws Exception {
+    final PhysicalModel physicalModel = buildPhysicalModel(rootElement, debug);
     final UUID noticeUuid = physicalModel.getNoticeId();
     final SdkVersion sdkVersion = physicalModel.getSdkVersion();
     try {
@@ -84,13 +84,12 @@ public class XmlWriteService {
    * Validate the notice using the appropriate SDK XSDs.
    *
    * @param responseOpt used to respond with a report
-   * @param noticeJson The notice as JSON as built by the front-end form.
+   * @param rootElement The notice as serialized JSON as built by the front-end form.
    * @param debug Adds special debug info to the XML, useful for humans and unit tests. Not for
    *        production
    */
-  public void validateUsingXsd(final Optional<HttpServletResponse> responseOpt,
-      final String noticeJson, final boolean debug) throws Exception {
-    final PhysicalModel physicalModel = buildPhysicalModel(noticeJson, debug);
+  public void validateUsingXsd(final Optional<HttpServletResponse> responseOpt, final VisualTreeElement rootElement, final boolean debug) throws Exception {
+    final PhysicalModel physicalModel = buildPhysicalModel(rootElement, debug);
     final SdkVersion sdkVersion = physicalModel.getSdkVersion();
     final UUID noticeUuid = physicalModel.getNoticeId();
     try {
@@ -118,37 +117,17 @@ public class XmlWriteService {
     }
   }
 
-  public PhysicalModel buildPhysicalModel(final String noticeJson, final boolean debug)
-      throws Exception {
-    final ObjectMapper mapper = JsonUtils.getStandardJacksonObjectMapper();
-    final JsonNode visualRoot = mapper.readTree(noticeJson);
-    final SdkVersion sdkVersion = parseSdkVersion(visualRoot);
-    final UUID noticeUuid = parseNoticeUuid(visualRoot);
-    try {
-      logger.info("Attempting to transform visual model into physical model as XML.");
-      return buildPhysicalModel(visualRoot, sdkVersion, noticeUuid, debug);
-    } catch (final Exception e) {
-      // Catch any error, log some useful context and rethrow.
-      logger.error("Error for notice uuid={}, sdkVersion={}", noticeUuid,
-          sdkVersion.toNormalisedString(true));
-      throw e;
-    }
-  }
-
   /**
    * Validate the notice using the remote Central Validation Service (CVS). Configuration is
    * required for this to work, see application.yaml
    *
    * @param responseOpt used to respond with a report
-   * @param noticeJson The notice as JSON as built by the front-end form.
+   * @param rootElement The notice as serialized JSON as built by the front-end form.
    * @param debug Adds special debug info to the XML, useful for humans and unit tests. Not for
    *        production
    */
-  public void validateUsingCvs(final Optional<HttpServletResponse> responseOpt,
-      final String noticeJson, final boolean debug) throws Exception {
-    Validate.notBlank(noticeJson, "noticeJson is blank");
-
-    final PhysicalModel physicalModel = buildPhysicalModel(noticeJson, debug);
+  public void validateUsingCvs(final Optional<HttpServletResponse> responseOpt, final VisualTreeElement rootElement, final boolean debug) throws Exception {
+    final PhysicalModel physicalModel = buildPhysicalModel(rootElement, debug);
     final UUID noticeUuid = physicalModel.getNoticeId();
     final SdkVersion sdkVersion = physicalModel.getSdkVersion();
 
@@ -173,48 +152,30 @@ public class XmlWriteService {
   }
 
   /**
+   * @param visualRoot The notice as serialized JSON as built by the front-end form.
    * @param debug Adds special debug info to the XML, useful for humans and unit tests. Not for
    *        production
    * @return The physical model
    */
-  private PhysicalModel buildPhysicalModel(final JsonNode visualRoot, final SdkVersion sdkVersion,
-      final UUID noticeUuid, final boolean debug)
-      throws ParserConfigurationException, SAXException, IOException {
-    Validate.notNull(visualRoot);
-    Validate.notNull(noticeUuid);
+  public PhysicalModel buildPhysicalModel(VisualTreeElement visualRoot, boolean debug) throws ParserConfigurationException {
+    SdkVersion sdkVersion = parseSdkVersion(visualRoot);
+    FieldsAndNodes fieldsAndNodes = readFieldsAndNodes(sdkVersion);
 
-    final FieldsAndNodes fieldsAndNodes = readFieldsAndNodes(sdkVersion);
-    final VisualModel visualModel = new VisualModel(visualRoot);
-
+    VisualModel visualModel = new VisualModel(visualRoot, fieldsAndNodes);
     if (debug) {
       visualModel.writeDotFile(fieldsAndNodes);
     }
 
-    final JsonNode noticeTypesJson = sdkService.readNoticeTypesJson(sdkVersion);
+    ConceptualModel conceptualModel = visualModel.toConceptualModel();
 
-    final Map<String, JsonNode> noticeInfoBySubtype = new HashMap<>(512);
-    {
-      // TODO add noticeSubTypes to the SDK constants.
-      // SdkResource.NOTICE_SUB_TYPES
-      final JsonNode noticeSubTypes = noticeTypesJson.get("noticeSubTypes");
-      for (final JsonNode item : noticeSubTypes) {
-        // TODO add subTypeId to the SDK constants.
-        final String subTypeId = JsonUtils.getTextStrict(item, "subTypeId");
-        noticeInfoBySubtype.put(subTypeId, item);
-      }
+    if (debug) {
+      conceptualModel.writeDotFile(fieldsAndNodes);
     }
 
-    final Map<String, JsonNode> documentInfoByType = parseDocumentTypes(noticeTypesJson);
+    DocumentTypeInfo documentTypeInfo = new DocumentTypeInfo(sdkService.getDocumentTypeOfSubtype(conceptualModel.getNoticeSubType(), sdkVersion), sdkVersion);
+    Path sdkFolder = sdkService.getSdkRootFolder().resolve(sdkVersion.toStringWithoutPatch());
 
-    // Go from visual model to conceptual model.
-    final ConceptualModel conceptModel = visualModel.toConceptualModel(fieldsAndNodes);
-
-    // Build physical model.
-    final boolean buildFields = true;
-    final Path sdkRootFolder = sdkService.getSdkRootFolder();
-    final PhysicalModel physicalModel = PhysicalModel.buildPhysicalModel(conceptModel,
-        fieldsAndNodes, noticeInfoBySubtype, documentInfoByType, debug, buildFields, sdkRootFolder);
-    return physicalModel;
+    return PhysicalModel.buildPhysicalModel(conceptualModel, fieldsAndNodes, documentTypeInfo, sdkFolder, debug);
   }
 
   public FieldsAndNodes readFieldsAndNodes(final SdkVersion sdkVersion) {
@@ -233,6 +194,21 @@ public class XmlWriteService {
       documentInfoByType.put(id, item);
     }
     return documentInfoByType;
+  }
+
+  /**
+   * Parses the SDK version from the visual model of the notice
+   *
+   * @param visualRoot The notice as serialized JSON as built by the front-end form.
+   * @return SDKVersion object for the given notice
+   */
+  public SdkVersion parseSdkVersion(final VisualTreeElement visualRoot) {
+    final String eformsSdkVersion = visualRoot.getSdkVersion();
+    Validate.notBlank(eformsSdkVersion, "virtual root eFormsSdkVersion is blank");
+
+    final SdkVersion sdkVersion = VersionHelper.parsePrefixedSdkVersion(eformsSdkVersion);
+    logger.info("Found SDK version: {}, using {}", eformsSdkVersion, sdkVersion);
+    return sdkVersion;
   }
 
   /**
@@ -269,51 +245,6 @@ public class XmlWriteService {
   private String generateNoticeFilename(final UUID noticeUuid, final SdkVersion sdkVersion) {
     // Not sure about the filename, including the sdkVersion plus the notice UUID is good enough.
     return String.format("notice-%s-%s.xml", sdkVersion, noticeUuid);
-  }
-
-  /**
-   * Get the SDK version.
-   *
-   * @param visualRoot root of the visual JSON
-   */
-  private static SdkVersion parseSdkVersion(final JsonNode visualRoot) {
-    // Example: the SDK value looks like "eforms-sdk-1.1.0".
-    // final String sdkVersionFieldId = ConceptualModel.FIELD_ID_SDK_VERSION;
-    // final JsonNode visualField = visualRoot.get(sdkVersionFieldId);
-    // final String eformsSdkVersion = getTextStrict(visualField, "value");
-
-    // Use the shortcut we put at the virtual root top level:
-    final String eformsSdkVersion =
-        JsonUtils.getTextStrict(visualRoot, VisualModel.VIS_SDK_VERSION);
-    Validate.notBlank(eformsSdkVersion, "virtual root eFormsSdkVersion is blank");
-
-    final SdkVersion sdkVersion =
-        VersionHelper.parsePrefixedSdkVersion(eformsSdkVersion);
-    logger.info("Found SDK version: {}, using {}", eformsSdkVersion, sdkVersion);
-    return sdkVersion;
-  }
-
-  /**
-   * Get the notice id, notice UUID.
-   *
-   * @param visualRoot Root of the visual JSON
-   */
-  private static UUID parseNoticeUuid(final JsonNode visualRoot) {
-    // final JsonNode visualItem = visualRoot.get("BT-701-notice");
-    // Validate.notNull(visualItem, "Json item holding notice UUID is null!");
-    // final String uuidStr = getTextStrict(visualItem, "value");
-
-    final String uuidStr = JsonUtils.getTextStrict(visualRoot, VisualModel.VIS_NOTICE_UUID);
-    Validate.notBlank(uuidStr, "The notice UUID is blank!");
-
-    final UUID uuidV4 = UUID.fromString(uuidStr);
-    // The UUID supports multiple versions but we are only interested in version 4.
-    // Instead of failing later, it is better to catch problems early!
-    final int version = uuidV4.version();
-    Validate.isTrue(version == 4, "Expecting notice UUID to be version 4 but found %s for %s",
-        version, uuidStr);
-
-    return uuidV4;
   }
 
   @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
